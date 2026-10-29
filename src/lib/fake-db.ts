@@ -36,7 +36,7 @@ const defaultsFor: Record<string, () => Row> = {
   month_items: () => ({ text: "", done: false }),
   food_weeks: () => ({ notes: "", schedule: ["", "", "", "", "", "", ""] }),
   food_items: () => ({ done: false, position: 0 }),
-  quarters: () => ({ notes: "" }),
+  quarters: () => ({ theme: "", notes: "" }),
   goals: () => ({ text: "", done: false, is_project: false, position: 0 }),
   goal_steps: () => ({ text: "", done: false, position: 0 }),
 };

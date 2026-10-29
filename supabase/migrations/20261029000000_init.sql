@@ -128,6 +128,7 @@ create table public.quarters (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   start_date date not null,
+  theme text not null default '' check (char_length(theme) <= 200),
   notes text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

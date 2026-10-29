@@ -44,6 +44,8 @@ export default function QuarterScreen() {
         }
       />
 
+      {quarter ? <QuarterTheme id={quarter.id} /> : null}
+
       <View style={[s.cols, !wide && { flexDirection: "column" }]}>
         {AREAS.map((area) => {
           const list = goals.filter((g) => g.area === area);
@@ -101,6 +103,33 @@ export default function QuarterScreen() {
   );
 }
 
+/** The quarter's focus theme — one line to keep in view for the whole 12 weeks. */
+function QuarterTheme({ id }: { id: string }) {
+  const d = useDocument<"quarters", { theme: string }>({
+    table: "quarters",
+    keyColumn: "id",
+    keyValue: id,
+    conflictColumns: "id",
+    fromRow: (r) => ({ theme: r?.theme ?? "" }),
+    toRow: (t) => ({ theme: t.theme }),
+  });
+  return (
+    <View style={s.themeCard}>
+      <View style={s.themeHead}>
+        <Text style={s.themeLabel}>Focus this quarter</Text>
+      </View>
+      <RuleInput
+        italicGold
+        lines={2}
+        value={d.doc.theme}
+        onChangeText={(theme) => d.patch({ theme })}
+        placeholder="The one thing these 12 weeks are about…"
+        style={{ fontSize: 19 }}
+      />
+    </View>
+  );
+}
+
 /** Notes autosave separately from the start date (which saves immediately). */
 function QuarterNotes({ id }: { id: string }) {
   const d = useDocument<"quarters", { notes: string }>({
@@ -120,6 +149,9 @@ function QuarterNotes({ id }: { id: string }) {
 }
 
 const s = StyleSheet.create({
+  themeCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: colors.card + "66", padding: space.lg },
+  themeHead: { marginBottom: 4 },
+  themeLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   cols: { flexDirection: "row", flexWrap: "wrap", gap: space.xl },
   col: { minWidth: 0 },
   colWide: { flexBasis: "46%", flexGrow: 1 },

@@ -77,6 +77,7 @@ export type QuarterRow = {
   id: string;
   user_id: string;
   start_date: string;
+  theme: string;
   notes: string;
 } & Timestamps;
 
