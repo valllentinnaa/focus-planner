@@ -1,7 +1,7 @@
 // The current 12-week cycle: the latest quarter row for the user, its goals and their steps.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { rawDb } from "@/lib/supabase";
 import type { QuarterRow } from "@/lib/database.types";
 import { toISO, mondayOf } from "@/lib/dates";
 import type { GoalWithSteps } from "@/lib/quarter-goals";
@@ -17,7 +17,7 @@ export function useCurrentQuarter() {
     queryKey,
     enabled: !!userId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rawDb
         .from("quarters")
         .select("*")
         .order("start_date", { ascending: false })
@@ -32,11 +32,11 @@ export function useCurrentQuarter() {
     mutationFn: async (change: { start_date?: string; notes?: string }) => {
       const current = query.data;
       if (current) {
-        const { data, error } = await supabase.from("quarters").update(change).eq("id", current.id).select("*").single();
+        const { data, error } = await rawDb.from("quarters").update(change).eq("id", current.id).select("*").single();
         if (error) throw error;
         return data as QuarterRow;
       }
-      const { data, error } = await supabase
+      const { data, error } = await rawDb
         .from("quarters")
         .insert({ start_date: change.start_date ?? toISO(mondayOf(new Date())), notes: change.notes ?? "" })
         .select("*")
