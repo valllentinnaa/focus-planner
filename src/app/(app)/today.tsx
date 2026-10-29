@@ -2,13 +2,15 @@ import { addDays, format } from "date-fns";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useDaily, type DailyDoc } from "@/data/daily";
+import { useDayTasks, useTaskOps } from "@/data/tasks";
 import { fromISO, isISODate, mondayOf, toISO } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
 import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
-import { CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
+import { GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
+import { TaskItem } from "@/components/task-item";
 
-type TextKey = keyof Omit<DailyDoc, "items">;
+type TextKey = keyof DailyDoc;
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -20,6 +22,8 @@ export default function TodayScreen() {
   const date = fromISO(iso);
   const monday = mondayOf(date);
   const { doc, patch } = useDaily(iso);
+  const { tasks } = useDayTasks(iso);
+  const ops = useTaskOps();
 
   const field = (key: TextKey, label: string, lines = 1) => (
     <View style={{ flex: 1, minWidth: 0 }}>
@@ -76,20 +80,10 @@ export default function TodayScreen() {
             {field("gratitude", "Today I'm grateful for", 4)}
             <View>
               <SectionLabel>Tasks</SectionLabel>
-              {doc.items.map((item, i) => (
-                <View key={i} style={s.itemRow}>
-                  <CheckBox size={18} checked={item.done} onChange={(v) => patch({ items: doc.items.map((it, j) => (j === i ? { ...it, done: v } : it)) })} />
-                  <RuleInput
-                    value={item.text}
-                    onChangeText={(v) => patch({ items: doc.items.map((it, j) => (j === i ? { ...it, text: v } : it)) })}
-                    style={[{ flex: 1 }, item.done && s.done]}
-                  />
-                  <GhostButton accessibilityLabel={`Remove task ${i + 1}`} onPress={() => patch({ items: doc.items.filter((_, j) => j !== i) })}>
-                    <Text style={s.x}>✕</Text>
-                  </GhostButton>
-                </View>
-              ))}
-              <GhostButton onPress={() => patch({ items: [...doc.items, { text: "", done: false }] })} style={{ marginTop: 6 }}>
+              <View style={{ gap: 2 }}>
+                {tasks.map((t) => <TaskItem key={t.id} task={t} ops={ops} />)}
+              </View>
+              <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, toISO(monday))} style={{ marginTop: 6 }}>
                 + Add item
               </GhostButton>
             </View>

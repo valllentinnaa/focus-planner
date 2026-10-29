@@ -18,7 +18,9 @@ const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satu
 export default function FoodScreen() {
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
   const key = weekKey(weekStart);
+  const prevKey = weekKey(addWeeks(weekStart, -1));
   const { doc, patch } = useFoodWeek(key);
+  const prev = useFoodWeek(prevKey);
   const { items, add, update, remove } = useFoodItems(key);
   const [drafts, setDrafts] = useState<Record<string, string>>({ shopping: "", cooking: "" });
 
@@ -101,6 +103,12 @@ export default function FoodScreen() {
 
       <View style={{ maxWidth: 640 }}>
         <SectionLabel>Notes for next week</SectionLabel>
+        {prev.doc.notes.trim() ? (
+          <View style={s.lastWeek}>
+            <Text style={s.lastWeekLabel}>From last week</Text>
+            <Text style={s.lastWeekText}>{prev.doc.notes.trim()}</Text>
+          </View>
+        ) : null}
         <RuledArea lines={2} value={doc.notes} onChangeText={(v) => patch({ notes: v })} />
       </View>
     </Screen>
@@ -116,4 +124,7 @@ const s = StyleSheet.create({
   schedRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.rule },
   dayShort: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, width: 36 },
   dayLong: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, width: 90 },
+  lastWeek: { borderLeftWidth: 2, borderLeftColor: colors.rule, paddingLeft: space.md, marginBottom: space.sm, gap: 2 },
+  lastWeekLabel: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
+  lastWeekText: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
 });

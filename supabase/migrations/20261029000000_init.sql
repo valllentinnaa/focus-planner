@@ -1,6 +1,11 @@
 -- Focus Planner — initial schema.
 -- Every user-owned table carries user_id (default auth.uid()) and is locked by RLS to that user.
 -- Nothing is readable by anon; the service role is never used from the client.
+--
+-- Tasks are unified: one `tasks` table backs the Week life-area lists, the Week day boxes,
+-- the Daily journal and the Month view. A task is EITHER filed under a life area for a week
+-- (area set, task_date null) OR scheduled to a day (task_date set, area null). A day-scheduled
+-- task therefore shows in the Week day box, that day's Daily journal and the Month view at once.
 
 create extension if not exists "pgcrypto";
 
@@ -33,29 +38,23 @@ end $$;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- ---------- weeks ----------
--- days: jsonb array of exactly 7 objects {focus: text, items: [{text, done}]}
+-- ---------- weeks (the per-week text fields; items live in `tasks`) ----------
 create table public.weeks (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   week_start date not null,
   focus text not null default '',
-  personal text not null default '',
-  work text not null default '',
-  development text not null default '',
   notes text not null default '',
-  days jsonb not null default '[{"focus":"","items":[]},{"focus":"","items":[]},{"focus":"","items":[]},{"focus":"","items":[]},{"focus":"","items":[]},{"focus":"","items":[]},{"focus":"","items":[]}]'::jsonb,
   prompt_dismissed boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (user_id, week_start),
-  check (extract(isodow from week_start) = 1),
-  check (jsonb_typeof(days) = 'array' and jsonb_array_length(days) = 7)
+  check (extract(isodow from week_start) = 1)
 );
 create trigger weeks_updated_at before update on public.weeks
   for each row execute function public.set_updated_at();
 
--- ---------- daily entries ----------
+-- ---------- daily entries (the journal text + per-day focus; tasks live in `tasks`) ----------
 create table public.daily_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -69,27 +68,36 @@ create table public.daily_entries (
   vitamins text not null default '',
   screen_time text not null default '',
   steps text not null default '',
-  items jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (user_id, entry_date),
-  check (jsonb_typeof(items) = 'array')
+  unique (user_id, entry_date)
 );
 create trigger daily_entries_updated_at before update on public.daily_entries
   for each row execute function public.set_updated_at();
 
--- ---------- month items (dated to-dos) ----------
-create table public.month_items (
+-- ---------- tasks (unified across Week areas, day boxes, Daily and Month) ----------
+create table public.tasks (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  item_date date not null,
   text text not null default '' check (char_length(text) <= 500),
   done boolean not null default false,
+  -- Owning week (Monday). For a day-scheduled task this is the Monday of task_date.
+  week_start date not null,
+  -- Life area when filed in a Week column; null when scheduled to a day or a loose week item.
+  area text check (area is null or area in ('personal', 'work', 'development')),
+  -- When set, the task is scheduled to this day (shows in day box + Daily + Month).
+  task_date date,
+  position integer not null default 0,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  check (extract(isodow from week_start) = 1),
+  -- A task is either in a life area (undated) or scheduled to a day — never both.
+  check (task_date is null or area is null)
 );
-create index month_items_user_date on public.month_items (user_id, item_date);
-create trigger month_items_updated_at before update on public.month_items
+create index tasks_user_week on public.tasks (user_id, week_start);
+create index tasks_user_date on public.tasks (user_id, task_date);
+create index tasks_user_area on public.tasks (user_id, week_start, area, position);
+create trigger tasks_updated_at before update on public.tasks
   for each row execute function public.set_updated_at();
 
 -- ---------- food (per week) ----------
@@ -172,7 +180,7 @@ create trigger goal_steps_updated_at before update on public.goal_steps
 do $$
 declare t text;
 begin
-  foreach t in array array['weeks','daily_entries','month_items','food_weeks','food_items','quarters','goals','goal_steps']
+  foreach t in array array['weeks','daily_entries','tasks','food_weeks','food_items','quarters','goals','goal_steps']
   loop
     execute format('alter table public.%I enable row level security', t);
     execute format('alter table public.%I force row level security', t);

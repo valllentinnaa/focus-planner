@@ -12,15 +12,7 @@ const PREFIX = "fp.demo.";
 
 const defaultsFor: Record<string, () => Row> = {
   profiles: () => ({ display_name: "", show_daily: false, show_food: true }),
-  weeks: () => ({
-    focus: "",
-    personal: "",
-    work: "",
-    development: "",
-    notes: "",
-    days: Array.from({ length: 7 }, () => ({ focus: "", items: [] })),
-    prompt_dismissed: false,
-  }),
+  weeks: () => ({ focus: "", notes: "", prompt_dismissed: false }),
   daily_entries: () => ({
     gratitude: "",
     focus: "",
@@ -31,9 +23,8 @@ const defaultsFor: Record<string, () => Row> = {
     vitamins: "",
     screen_time: "",
     steps: "",
-    items: [],
   }),
-  month_items: () => ({ text: "", done: false }),
+  tasks: () => ({ text: "", done: false, area: null, task_date: null, position: 0 }),
   food_weeks: () => ({ notes: "", schedule: ["", "", "", "", "", "", ""] }),
   food_items: () => ({ done: false, position: 0 }),
   quarters: () => ({ theme: "", notes: "" }),

@@ -76,7 +76,7 @@ export function CheckBox({ checked, onChange, size = 18, faint }: { checked: boo
 
 export function GhostButton({ children, style, ...props }: PressableProps & { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
-    <Pressable {...props} hitSlop={6} style={({ pressed }) => [s.ghost, pressed && { opacity: 0.6 }, style]}>
+    <Pressable accessibilityRole="button" {...props} hitSlop={6} style={({ pressed }) => [s.ghost, pressed && { opacity: 0.6 }, style]}>
       {typeof children === "string" ? <Text style={s.ghostText}>{children}</Text> : children}
     </Pressable>
   );

@@ -1,4 +1,3 @@
-import { hasText, parseItems, type CheckItem } from "@/lib/shapes";
 import { useDocument } from "./document";
 
 export type DailyDoc = {
@@ -11,7 +10,6 @@ export type DailyDoc = {
   vitamins: string;
   screenTime: string;
   steps: string;
-  items: CheckItem[];
 };
 
 export const emptyDaily = (): DailyDoc => ({
@@ -24,14 +22,11 @@ export const emptyDaily = (): DailyDoc => ({
   vitamins: "",
   screenTime: "",
   steps: "",
-  items: [],
 });
 
+/** Whether the journal text for a day has anything in it (tasks are counted separately). */
 export function dailyHasContent(d: DailyDoc) {
-  return (
-    [d.gratitude, d.focus, d.notes, d.start, d.sleep, d.practices, d.vitamins, d.screenTime, d.steps].some(hasText) ||
-    d.items.some((i) => hasText(i.text))
-  );
+  return Object.values(d).some((v) => typeof v === "string" && v.trim().length > 0);
 }
 
 export function useDaily(date: string) {
@@ -51,7 +46,6 @@ export function useDaily(date: string) {
             vitamins: r.vitamins,
             screenTime: r.screen_time,
             steps: r.steps,
-            items: parseItems(r.items),
           }
         : emptyDaily(),
     toRow: (d) => ({
@@ -64,7 +58,6 @@ export function useDaily(date: string) {
       vitamins: d.vitamins,
       screen_time: d.screenTime,
       steps: d.steps,
-      items: d.items,
     }),
   });
 }

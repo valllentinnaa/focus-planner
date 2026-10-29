@@ -6,13 +6,16 @@ import { useSettings } from "@/data/profile";
 import { useCurrentQuarter } from "@/data/quarter";
 import { useWeek } from "@/data/week";
 import { useDaily, dailyHasContent } from "@/data/daily";
+import { useWeekTasks, useTaskOps, type TaskOps } from "@/data/tasks";
+import type { TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
 import { resolveOpening } from "@/lib/planner-opening";
-import { appendLines } from "@/lib/quarter-goals";
+import { AREAS, AREA_LABELS } from "@/lib/tasks";
 import { colors, fonts, space } from "@/theme/tokens";
 import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
-import { CheckBox, GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
+import { GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
+import { TaskItem } from "@/components/task-item";
 import { NewWeekDialog } from "@/components/new-week-dialog";
 
 const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -22,8 +25,14 @@ export default function WeekScreen() {
   const wide = useIsWide();
   const { settings, loading: settingsLoading } = useSettings();
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
+  const setWeekStartState = (d: Date) => setWeekStart(mondayOf(d));
   const key = weekKey(weekStart);
-  const { doc, patch, loading } = useWeek(key);
+  const prevKey = weekKey(addWeeks(weekStart, -1));
+
+  const { doc, patch } = useWeek(key);
+  const prev = useWeek(prevKey);
+  const { tasks } = useWeekTasks(key);
+  const ops = useTaskOps();
   const { quarter } = useCurrentQuarter();
   const todayISO = toISO(new Date());
   const today = useDaily(todayISO);
@@ -41,23 +50,31 @@ export default function WeekScreen() {
   const qWeek = quarter ? quarterWeekNumber(quarter.start_date, weekStart) : null;
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
 
-  const patchDay = (i: number, change: Partial<(typeof doc.days)[number]>) =>
-    patch((cur) => ({ ...cur, days: cur.days.map((d, j) => (j === i ? { ...d, ...change } : d)) }));
+  const byArea = useMemo(() => {
+    const m: Record<string, TaskRow[]> = { personal: [], work: [], development: [] };
+    for (const t of tasks) if (t.area && !t.task_date) m[t.area]!.push(t);
+    return m;
+  }, [tasks]);
+  const loose = useMemo(() => tasks.filter((t) => !t.area && !t.task_date), [tasks]);
+  const byDay = useMemo(() => {
+    const m: Record<string, TaskRow[]> = {};
+    for (const t of tasks) if (t.task_date) (m[t.task_date] ??= []).push(t);
+    return m;
+  }, [tasks]);
+
+  const prevNotes = prev.doc.notes.trim();
 
   return (
     <Screen>
       <NewWeekDialog
-        enabled={!loading && key === weekKey(new Date()) && !doc.promptDismissed}
+        enabled={key === weekKey(new Date()) && !doc.promptDismissed}
         onDismiss={() => patch({ promptDismissed: true })}
-        onApply={(lines) =>
-          patch((cur) => ({
-            ...cur,
-            promptDismissed: true,
-            personal: appendLines(cur.personal, lines.personal),
-            work: appendLines(cur.work, lines.work),
-            development: appendLines(cur.development, lines.development),
-          }))
-        }
+        onApply={(lines) => {
+          patch({ promptDismissed: true });
+          (Object.keys(lines) as (keyof typeof lines)[]).forEach((area) => {
+            lines[area].forEach((text, i) => ops.add({ kind: "area", area }, key, text, byArea[area]!.length + i));
+          });
+        }}
       />
 
       <PageTitle
@@ -73,9 +90,9 @@ export default function WeekScreen() {
             <DateNav
               label={`${format(weekStart, "MMM d")}  →  ${format(weekEnd, "MMM d, yyyy")}`}
               isoValue={key}
-              onPrev={() => setWeekStart(addWeeks(weekStart, -1))}
-              onNext={() => setWeekStart(addWeeks(weekStart, 1))}
-              onPick={(iso) => setWeekStart(mondayOf(fromISO(iso)))}
+              onPrev={() => setWeekStartState(addWeeks(weekStart, -1))}
+              onNext={() => setWeekStartState(addWeeks(weekStart, 1))}
+              onPick={(iso) => setWeekStartState(mondayOf(fromISO(iso)))}
             />
           </View>
         }
@@ -90,32 +107,31 @@ export default function WeekScreen() {
         </Link>
       ) : null}
 
+      <View style={s.focusCard}>
+        <Text style={s.focusLabel}>Focus of the week</Text>
+        <RuleInput italicGold lines={3} value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="What matters most this week…" style={{ fontSize: 18 }} />
+      </View>
+
       <Columns>
         <Column>
           <View style={{ gap: space.xl }}>
-            <View style={s.focusCard}>
-              <Text style={s.focusLabel}>Focus of the week</Text>
-              <RuleInput
-                italicGold
-                lines={3}
-                value={doc.focus}
-                onChangeText={(v) => patch({ focus: v })}
-                placeholder="What matters most this week…"
-                style={{ fontSize: 18 }}
-              />
-            </View>
-            <View>
-              <SectionLabel>Personal life</SectionLabel>
-              <RuledArea lines={4} value={doc.personal} onChangeText={(v) => patch({ personal: v })} />
-            </View>
-            <View>
-              <SectionLabel>Work life</SectionLabel>
-              <RuledArea lines={4} value={doc.work} onChangeText={(v) => patch({ work: v })} />
-            </View>
-            <View>
-              <SectionLabel>Personal development</SectionLabel>
-              <RuledArea lines={4} value={doc.development} onChangeText={(v) => patch({ development: v })} />
-            </View>
+            {AREAS.map((area) => (
+              <View key={area}>
+                <SectionLabel>{AREA_LABELS[area]}</SectionLabel>
+                <View style={{ gap: 4 }}>
+                  {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} />)}
+                </View>
+                <GhostButton onPress={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} style={{ marginTop: 4 }}>
+                  + add
+                </GhostButton>
+              </View>
+            ))}
+            {loose.length ? (
+              <View>
+                <SectionLabel>This week · unscheduled</SectionLabel>
+                <View style={{ gap: 4 }}>{loose.map((t) => <TaskItem key={t.id} task={t} ops={ops} />)}</View>
+              </View>
+            ) : null}
           </View>
         </Column>
 
@@ -125,44 +141,18 @@ export default function WeekScreen() {
             {DAY_LABELS.map((label, i) => {
               const date = addDays(weekStart, i);
               const iso = toISO(date);
-              const isToday = iso === todayISO;
-              const day = doc.days[i]!;
-              const items = day.items;
-              const setItems = (next: typeof items) => patchDay(i, { items: next });
               return (
-                <View key={label} style={[s.dayBox, wide && s.dayBoxWide, isToday && s.dayBoxToday]}>
-                  <View style={s.dayHead}>
-                    <Pressable
-                      onPress={() => router.push({ pathname: "/today", params: { date: iso } })}
-                      accessibilityLabel={`Open ${label}'s journal`}
-                      hitSlop={6}
-                    >
-                      <Text style={s.dayName}>
-                        {label}
-                        {isToday ? <Text style={{ color: colors.gold }}> ↗</Text> : null}
-                      </Text>
-                    </Pressable>
-                    <Text style={s.dayDate}>{format(date, "MMM d").toUpperCase()}</Text>
-                  </View>
-                  <RuleInput italicGold value={day.focus} onChangeText={(v) => patchDay(i, { focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
-                  {items.map((it, j) => (
-                    <View key={j} style={s.itemRow}>
-                      <CheckBox size={16} checked={it.done} onChange={(v) => setItems(items.map((x, k) => (k === j ? { ...x, done: v } : x)))} />
-                      <RuleInput
-                        value={it.text}
-                        onChangeText={(v) => setItems(items.map((x, k) => (k === j ? { ...x, text: v } : x)))}
-                        placeholder="item…"
-                        style={[{ flex: 1, fontSize: 13 }, it.done && s.done]}
-                      />
-                      <GhostButton accessibilityLabel="Remove item" onPress={() => setItems(items.filter((_, k) => k !== j))}>
-                        <Text style={s.x}>✕</Text>
-                      </GhostButton>
-                    </View>
-                  ))}
-                  <GhostButton onPress={() => setItems([...items, { text: "", done: false }])} style={{ marginTop: 4 }}>
-                    + add
-                  </GhostButton>
-                </View>
+                <DayBox
+                  key={label}
+                  label={label}
+                  iso={iso}
+                  isToday={iso === todayISO}
+                  tasks={byDay[iso] ?? []}
+                  ops={ops}
+                  weekStart={key}
+                  wide={wide}
+                  onOpen={() => router.push({ pathname: "/today", params: { date: iso } })}
+                />
               );
             })}
           </View>
@@ -171,9 +161,46 @@ export default function WeekScreen() {
 
       <View>
         <SectionLabel>Notes for next week</SectionLabel>
+        {prevNotes ? (
+          <View style={s.lastWeek}>
+            <Text style={s.lastWeekLabel}>From last week</Text>
+            <Text style={s.lastWeekText}>{prevNotes}</Text>
+          </View>
+        ) : null}
         <RuledArea lines={2} value={doc.notes} onChangeText={(v) => patch({ notes: v })} />
       </View>
     </Screen>
+  );
+}
+
+/** A day box: its focus line (shared with the Daily journal) and its scheduled tasks. */
+function DayBox({ label, iso, isToday, tasks, ops, weekStart, wide, onOpen }: {
+  label: string;
+  iso: string;
+  isToday: boolean;
+  tasks: TaskRow[];
+  ops: TaskOps;
+  weekStart: string;
+  wide: boolean;
+  onOpen: () => void;
+}) {
+  const day = useDaily(iso);
+  return (
+    <View style={[s.dayBox, wide && s.dayBoxWide, isToday && s.dayBoxToday]}>
+      <View style={s.dayHead}>
+        <Pressable onPress={onOpen} accessibilityLabel={`Open ${label}'s journal`} hitSlop={6}>
+          <Text style={s.dayName}>{label}{isToday ? <Text style={{ color: colors.gold }}> ↗</Text> : null}</Text>
+        </Pressable>
+        <Text style={s.dayDate}>{format(fromISO(iso), "MMM d").toUpperCase()}</Text>
+      </View>
+      <RuleInput italicGold value={day.doc.focus} onChangeText={(v) => day.patch({ focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
+      <View style={{ gap: 2 }}>
+        {tasks.map((t) => <TaskItem key={t.id} task={t} ops={ops} compact />)}
+      </View>
+      <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, weekStart)} style={{ marginTop: 4 }}>
+        + add
+      </GhostButton>
+    </View>
   );
 }
 
@@ -192,7 +219,7 @@ const s = StyleSheet.create({
   dayHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 },
   dayName: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
   dayDate: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, color: colors.mutedForeground },
-  itemRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  done: { textDecorationLine: "line-through", color: colors.mutedForeground },
-  x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
+  lastWeek: { borderLeftWidth: 2, borderLeftColor: colors.rule, paddingLeft: space.md, marginBottom: space.sm, gap: 2 },
+  lastWeekLabel: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
+  lastWeekText: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
 });

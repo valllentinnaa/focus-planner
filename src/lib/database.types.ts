@@ -23,11 +23,7 @@ export type WeekRow = {
   user_id: string;
   week_start: string;
   focus: string;
-  personal: string;
-  work: string;
-  development: string;
   notes: string;
-  days: Json;
   prompt_dismissed: boolean;
 } & Timestamps;
 
@@ -44,15 +40,19 @@ export type DailyEntryRow = {
   vitamins: string;
   screen_time: string;
   steps: string;
-  items: Json;
 } & Timestamps;
 
-export type MonthItemRow = {
+export type TaskArea = "personal" | "work" | "development";
+
+export type TaskRow = {
   id: string;
   user_id: string;
-  item_date: string;
   text: string;
   done: boolean;
+  week_start: string;
+  area: TaskArea | null;
+  task_date: string | null;
+  position: number;
 } & Timestamps;
 
 export type FoodWeekRow = {
@@ -107,7 +107,7 @@ export type Database = {
       profiles: Table<ProfileRow, "id">;
       weeks: Table<WeekRow, "week_start">;
       daily_entries: Table<DailyEntryRow, "entry_date">;
-      month_items: Table<MonthItemRow, "item_date">;
+      tasks: Table<TaskRow, "week_start">;
       food_weeks: Table<FoodWeekRow, "week_start">;
       food_items: Table<FoodItemRow, "week_start" | "list" | "text">;
       quarters: Table<QuarterRow, "start_date">;
