@@ -12,12 +12,14 @@
       "distribution": "internal",
       "channel": "preview",
       "autoIncrement": true,
-      "ios": { "resourceClass": "m-medium" }
+      "ios": { "resourceClass": "m-medium" },
+      "android": { "buildType": "apk" }
     },
     "production": {
       "channel": "production",
       "autoIncrement": true,
-      "ios": { "resourceClass": "m-medium" }
+      "ios": { "resourceClass": "m-medium" },
+      "android": { "buildType": "app-bundle" }
     }
   },
   "submit": {

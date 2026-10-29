@@ -1,0 +1,32 @@
+name: Android build (APK)
+
+# Manual trigger. Builds an installable Android APK on EAS. No Apple account needed.
+# Requires a GitHub Actions secret EXPO_TOKEN (https://expo.dev/settings/access-tokens).
+# The first run also needs `eas init` to have been done once (see RELEASING_ANDROID.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile (preview = installable APK)"
+        default: "preview"
+        type: choice
+        options: [preview, production]
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Build Android
+        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive --wait
+      # The build's APK download URL is printed in the log and on https://expo.dev → Builds.
