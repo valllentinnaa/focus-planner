@@ -5,7 +5,7 @@ import { useMonthTasks, useTaskOps } from "@/data/tasks";
 import { fromISO, inWeek, mondayOf, monthWeeks, toISO, type MonthWeek } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, useIsWide } from "@/components/screen";
-import { Display, GhostButton, RuleInput, SolidButton } from "@/components/ui";
+import { BlankRows, Display, GhostButton, RuleInput, SolidButton } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
 
 export default function MonthScreen() {
@@ -59,6 +59,7 @@ export default function MonthScreen() {
                     <TaskItem task={t} ops={ops} compact />
                   </View>
                 ))}
+                <BlankRows count={Math.max(0, 4 - rows.length)} size={16} />
               </View>
               <GhostButton onPress={() => setAdding({ weekIndex: index })} style={{ marginTop: 8 }}>+ Add</GhostButton>
             </View>

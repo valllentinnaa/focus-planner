@@ -106,6 +106,23 @@ export function Rule({ dashed }: { dashed?: boolean }) {
   return <View style={[s.rule, dashed && { borderStyle: "dashed" }]} />;
 }
 
+/** Decorative empty ruled rows, like the blank lines on the paper planner. */
+export function BlankRows({ count, size = 18 }: { count: number; size?: number }) {
+  if (count <= 0) return null;
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <View key={`blank-${i}`} style={s.blankRow}>
+          <CheckBox size={size} checked={false} faint />
+          <View style={{ flex: 1 }}>
+            <Rule dashed />
+          </View>
+        </View>
+      ))}
+    </>
+  );
+}
+
 const s = StyleSheet.create({
   display: { fontFamily: fonts.display, fontSize: 44, lineHeight: 46, color: colors.ink, letterSpacing: -0.5 },
   displayItalic: { fontFamily: fonts.displayItalic, color: colors.gold },
@@ -144,4 +161,5 @@ const s = StyleSheet.create({
   card: { borderWidth: 1, borderColor: colors.rule, borderRadius: radius.md, padding: space.md, backgroundColor: "transparent" },
   cardHighlighted: { borderColor: colors.gold, backgroundColor: colors.card + "80" },
   rule: { borderBottomWidth: 1, borderBottomColor: colors.rule, height: 28 },
+  blankRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 });

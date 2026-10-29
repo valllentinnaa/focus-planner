@@ -14,7 +14,7 @@ import { AREAS, AREA_LABELS } from "@/lib/tasks";
 import { colors, fonts, space } from "@/theme/tokens";
 import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
-import { GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
+import { BlankRows, GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
 import { DropZone } from "@/components/drag";
 import { NewWeekDialog } from "@/components/new-week-dialog";
@@ -121,6 +121,7 @@ export default function WeekScreen() {
                 <SectionLabel>{AREA_LABELS[area]}</SectionLabel>
                 <View style={{ gap: 4 }}>
                   {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} draggable />)}
+                  <BlankRows count={Math.max(0, 5 - byArea[area]!.length)} />
                 </View>
                 <GhostButton onPress={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} style={{ marginTop: 4 }}>
                   + add
@@ -202,6 +203,7 @@ function DayBox({ label, iso, isToday, tasks, ops, weekStart, wide, onOpen }: {
       <RuleInput italicGold value={day.doc.focus} onChangeText={(v) => day.patch({ focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
       <View style={{ gap: 2 }}>
         {tasks.map((t) => <TaskItem key={t.id} task={t} ops={ops} compact draggable />)}
+        <BlankRows count={Math.max(0, 3 - tasks.length)} size={16} />
       </View>
       <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, weekStart)} style={{ marginTop: 4 }}>
         + add
