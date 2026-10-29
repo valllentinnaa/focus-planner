@@ -27,6 +27,7 @@ export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops
         value={task.text}
         onChangeText={(text) => ops.setText(task.id, text)}
         placeholder="task…"
+        autoFocus={ops.focusId === task.id}
         style={[{ flex: 1, fontSize: compact ? 13 : 14 }, task.done && s.done]}
       />
       <GhostButton accessibilityLabel="Postpone to next week" onPress={() => ops.postpone(task)}>

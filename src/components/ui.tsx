@@ -106,18 +106,25 @@ export function Rule({ dashed }: { dashed?: boolean }) {
   return <View style={[s.rule, dashed && { borderStyle: "dashed" }]} />;
 }
 
-/** Decorative empty ruled rows, like the blank lines on the paper planner. */
-export function BlankRows({ count, size = 18 }: { count: number; size?: number }) {
+/** Decorative empty ruled rows, like the paper planner. Tapping one adds a task when onAdd is set. */
+export function BlankRows({ count, size = 18, onAdd }: { count: number; size?: number; onAdd?: () => void }) {
   if (count <= 0) return null;
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <View key={`blank-${i}`} style={s.blankRow}>
+        <Pressable
+          key={`blank-${i}`}
+          onPress={onAdd}
+          disabled={!onAdd}
+          accessibilityRole={onAdd ? "button" : undefined}
+          accessibilityLabel={onAdd ? "Add a line" : undefined}
+          style={s.blankRow}
+        >
           <CheckBox size={size} checked={false} faint />
           <View style={{ flex: 1 }}>
             <Rule dashed />
           </View>
-        </View>
+        </Pressable>
       ))}
     </>
   );

@@ -2,7 +2,7 @@
 // Query hooks return a slice (a week, a day, a month); the ops mutate the table and keep every
 // cached slice consistent so a change in one view appears in the others without a manual refresh.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import * as Crypto from "expo-crypto";
 import { rawDb } from "@/lib/supabase";
 import type { TaskRow } from "@/lib/database.types";
@@ -50,6 +50,8 @@ export function useMonthTasks(firstMonday: string, lastMonday: string) {
 export function useTaskOps() {
   const qc = useQueryClient();
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Id of a task just created from this screen, so its input can take focus once.
+  const [focusId, setFocusId] = useState<string | null>(null);
 
   const eachSlice = useCallback(
     (fn: (rows: TaskRow[]) => TaskRow[]) => qc.setQueriesData<TaskRow[]>({ queryKey: ["tasks"] }, (rows) => (rows ? fn(rows) : rows)),
@@ -80,13 +82,14 @@ export function useTaskOps() {
     onSettled: invalidate,
   });
 
-  return useMemo(
+  const ops = useMemo(
     () => ({
       /** Create a task at a placement (area column, a day, or loose within a week). */
       add(placement: Placement, weekStart: string, text = "", position = 0) {
         const id = Crypto.randomUUID();
         const cols = placementColumns(placement, weekStart);
         add.mutate({ id, text, done: false, position, ...cols });
+        setFocusId(id);
         return id;
       },
       setText(id: string, text: string) {
@@ -131,6 +134,8 @@ export function useTaskOps() {
     }),
     [add, persist, del, eachSlice, invalidate],
   );
+
+  return useMemo(() => ({ ...ops, focusId }), [ops, focusId]);
 }
 
 export type TaskOps = ReturnType<typeof useTaskOps>;

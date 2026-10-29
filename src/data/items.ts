@@ -85,7 +85,11 @@ export function useItems<T extends ListTable>(opts: {
     items: query.data ?? [],
     loading: query.isLoading,
     error: query.error,
-    add: (row: Omit<Insert<T>, "id" | "user_id">) => add.mutate({ ...(row as Insert<T>), id: newId() }),
+    add: (row: Omit<Insert<T>, "id" | "user_id">) => {
+      const id = newId();
+      add.mutate({ ...(row as Insert<T>), id });
+      return id;
+    },
     update: (id: string, change: Partial<Row<T>>) => update.mutate({ id, ...change }),
     remove: (id: string) => remove.mutate(id),
     refetch: query.refetch,

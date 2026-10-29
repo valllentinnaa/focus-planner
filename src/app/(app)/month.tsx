@@ -58,7 +58,11 @@ export default function MonthScreen() {
                 <TaskItem task={t} ops={ops} compact />
               </View>
             ))}
-            <BlankRows count={Math.max(0, 6 - monthRows.length)} size={16} />
+            <BlankRows
+              count={Math.max(0, 6 - monthRows.length)}
+              size={16}
+              onAdd={() => ops.add({ kind: "loose" }, toISO(mondayOf(weeks[currentWeekIndex]!.start)))}
+            />
           </View>
           <GhostButton onPress={() => setAdding({ weekIndex: currentWeekIndex })} style={{ marginTop: 4 }}>+ Add</GhostButton>
         </Column>
@@ -81,7 +85,11 @@ export default function MonthScreen() {
                         <TaskItem task={t} ops={ops} compact />
                       </View>
                     ))}
-                    <BlankRows count={Math.max(0, 4 - rows.length)} size={16} />
+                    <BlankRows
+                      count={Math.max(0, 4 - rows.length)}
+                      size={16}
+                      onAdd={() => ops.add({ kind: "loose" }, toISO(mondayOf(week.start)))}
+                    />
                   </View>
                   <GhostButton onPress={() => setAdding({ weekIndex: index })} style={{ marginTop: 8 }}>+ Add</GhostButton>
                 </View>

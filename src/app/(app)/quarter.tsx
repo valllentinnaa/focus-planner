@@ -1,5 +1,5 @@
 import { addDays, format } from "date-fns";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useCurrentQuarter, useGoals } from "@/data/quarter";
 import { fromISO, mondayOf, toISO } from "@/lib/dates";
@@ -7,13 +7,17 @@ import { AREAS, AREA_LABELS } from "@/lib/quarter-goals";
 import { colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
-import { Body, CheckBox, GhostButton, Rule, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
+import { BlankRows, Body, CheckBox, GhostButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
 import { useDocument } from "@/data/document";
 
 export default function QuarterScreen() {
   const wide = useIsWide();
   const { quarter, loading, save } = useCurrentQuarter();
   const { goals, goalOps, stepOps } = useGoals(quarter?.id ?? null);
+  const [focusGoal, setFocusGoal] = useState<string | null>(null);
+  const addGoal = (area: (typeof AREAS)[number], position: number) => {
+    if (quarter) setFocusGoal(goalOps.add({ quarter_id: quarter.id, area, text: "", position }));
+  };
 
   if (!loading && !quarter) {
     return (
@@ -57,7 +61,7 @@ export default function QuarterScreen() {
                   <Fragment key={g.id}>
                     <View style={s.goalRow}>
                       <CheckBox size={18} checked={g.done} onChange={(done) => goalOps.update(g.id, { done })} />
-                      <RuleInput value={g.text} onChangeText={(text) => goalOps.update(g.id, { text })} placeholder="Write a goal…" style={[{ flex: 1 }, g.done && s.done]} />
+                      <RuleInput value={g.text} onChangeText={(text) => goalOps.update(g.id, { text })} placeholder="Write a goal…" autoFocus={focusGoal === g.id} style={[{ flex: 1 }, g.done && s.done]} />
                       <GhostButton
                         accessibilityLabel={g.is_project ? "Make simple goal" : "Make it a project"}
                         onPress={() => goalOps.update(g.id, { is_project: !g.is_project })}
@@ -80,17 +84,9 @@ export default function QuarterScreen() {
                     ) : null}
                   </Fragment>
                 ))}
-                {Array.from({ length: Math.max(0, 6 - list.length) }).map((_, i) => (
-                  <View key={`blank-${i}`} style={s.goalRow}>
-                    <CheckBox size={18} checked={false} faint />
-                    <View style={{ flex: 1 }}><Rule dashed /></View>
-                  </View>
-                ))}
+                <BlankRows count={Math.max(0, 6 - list.length)} onAdd={() => addGoal(area, list.length)} />
               </View>
-              <GhostButton
-                style={{ marginTop: space.md }}
-                onPress={() => quarter && goalOps.add({ quarter_id: quarter.id, area, text: "", position: list.length })}
-              >
+              <GhostButton style={{ marginTop: space.md }} onPress={() => addGoal(area, list.length)}>
                 + Add line
               </GhostButton>
             </View>
