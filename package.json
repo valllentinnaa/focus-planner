@@ -18,8 +18,13 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "testMatch": ["**/*.test.ts", "**/*.test.tsx"],
-    "setupFiles": ["./jest.setup.js"]
+    "testMatch": [
+      "**/*.test.ts",
+      "**/*.test.tsx"
+    ],
+    "setupFiles": [
+      "./jest.setup.js"
+    ]
   },
   "dependencies": {
     "@expo-google-fonts/instrument-serif": "^0.4.1",

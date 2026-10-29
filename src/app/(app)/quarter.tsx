@@ -21,7 +21,7 @@ export default function QuarterScreen() {
         <PageTitle eyebrow="12 Weeks" title="Q Plan" />
         <Body muted>Start a 12-week cycle to plan goals across the four areas of life.</Body>
         <SolidButton style={{ alignSelf: "flex-start" }} onPress={() => save({ start_date: toISO(mondayOf(new Date())) })}>
-          Start this week
+          Set your goals
         </SolidButton>
       </Screen>
     );

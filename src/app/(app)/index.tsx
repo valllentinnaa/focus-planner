@@ -81,12 +81,28 @@ export default function WeekScreen() {
         }
       />
 
+      {quarter?.theme?.trim() ? (
+        <Link href="/quarter" asChild>
+          <Pressable style={s.themeReminder}>
+            <Text style={s.themeReminderLabel}>Focus this quarter</Text>
+            <Text style={s.themeReminderText}>{quarter.theme.trim()}</Text>
+          </Pressable>
+        </Link>
+      ) : null}
+
       <Columns>
         <Column>
           <View style={{ gap: space.xl }}>
-            <View>
-              <SectionLabel>Focus of the week</SectionLabel>
-              <RuledArea lines={3} value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="What matters most this week…" />
+            <View style={s.focusCard}>
+              <Text style={s.focusLabel}>Focus of the week</Text>
+              <RuleInput
+                italicGold
+                lines={3}
+                value={doc.focus}
+                onChangeText={(v) => patch({ focus: v })}
+                placeholder="What matters most this week…"
+                style={{ fontSize: 18 }}
+              />
             </View>
             <View>
               <SectionLabel>Personal life</SectionLabel>
@@ -164,6 +180,11 @@ export default function WeekScreen() {
 const s = StyleSheet.create({
   titleRight: { gap: space.sm, alignItems: "flex-start" },
   goldLink: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.gold, letterSpacing: 1 },
+  themeReminder: { borderLeftWidth: 2, borderLeftColor: colors.gold, paddingLeft: space.md, paddingVertical: 2, gap: 2 },
+  themeReminderLabel: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
+  themeReminderText: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.gold },
+  focusCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: colors.card + "66", padding: space.lg },
+  focusLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginBottom: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   dayBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.md, minHeight: 120, gap: 4 },
   dayBoxWide: { flexBasis: "48%", flexGrow: 1 },
