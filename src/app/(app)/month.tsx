@@ -4,8 +4,8 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useMonthTasks, useTaskOps } from "@/data/tasks";
 import { fromISO, inWeek, mondayOf, monthWeeks, toISO, type MonthWeek } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
-import { PageTitle, Screen, useIsWide } from "@/components/screen";
-import { BlankRows, Display, GhostButton, RuleInput, SolidButton } from "@/components/ui";
+import { Column, Columns, PageTitle, Screen, useIsWide } from "@/components/screen";
+import { BlankRows, Display, GhostButton, RuleInput, SectionLabel, SolidButton } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
 
 export default function MonthScreen() {
@@ -17,6 +17,7 @@ export default function MonthScreen() {
   const { tasks } = useMonthTasks(firstMonday, lastMonday);
   const ops = useTaskOps();
   const todayISO = toISO(new Date());
+  const currentWeekIndex = Math.max(0, weeks.findIndex((w) => inWeek(todayISO, w)));
 
   const [adding, setAdding] = useState<{ weekIndex: number } | null>(null);
 
@@ -26,6 +27,11 @@ export default function MonthScreen() {
     tasks
       .filter((t) => (t.task_date ? inWeek(t.task_date, week) : !t.area && t.week_start === toISO(mondayOf(week.start))))
       .sort((a, b) => (a.task_date ?? "9").localeCompare(b.task_date ?? "9"));
+
+  // The left "To do" column: every scheduled or week-level task in the month, as one agenda.
+  const monthRows = tasks
+    .filter((t) => !t.area)
+    .sort((a, b) => (a.task_date ?? "9").localeCompare(b.task_date ?? "9"));
 
   return (
     <Screen>
@@ -42,30 +48,48 @@ export default function MonthScreen() {
         }
       />
 
-      <View style={[s.weeksGrid, !wide && { flexDirection: "column" }]}>
-        {weeks.map((week, index) => {
-          const current = inWeek(todayISO, week);
-          const rows = tasksForWeek(week);
-          return (
-            <View key={toISO(week.start)} style={[s.weekBox, wide && s.weekBoxWide, current && s.weekBoxCurrent]}>
-              <View style={s.weekHead}>
-                <Text style={s.weekTitle}>Week {index + 1}</Text>
-                <Text style={s.weekDate}>{format(week.start, "MMM d").toUpperCase()} – {format(week.end, "d")}</Text>
+      <Columns>
+        <Column flex={1}>
+          <SectionLabel>To do</SectionLabel>
+          <View style={{ gap: 4, paddingVertical: space.sm }}>
+            {monthRows.map((t) => (
+              <View key={t.id}>
+                {t.task_date ? <Text style={s.taskDate}>{format(fromISO(t.task_date), "EEE, MMM d").toUpperCase()}</Text> : null}
+                <TaskItem task={t} ops={ops} compact />
               </View>
-              <View style={{ gap: 2, flex: 1 }}>
-                {rows.map((t) => (
-                  <View key={t.id}>
-                    {t.task_date ? <Text style={s.taskDate}>{format(fromISO(t.task_date), "EEE, MMM d").toUpperCase()}</Text> : null}
-                    <TaskItem task={t} ops={ops} compact />
+            ))}
+            <BlankRows count={Math.max(0, 6 - monthRows.length)} size={16} />
+          </View>
+          <GhostButton onPress={() => setAdding({ weekIndex: currentWeekIndex })} style={{ marginTop: 4 }}>+ Add</GhostButton>
+        </Column>
+
+        <Column flex={2}>
+          <View style={[s.weeksGrid, !wide && { flexDirection: "column" }]}>
+            {weeks.map((week, index) => {
+              const current = inWeek(todayISO, week);
+              const rows = tasksForWeek(week);
+              return (
+                <View key={toISO(week.start)} style={[s.weekBox, wide && s.weekBoxWide, current && s.weekBoxCurrent]}>
+                  <View style={s.weekHead}>
+                    <Text style={s.weekTitle}>Week {index + 1}</Text>
+                    <Text style={s.weekDate}>{format(week.start, "MMM d").toUpperCase()} – {format(week.end, "d")}</Text>
                   </View>
-                ))}
-                <BlankRows count={Math.max(0, 4 - rows.length)} size={16} />
-              </View>
-              <GhostButton onPress={() => setAdding({ weekIndex: index })} style={{ marginTop: 8 }}>+ Add</GhostButton>
-            </View>
-          );
-        })}
-      </View>
+                  <View style={{ gap: 2, flex: 1 }}>
+                    {rows.map((t) => (
+                      <View key={t.id}>
+                        {t.task_date ? <Text style={s.taskDate}>{format(fromISO(t.task_date), "EEE, MMM d").toUpperCase()}</Text> : null}
+                        <TaskItem task={t} ops={ops} compact />
+                      </View>
+                    ))}
+                    <BlankRows count={Math.max(0, 4 - rows.length)} size={16} />
+                  </View>
+                  <GhostButton onPress={() => setAdding({ weekIndex: index })} style={{ marginTop: 8 }}>+ Add</GhostButton>
+                </View>
+              );
+            })}
+          </View>
+        </Column>
+      </Columns>
 
       {adding ? (
         <AddDialog
