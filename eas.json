@@ -11,14 +11,21 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": { "resourceClass": "m-medium" }
     },
     "production": {
       "channel": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": { "resourceClass": "m-medium" }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "APPLE_ASC_APP_ID_HERE",
+        "appleTeamId": "APPLE_TEAM_ID_HERE"
+      }
+    }
   }
 }
