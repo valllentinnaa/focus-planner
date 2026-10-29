@@ -7,18 +7,21 @@ import { AREAS, AREA_LABELS, placementOf } from "@/lib/tasks";
 import type { TaskOps } from "@/data/tasks";
 import { colors, fonts, space } from "@/theme/tokens";
 import { CheckBox, GhostButton, RuleInput } from "./ui";
+import { DragHandle } from "./drag";
 
 /**
  * One task line: check it off (strikes through), edit its text, postpone it to next week,
- * or open the move menu to schedule it to a day or file it under a life area.
+ * or open the move menu to schedule it to a day or file it under a life area. On the Week
+ * screen it also carries a drag handle to drop it into a day box or life area.
  */
-export function TaskItem({ task, ops, compact }: { task: TaskRow; ops: TaskOps; compact?: boolean }) {
+export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops: TaskOps; compact?: boolean; draggable?: boolean }) {
   const [menu, setMenu] = useState(false);
   const here = placementOf(task);
   const days = Array.from({ length: 7 }, (_, i) => addDays(fromISO(task.week_start), i));
 
   return (
     <View style={s.row}>
+      {draggable ? <DragHandle task={task} label={task.text} /> : null}
       <CheckBox size={compact ? 16 : 18} checked={task.done} onChange={(done) => ops.setDone(task.id, done)} />
       <RuleInput
         value={task.text}

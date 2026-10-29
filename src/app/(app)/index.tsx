@@ -16,6 +16,7 @@ import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/scre
 import { DateNav } from "@/components/date-nav";
 import { GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
+import { DropZone } from "@/components/drag";
 import { NewWeekDialog } from "@/components/new-week-dialog";
 
 const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -116,15 +117,15 @@ export default function WeekScreen() {
         <Column>
           <View style={{ gap: space.xl }}>
             {AREAS.map((area) => (
-              <View key={area}>
+              <DropZone key={area} id={`area-${area}`} onDrop={(t) => ops.move(t, { kind: "area", area })} style={s.zone} highlightStyle={s.zoneActive}>
                 <SectionLabel>{AREA_LABELS[area]}</SectionLabel>
                 <View style={{ gap: 4 }}>
-                  {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} />)}
+                  {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} draggable />)}
                 </View>
                 <GhostButton onPress={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} style={{ marginTop: 4 }}>
                   + add
                 </GhostButton>
-              </View>
+              </DropZone>
             ))}
             {loose.length ? (
               <View>
@@ -186,7 +187,12 @@ function DayBox({ label, iso, isToday, tasks, ops, weekStart, wide, onOpen }: {
 }) {
   const day = useDaily(iso);
   return (
-    <View style={[s.dayBox, wide && s.dayBoxWide, isToday && s.dayBoxToday]}>
+    <DropZone
+      id={`day-${iso}`}
+      onDrop={(t) => ops.move(t, { kind: "day", date: iso })}
+      style={[s.dayBox, wide && s.dayBoxWide, isToday && s.dayBoxToday]}
+      highlightStyle={s.dayBoxDrop}
+    >
       <View style={s.dayHead}>
         <Pressable onPress={onOpen} accessibilityLabel={`Open ${label}'s journal`} hitSlop={6}>
           <Text style={s.dayName}>{label}{isToday ? <Text style={{ color: colors.gold }}> ↗</Text> : null}</Text>
@@ -195,12 +201,12 @@ function DayBox({ label, iso, isToday, tasks, ops, weekStart, wide, onOpen }: {
       </View>
       <RuleInput italicGold value={day.doc.focus} onChangeText={(v) => day.patch({ focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
       <View style={{ gap: 2 }}>
-        {tasks.map((t) => <TaskItem key={t.id} task={t} ops={ops} compact />)}
+        {tasks.map((t) => <TaskItem key={t.id} task={t} ops={ops} compact draggable />)}
       </View>
       <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, weekStart)} style={{ marginTop: 4 }}>
         + add
       </GhostButton>
-    </View>
+    </DropZone>
   );
 }
 
@@ -216,6 +222,9 @@ const s = StyleSheet.create({
   dayBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.md, minHeight: 120, gap: 4 },
   dayBoxWide: { flexBasis: "48%", flexGrow: 1 },
   dayBoxToday: { borderColor: colors.gold, backgroundColor: colors.card + "80" },
+  dayBoxDrop: { borderColor: colors.gold, backgroundColor: colors.gold + "22" },
+  zone: { borderRadius: 4 },
+  zoneActive: { backgroundColor: colors.gold + "18" },
   dayHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 },
   dayName: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
   dayDate: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, color: colors.mutedForeground },
