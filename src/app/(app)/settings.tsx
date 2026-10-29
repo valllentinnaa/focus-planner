@@ -2,6 +2,8 @@ import Constants from "expo-constants";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { useAuth } from "@/data/auth";
 import { useSettings } from "@/data/profile";
+import { env } from "@/lib/env";
+import { clearDemoData } from "@/lib/fake-db";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, space } from "@/theme/tokens";
 import { Hint, PageTitle, Screen } from "@/components/screen";
@@ -30,10 +32,16 @@ export default function SettingsScreen() {
 
         <View>
           <SectionLabel>Account</SectionLabel>
-          <Body muted>{session?.user.email}</Body>
-          <GhostButton onPress={() => supabase.auth.signOut()} style={{ marginTop: space.sm }}>
-            Sign out
-          </GhostButton>
+          <Body muted>{env.demo ? "Demo mode — data stays in this browser" : session?.user.email}</Body>
+          {env.demo ? (
+            <GhostButton onPress={() => clearDemoData().then(() => window.location.reload())} style={{ marginTop: space.sm }}>
+              Reset demo data
+            </GhostButton>
+          ) : (
+            <GhostButton onPress={() => supabase.auth.signOut()} style={{ marginTop: space.sm }}>
+              Sign out
+            </GhostButton>
+          )}
         </View>
 
         <Hint>

@@ -3,6 +3,7 @@ import { AppState, Platform } from "react-native";
 import { env } from "./env";
 import { sessionStorage } from "./secure-session-storage";
 import type { Database } from "./database.types";
+import { createFakeDb } from "./fake-db";
 
 export const supabase = createClient<Database>(env.supabaseUrl, env.supabasePublishableKey, {
   auth: {
@@ -17,10 +18,10 @@ export const supabase = createClient<Database>(env.supabaseUrl, env.supabasePubl
 
 // Generic data hooks (useDocument / useItems) take the table name as a type parameter, which
 // supabase-js cannot narrow; they use this untyped handle and the typed callers guard the edges.
-export const rawDb = supabase as unknown as SupabaseClient;
+export const rawDb = (env.demo ? createFakeDb() : supabase) as unknown as SupabaseClient;
 
 // Refresh tokens only while the app is in the foreground.
-if (Platform.OS !== "web") {
+if (Platform.OS !== "web" && !env.demo) {
   AppState.addEventListener("change", (state) => {
     if (state === "active") supabase.auth.startAutoRefresh();
     else supabase.auth.stopAutoRefresh();

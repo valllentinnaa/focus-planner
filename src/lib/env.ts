@@ -11,14 +11,20 @@ const parsed = schema.safeParse({
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 });
 
-if (!parsed.success) {
-  throw new Error(
-    "Missing Supabase config. Copy .env.example to .env.local and fill in both values.\n" +
-      parsed.error.issues.map((i) => `- ${i.path.join(".")}: ${i.message}`).join("\n"),
+/**
+ * Demo mode: no Supabase configured (or EXPO_PUBLIC_DEMO=1). The app runs fully against local
+ * storage with a fake signed-in user so screens can be reviewed. Nothing leaves the device.
+ */
+const demo = process.env.EXPO_PUBLIC_DEMO === "1" || !parsed.success;
+
+if (!parsed.success && process.env.EXPO_PUBLIC_DEMO !== "1" && process.env.NODE_ENV !== "test") {
+  console.warn(
+    "Focus Planner: no Supabase config found, running in demo mode. Copy .env.example to .env.local to use a real backend.",
   );
 }
 
 export const env = {
-  supabaseUrl: parsed.data.EXPO_PUBLIC_SUPABASE_URL,
-  supabasePublishableKey: parsed.data.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  demo,
+  supabaseUrl: parsed.success ? parsed.data.EXPO_PUBLIC_SUPABASE_URL : "https://demo.invalid",
+  supabasePublishableKey: parsed.success ? parsed.data.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY : "demo",
 };
