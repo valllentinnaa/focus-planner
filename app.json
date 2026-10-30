@@ -51,6 +51,23 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": false
+        }
+      },
+      "eas": {
+        "projectId": "9767457e-43f4-43c0-8b7f-f2a77e15d0c1"
+      }
+    },
+    "owner": "focus-planner",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9767457e-43f4-43c0-8b7f-f2a77e15d0c1"
     }
   }
 }
