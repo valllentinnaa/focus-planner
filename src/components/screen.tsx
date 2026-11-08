@@ -51,7 +51,10 @@ export function Columns({ children, gap = space.xl }: { children: ReactNode; gap
 }
 
 export function Column({ children, flex = 1 }: { children: ReactNode; flex?: number }) {
-  return <View style={{ flex, minWidth: 0, width: "100%" }}>{children}</View>;
+  const wide = useIsWide();
+  // Only share width in the wide row layout; when stacked, `flex` would grow the
+  // column to fill the viewport height and open a big gap below it.
+  return <View style={[{ minWidth: 0, width: "100%" }, wide && { flex }]}>{children}</View>;
 }
 
 export function Hint({ children }: { children: ReactNode }) {
