@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
   type PressableProps,
   type StyleProp,
@@ -15,7 +16,10 @@ import {
 import { colors, fonts, radius, space } from "@/theme/tokens";
 
 export function Display({ children, italic, style }: { children: ReactNode; italic?: boolean; style?: StyleProp<TextStyle> }) {
-  return <Text style={[s.display, italic && s.displayItalic, style]}>{children}</Text>;
+  const { width } = useWindowDimensions();
+  // Big serif title scales down on phones so it doesn't dominate the screen.
+  const compact = width < 480 ? { fontSize: 34, lineHeight: 37 } : null;
+  return <Text style={[s.display, compact, italic && s.displayItalic, style]}>{children}</Text>;
 }
 
 export function Eyebrow({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {

@@ -1,5 +1,5 @@
 import { Link, usePathname, useRouter } from "expo-router";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/data/profile";
 import { colors, fonts, layout, space } from "@/theme/tokens";
@@ -37,6 +37,8 @@ export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { settings } = useSettings();
+  const { width } = useWindowDimensions();
+  const isPhone = width < 600;
   const name = settings.ownerName.trim();
   const ownerLabel = name ? `${name}'s` : "Focus";
 
@@ -76,9 +78,11 @@ export function AppHeader() {
           <Pressable accessibilityLabel="Settings" onPress={() => router.push("/settings")} style={[s.iconBtn, s.iconBtnOutline]}>
             <GearIcon color={colors.ink} />
           </Pressable>
-          <Pressable accessibilityLabel="Print" onPress={onPrint} style={[s.iconBtn, s.iconBtnGold]}>
-            <PrinterIcon color={colors.paper} bg={colors.gold} />
-          </Pressable>
+          {!isPhone ? (
+            <Pressable accessibilityLabel="Print" onPress={onPrint} style={[s.iconBtn, s.iconBtnGold]}>
+              <PrinterIcon color={colors.paper} bg={colors.gold} />
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </View>
