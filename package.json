@@ -14,7 +14,8 @@
     "test": "jest",
     "export:web": "expo export --platform web",
     "db:push": "supabase db push",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "build:web": "expo export -p web && node scripts/pwa-head.mjs"
   },
   "jest": {
     "preset": "jest-expo",
