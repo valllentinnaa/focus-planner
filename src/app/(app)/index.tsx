@@ -12,7 +12,7 @@ import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/date
 import { resolveOpening } from "@/lib/planner-opening";
 import { AREAS, AREA_LABELS } from "@/lib/tasks";
 import { colors, fonts, space } from "@/theme/tokens";
-import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/screen";
+import { PageTitle, Screen, SwipePager, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
 import { BlankRows, GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
@@ -113,33 +113,31 @@ export default function WeekScreen() {
         <RuleInput italicGold lines={3} value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="What matters most this week…" style={{ fontSize: 18 }} />
       </View>
 
-      <Columns>
-        <Column>
-          <View style={{ gap: space.xl }}>
-            {AREAS.map((area) => (
-              <DropZone key={area} id={`area-${area}`} onDrop={(t) => ops.move(t, { kind: "area", area })} style={s.zone} highlightStyle={s.zoneActive}>
-                <SectionLabel>{AREA_LABELS[area]}</SectionLabel>
-                <View style={{ gap: 4 }}>
-                  {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} draggable />)}
-                  <BlankRows count={Math.max(0, 5 - byArea[area]!.length)} onAdd={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} />
-                </View>
-                <GhostButton onPress={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} style={{ marginTop: 4 }}>
-                  + add
-                </GhostButton>
-              </DropZone>
-            ))}
-            {loose.length ? (
-              <View>
-                <SectionLabel>This week · unscheduled</SectionLabel>
-                <View style={{ gap: 4 }}>{loose.map((t) => <TaskItem key={t.id} task={t} ops={ops} />)}</View>
+      <SwipePager labels={["Life areas", "The week"]}>
+        <View style={{ gap: space.xl }}>
+          {AREAS.map((area) => (
+            <DropZone key={area} id={`area-${area}`} onDrop={(t) => ops.move(t, { kind: "area", area })} style={s.zone} highlightStyle={s.zoneActive}>
+              <SectionLabel>{AREA_LABELS[area]}</SectionLabel>
+              <View style={{ gap: 4 }}>
+                {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} draggable />)}
+                <BlankRows count={Math.max(0, 5 - byArea[area]!.length)} onAdd={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} />
               </View>
-            ) : null}
-          </View>
-        </Column>
+              <GhostButton onPress={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} style={{ marginTop: 4 }}>
+                + add
+              </GhostButton>
+            </DropZone>
+          ))}
+          {loose.length ? (
+            <View>
+              <SectionLabel>This week · unscheduled</SectionLabel>
+              <View style={{ gap: 4 }}>{loose.map((t) => <TaskItem key={t.id} task={t} ops={ops} />)}</View>
+            </View>
+          ) : null}
+        </View>
 
-        <Column>
+        <View>
           <SectionLabel>The week</SectionLabel>
-          <View style={[s.grid, !wide && { flexDirection: "column" }]}>
+          <View style={s.grid}>
             {DAY_LABELS.map((label, i) => {
               const date = addDays(weekStart, i);
               const iso = toISO(date);
@@ -158,8 +156,8 @@ export default function WeekScreen() {
               );
             })}
           </View>
-        </Column>
-      </Columns>
+        </View>
+      </SwipePager>
 
       <View>
         <SectionLabel>Notes for next week</SectionLabel>
@@ -191,7 +189,7 @@ function DayBox({ label, iso, isToday, tasks, ops, weekStart, wide, onOpen }: {
     <DropZone
       id={`day-${iso}`}
       onDrop={(t) => ops.move(t, { kind: "day", date: iso })}
-      style={[s.dayBox, wide && s.dayBoxWide, isToday && s.dayBoxToday]}
+      style={[s.dayBox, s.dayBoxCol, !wide && s.dayBoxColNarrow, isToday && s.dayBoxToday]}
       highlightStyle={s.dayBoxDrop}
     >
       <View style={s.dayHead}>
@@ -222,7 +220,8 @@ const s = StyleSheet.create({
   focusLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginBottom: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   dayBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.md, minHeight: 120, gap: 4 },
-  dayBoxWide: { flexBasis: "48%", flexGrow: 1 },
+  dayBoxCol: { flexBasis: "48%", flexGrow: 1 },
+  dayBoxColNarrow: { minHeight: 96, padding: space.sm },
   dayBoxToday: { borderColor: colors.gold, backgroundColor: colors.card + "80" },
   dayBoxDrop: { borderColor: colors.gold, backgroundColor: colors.gold + "22" },
   zone: { borderRadius: 4 },

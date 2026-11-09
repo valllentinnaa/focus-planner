@@ -1,5 +1,5 @@
-import { type ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { type ComponentRef, type ReactNode, useRef, useState } from "react";
+import { KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts, layout, space } from "@/theme/tokens";
 import { Display, Eyebrow } from "./ui";
@@ -61,6 +61,67 @@ export function Hint({ children }: { children: ReactNode }) {
   return <Text style={s.hint}>{children}</Text>;
 }
 
+/**
+ * Side-by-side columns on wide screens; on phones, each child becomes a full-width
+ * page you swipe between, with dot + arrow controls below (mirrors the web prototype).
+ */
+export function SwipePager({ labels, children }: { labels: string[]; children: ReactNode[] }) {
+  const wide = useIsWide();
+  const ref = useRef<ComponentRef<typeof ScrollView>>(null);
+  const [w, setW] = useState(0);
+  const [active, setActive] = useState(0);
+  const pages = children.filter((c) => c != null);
+
+  if (wide) {
+    return (
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space.xl }}>
+        {pages.map((c, i) => (
+          <View key={i} style={{ flex: 1, minWidth: 0 }}>{c}</View>
+        ))}
+      </View>
+    );
+  }
+
+  const go = (i: number) => {
+    const n = Math.max(0, Math.min(pages.length - 1, i));
+    ref.current?.scrollTo({ x: n * w, animated: true });
+    setActive(n);
+  };
+  const onEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) =>
+    setActive(Math.round(e.nativeEvent.contentOffset.x / Math.max(1, w)));
+
+  return (
+    <View onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+      <ScrollView
+        ref={ref}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={onEnd}
+        scrollEventThrottle={16}
+      >
+        {pages.map((c, i) => (
+          <View key={i} style={{ width: w }}>{w > 0 ? c : null}</View>
+        ))}
+      </ScrollView>
+
+      <View style={s.pager}>
+        <Pressable onPress={() => go(active - 1)} hitSlop={8} style={[s.pagerArrow, active === 0 && s.pagerHidden]}>
+          <Text style={s.pagerArrowText}>‹</Text>
+        </Pressable>
+        {pages.map((_, i) => (
+          <Pressable key={i} onPress={() => go(i)} hitSlop={8} accessibilityLabel={`Show ${labels[i] ?? i + 1}`} style={s.pagerDotHit}>
+            <View style={[s.pagerDot, active === i && s.pagerDotActive]} />
+          </Pressable>
+        ))}
+        <Pressable onPress={() => go(active + 1)} hitSlop={8} style={[s.pagerArrow, active === pages.length - 1 && s.pagerHidden]}>
+          <Text style={s.pagerArrowText}>›</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   content: { flexGrow: 1 },
@@ -68,4 +129,11 @@ const s = StyleSheet.create({
   titleRow: { gap: space.md },
   titleRight: { marginTop: space.sm },
   hint: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground, marginTop: 4 },
+  pager: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingTop: space.md },
+  pagerArrow: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
+  pagerArrowText: { fontFamily: fonts.sans, fontSize: 18, color: colors.gold },
+  pagerHidden: { opacity: 0 },
+  pagerDotHit: { padding: 6 },
+  pagerDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.rule },
+  pagerDotActive: { backgroundColor: colors.gold },
 });
