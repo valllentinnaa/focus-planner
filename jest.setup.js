@@ -24,3 +24,6 @@ jest.mock("@/components/app-header", () => ({
   AppHeader: () => null,
   BottomNav: () => null,
 }));
+
+// expo-crypto's native randomUUID isn't available under Jest; use Node's.
+jest.mock("expo-crypto", () => ({ ...jest.requireActual("expo-crypto"), randomUUID: () => require("crypto").randomUUID() }));

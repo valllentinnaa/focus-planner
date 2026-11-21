@@ -20,18 +20,18 @@ export default function SharedWishlistPage() {
         <Display italic>{list ? (owner ? `${owner}'s wishes` : "Wishes") : loading ? " " : "Not found"}</Display>
 
         {loading ? <Body muted style={{ marginTop: space.lg }}>Loading…</Body> : null}
-        {error ? <Body muted style={{ marginTop: space.lg }}>Couldn't load this list. Try again in a moment.</Body> : null}
+        {error ? <Body muted style={{ marginTop: space.lg }}>Couldn’t load this list. Try again in a moment.</Body> : null}
         {!loading && !error && !list ? (
-          <Body muted style={{ marginTop: space.lg }}>This link doesn't work anymore. Ask for a new one.</Body>
+          <Body muted style={{ marginTop: space.lg }}>This link doesn’t work anymore. Ask for a new one.</Body>
         ) : null}
 
         {list?.is_owner ? (
           <View style={s.banner}>
-            <Text style={s.bannerText}>This is what people with your link see. Who's getting what stays hidden from you.</Text>
+            <Text style={s.bannerText}>This is what people with your link see. Who’s getting what stays hidden from you.</Text>
           </View>
         ) : list ? (
           <Body muted style={{ marginTop: space.md }}>
-            Tap “I'm getting this” so nobody buys the same thing. {owner || "They"} won't see it.
+            Tap “I’m getting this” so nobody buys the same thing. {owner || "They"} won’t see it.
           </Body>
         ) : null}
 
@@ -53,13 +53,13 @@ export default function SharedWishlistPage() {
                 </View>
                 {list.is_owner ? null : mine ? (
                   <Pressable disabled={busy} onPress={() => unclaim(it.id)} style={[s.btn, s.btnMine]}>
-                    <Text style={[s.btnText, { color: colors.paper }]}>You're getting it · undo</Text>
+                    <Text style={[s.btnText, { color: colors.paper }]}>You’re getting it · undo</Text>
                   </Pressable>
                 ) : it.claimed ? (
-                  <Text style={s.takenLabel}>Someone's getting this</Text>
+                  <Text style={s.takenLabel}>Someone’s getting this</Text>
                 ) : (
                   <Pressable disabled={busy} onPress={() => claim(it.id)} style={s.btn}>
-                    <Text style={s.btnText}>I'm getting this</Text>
+                    <Text style={s.btnText}>I’m getting this</Text>
                   </Pressable>
                 )}
               </View>

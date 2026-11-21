@@ -1,12 +1,12 @@
 // QR code drawn with react-native-svg (works on web and phone). Encoding by qrcode-generator.
-import qrcode from "qrcode-generator";
+import makeQr from "qrcode-generator";
 import { useMemo } from "react";
 import Svg, { Path, Rect } from "react-native-svg";
 import { colors } from "@/theme/tokens";
 
 export function QrCode({ value, size = 200 }: { value: string; size?: number }) {
   const { path, count } = useMemo(() => {
-    const qr = qrcode(0, "M");
+    const qr = makeQr(0, "M");
     qr.addData(value);
     qr.make();
     const n = qr.getModuleCount();

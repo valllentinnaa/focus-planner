@@ -8,7 +8,7 @@ import { AuthProvider } from "@/data/auth";
 
 export async function renderScreen(ui: ReactElement) {
   await AsyncStorage.clear();
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false } } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } } });
   return render(
     <QueryClientProvider client={client}>
       <AuthProvider>{ui}</AuthProvider>

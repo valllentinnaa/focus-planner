@@ -46,7 +46,7 @@ export default function JoinCirclePage() {
         {!session ? (
           <>
             <Display italic>Join a circle</Display>
-            <Body muted style={s.gap}>Sign in or create an account, and you'll be brought back here to join.</Body>
+            <Body muted style={s.gap}>Sign in or create an account, and you’ll be brought back here to join.</Body>
             <SolidButton onPress={signIn}>Sign in to join</SolidButton>
           </>
         ) : preview.isLoading ? (
@@ -61,14 +61,14 @@ export default function JoinCirclePage() {
           <>
             <Display italic>{p.name}</Display>
             <Body muted style={s.gap}>
-              {p.owner} invited you. {p.members} {p.members === 1 ? "person is" : "people are"} in it. Members see each other's wishlists; nobody sees who's buying what for them.
+              {p.owner} invited you. {p.members} {p.members === 1 ? "person is" : "people are"} in it. Members see each other’s wishlists; nobody sees who’s buying what for them.
             </Body>
             {p.already ? (
-              <SolidButton onPress={() => router.replace("/presents")}>You're in — open Presents</SolidButton>
+              <SolidButton onPress={() => router.replace("/presents")}>You’re in — open Presents</SolidButton>
             ) : (
               <SolidButton disabled={joining} onPress={join}>{joining ? "Joining…" : "Join circle"}</SolidButton>
             )}
-            {failed ? <Body muted style={{ marginTop: space.sm }}>Couldn't join. Try again.</Body> : null}
+            {failed ? <Body muted style={{ marginTop: space.sm }}>Couldn’t join. Try again.</Body> : null}
           </>
         )}
       </View>

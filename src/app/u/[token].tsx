@@ -60,22 +60,22 @@ export default function ProfileLinkPage() {
           <>
             <Display italic>{name} invited you</Display>
             <Body muted style={s.gap}>
-              Focus Planner is a planner with birthdays, gift ideas and wishlists. Create a free account to connect with {name} — you'll see each other's wishlists, and nobody sees who's buying what for them.
+              Focus Planner is a planner with birthdays, gift ideas and wishlists. Create a free account to connect with {name} — you’ll see each other’s wishlists, and nobody sees who’s buying what for them.
             </Body>
             <SolidButton onPress={signUp}>Create account or sign in</SolidButton>
           </>
         ) : p.connected ? (
           <>
-            <Display italic>You're connected</Display>
-            <Body muted style={s.gap}>You and {name} can see each other's wishlists in Presents.</Body>
+            <Display italic>You’re connected</Display>
+            <Body muted style={s.gap}>You and {name} can see each other’s wishlists in Presents.</Body>
             <SolidButton onPress={() => router.replace("/presents")}>Open Presents</SolidButton>
           </>
         ) : (
           <>
             <Display italic>Connect with {name}</Display>
-            <Body muted style={s.gap}>You'll see each other's wishlists in Presents, and can mark what you're buying. Nobody sees who's buying what for them.</Body>
+            <Body muted style={s.gap}>You’ll see each other’s wishlists in Presents, and can mark what you’re buying. Nobody sees who’s buying what for them.</Body>
             <SolidButton disabled={busy} onPress={connect}>{busy ? "Connecting…" : "Connect"}</SolidButton>
-            {failed ? <Body muted style={{ marginTop: space.sm }}>Couldn't connect. Try again.</Body> : null}
+            {failed ? <Body muted style={{ marginTop: space.sm }}>Couldn’t connect. Try again.</Body> : null}
           </>
         )}
       </View>

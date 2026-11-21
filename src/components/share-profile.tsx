@@ -47,7 +47,7 @@ export function ShareProfileSection({ name }: { name: string }) {
   return (
     <View>
       <SectionLabel>Share my profile</SectionLabel>
-      <Hint>Send your link or show the QR. Friends with the app connect with you; anyone else is invited to join first. Connected people see each other's wishlists.</Hint>
+      <Hint>Send your link or show the QR. Friends with the app connect with you; anyone else is invited to join first. Connected people see each other’s wishlists.</Hint>
       {link.loading ? null : !link.token ? (
         <OutlineButton gold disabled={link.busy} onPress={link.create} style={{ marginTop: space.sm }}>
           Create my link

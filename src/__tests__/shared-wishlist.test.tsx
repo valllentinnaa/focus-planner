@@ -27,11 +27,11 @@ describe("Shared wishlist page", () => {
     await renderScreen(<SharedWishlistPage />);
 
     expect(screen.getByText("Ana's wishes")).toBeTruthy();
-    await fireEvent.press(screen.getByText("I'm getting this"));
+    await fireEvent.press(screen.getByText("I’m getting this"));
     expect(claim).toHaveBeenCalledWith("1");
 
-    expect(screen.getByText("Someone's getting this")).toBeTruthy();
-    await fireEvent.press(screen.getByText("You're getting it · undo"));
+    expect(screen.getByText("Someone’s getting this")).toBeTruthy();
+    await fireEvent.press(screen.getByText("You’re getting it · undo"));
     expect(unclaim).toHaveBeenCalledWith("3");
   });
 
@@ -41,14 +41,14 @@ describe("Shared wishlist page", () => {
       list: { owner: "Ana", is_owner: true, items: items.map((i) => ({ ...i, claimed: false })), mine: new Set() },
     });
     await renderScreen(<SharedWishlistPage />);
-    expect(screen.getByText(/Who's getting what stays hidden from you/)).toBeTruthy();
-    expect(screen.queryByText("I'm getting this")).toBeNull();
+    expect(screen.getByText(/Who’s getting what stays hidden from you/)).toBeTruthy();
+    expect(screen.queryByText("I’m getting this")).toBeNull();
   });
 
   test("dead link", async () => {
     (useSharedWishlist as jest.Mock).mockReturnValue({ ...base, list: null });
     await renderScreen(<SharedWishlistPage />);
     expect(screen.getByText("Not found")).toBeTruthy();
-    expect(screen.getByText(/doesn't work anymore/)).toBeTruthy();
+    expect(screen.getByText(/doesn’t work anymore/)).toBeTruthy();
   });
 });

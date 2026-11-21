@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { Image, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { Paperclip, Trash2 } from "lucide-react-native";
 import { useCalendarOps } from "@/data/calendar";
@@ -33,10 +33,13 @@ export default function PresentsScreen() {
   const ideas = useGiftIdeas();
   const params = useLocalSearchParams<{ calendar?: string; person?: string }>();
   const [open, setOpen] = useState<string | null>(params.person ?? null);
-  // Opened from a birthday in Week/Month: jump to that person.
-  useEffect(() => {
+  // Opened from a birthday in Week/Month: jump to that person (adjusting state during render,
+  // as React recommends, instead of in an effect).
+  const [seenPerson, setSeenPerson] = useState(params.person);
+  if (params.person !== seenPerson) {
+    setSeenPerson(params.person);
     if (params.person) setOpen(params.person);
-  }, [params.person]);
+  }
   const [importing, setImporting] = useState(params.calendar === "connected");
   const today = useMemo(() => new Date(), []);
 
@@ -412,7 +415,7 @@ function MyWishlist() {
         <OutlineButton onPress={add}>Add</OutlineButton>
       </View>
       {list.items.length === 0 && !list.loading ? (
-        <Body muted style={{ fontStyle: "italic", paddingVertical: 4 }}>Add what you'd love to get, then share the list.</Body>
+        <Body muted style={{ fontStyle: "italic", paddingVertical: 4 }}>Add what you’d love to get, then share the list.</Body>
       ) : null}
       {list.items.map((i) => (
         <View key={i.id} style={s.idea}>
@@ -445,11 +448,11 @@ function MyWishlist() {
                 {url ? <GhostButton onPress={() => Linking.openURL(url)}>Preview</GhostButton> : null}
                 <GhostButton disabled={share.busy} onPress={share.turnOff}>Turn off link</GhostButton>
               </View>
-              <Hint>Anyone with the link can see the list and mark what they're buying. You won't see who picked what. Turning the link off makes it stop working; a new one is different.</Hint>
+              <Hint>Anyone with the link can see the list and mark what they’re buying. You won’t see who picked what. Turning the link off makes it stop working; a new one is different.</Hint>
             </>
           ) : (
             <>
-              <Hint>Make a private link to send to family and friends. They don't need the app.</Hint>
+              <Hint>Make a private link to send to family and friends. They don’t need the app.</Hint>
               <OutlineButton gold disabled={share.busy} onPress={share.create}>Create share link</OutlineButton>
             </>
           )}

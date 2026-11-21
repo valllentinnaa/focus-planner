@@ -101,7 +101,7 @@ export function FriendsSection() {
       <Text style={s.heroTitle}>
         Gifting is better <Text style={s.heroItalic}>together</Text>
       </Text>
-      <Text style={s.heroSub}>Invite someone you love — they'll see your wishlist, and you'll see theirs.</Text>
+      <Text style={s.heroSub}>Invite someone you love — they’ll see your wishlist, and you’ll see theirs.</Text>
       <Pressable onPress={invite} disabled={link.busy} style={({ pressed }) => [s.cta, (pressed || link.busy) && { opacity: 0.7 }]} accessibilityRole="button">
         <Send size={15} color={colors.paper} strokeWidth={1.6} />
         <Text style={s.ctaText}>Invite a friend</Text>
@@ -245,7 +245,7 @@ function CircleCard({ circle, ops }: { circle: Circle; ops: ReturnType<typeof us
 export function MateWishlist({ mateId }: { mateId: string }) {
   const w = useMateWishlist(mateId);
   if (w.loading) return <Hint>Loading…</Hint>;
-  if (!w.list) return <Hint>You're no longer in a circle together.</Hint>;
+  if (!w.list) return <Hint>You’re no longer in a circle together.</Hint>;
   if (!w.list.items.length) return <Body muted style={s.empty}>Their wishlist is empty.</Body>;
   return (
     <View style={s.mateList}>
@@ -269,7 +269,7 @@ export function MateWishlist({ mateId }: { mateId: string }) {
             <Text style={s.takenLabel}>Taken</Text>
           ) : (
             <Pressable disabled={w.busy} onPress={() => w.claim(it.id)} style={s.claim}>
-              <Text style={s.claimText}>I'm getting this</Text>
+              <Text style={s.claimText}>I’m getting this</Text>
             </Pressable>
           )}
         </View>
