@@ -31,7 +31,7 @@ export function AppHeader() {
   const isPhone = useIsPhone();
   const name = settings.ownerName.trim();
   const ownerLabel = name ? `${name}'s` : "Focus";
-  const iconSize = isPhone ? 32 : 36;
+  const iconSize = 38;
 
   return (
     <View style={[s.bar, { paddingTop: insets.top + space.sm }]} nativeID="fp-header">
@@ -58,9 +58,12 @@ export function AppHeader() {
           <Pressable
             accessibilityLabel="Settings"
             onPress={() => router.push("/settings")}
-            style={[s.iconBtn, s.iconBtnOutline, isPhone && { width: 32, height: 32, borderRadius: 16 }]}
+            style={[s.iconBtn, s.iconBtnOutline]}
           >
-            <SettingsIcon size={isPhone ? 14 : 16} color={colors.ink} strokeWidth={2} />
+            {/* Absolutely centred so the SVG can't sit off-centre on any platform. */}
+            <View style={s.iconCenter} pointerEvents="none">
+              <SettingsIcon size={19} color={colors.ink} strokeWidth={1.8} />
+            </View>
           </Pressable>
         </View>
       </View>
@@ -218,8 +221,9 @@ const s = StyleSheet.create({
   tabTextActive: { color: colors.ink },
   underline: { height: 2, alignSelf: "stretch", marginTop: 6, backgroundColor: "transparent" },
   underlineActive: { backgroundColor: colors.ink },
-  // Settings button, as in the design prototype: thin line gear in a light 36px circle (32 on phones).
-  iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  // Settings button: 38px circle, gold border, gear centred. Same size on phones and desktop.
+  iconBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  iconCenter: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center" },
   // marginLeft + the nav's 6px gap = the original 8px (space.sm) spacing.
   iconBtnOutline: { borderWidth: 1, borderColor: colors.gold, marginLeft: space.sm - 6 },
   todayBtn: { borderRadius: 999, backgroundColor: colors.gold, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
