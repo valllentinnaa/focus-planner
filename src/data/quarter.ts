@@ -47,7 +47,7 @@ export function useCurrentQuarter() {
     onSuccess: (row) => qc.setQueryData(queryKey, row),
   });
 
-  return { quarter: query.data ?? null, loading: query.isLoading, error: query.error, save: upsert.mutate };
+  return { quarter: query.data ?? null, loading: query.isPending, error: query.error, save: upsert.mutate };
 }
 
 export function useGoals(quarterId: string | null) {

@@ -119,7 +119,9 @@ export function useDocument<T extends DocTable, Doc extends object>(opts: {
     doc,
     patch,
     flush,
-    loading: query.isLoading,
+    // isPending, not isLoading: while cached data is being restored at launch the query hasn't
+    // started fetching, so isLoading is false even though nothing has loaded yet.
+    loading: query.isPending,
     error: query.error ?? save.error,
     saving: save.isPending || dirty,
     refetch: query.refetch,
