@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Printer } from "lucide-react-native";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { isISODate } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
 import { GhostButton, RuleInput } from "./ui";
@@ -61,9 +61,9 @@ export function DateNav({
       </GhostButton>
       {onNext ? <GhostButton accessibilityLabel="Next" onPress={onNext}><Text style={s.arrow}>›</Text></GhostButton> : null}
       {printable && Platform.OS === "web" ? (
-        <Pressable nativeID="fp-print-btn" accessibilityLabel="Print" onPress={() => window.print()} style={({ pressed }) => [s.print, pressed && { opacity: 0.7 }]}>
-          <Printer size={14} color={colors.paper} strokeWidth={1.75} />
-        </Pressable>
+        <GhostButton nativeID="fp-print-btn" accessibilityLabel="Print" onPress={() => window.print()}>
+          <Printer size={15} color={colors.gold} strokeWidth={1.75} />
+        </GhostButton>
       ) : null}
     </View>
   );
@@ -73,6 +73,5 @@ const s = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space.xs, flexWrap: "wrap" },
   label: { fontFamily: fonts.sans, fontSize: 13, letterSpacing: 0.5, color: colors.ink },
   arrow: { fontFamily: fonts.sans, fontSize: 18, color: colors.mutedForeground, paddingHorizontal: 2 },
-  print: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.gold, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
   gold: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.gold, letterSpacing: 1 },
 });

@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import { Link, usePathname, useRouter } from "expo-router";
 import { CalendarDays, CalendarRange, Gift, MoreHorizontal, Settings as SettingsIcon, Sun, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
 import { useState } from "react";
@@ -81,9 +80,9 @@ export function AppHeader() {
             <Pressable
               accessibilityLabel="Today"
               onPress={() => router.push("/today")}
-              style={[s.iconBtn, s.iconBtnGold, { width: iconSize, height: iconSize }, pathname === "/today" && s.iconBtnGoldActive]}
+              style={({ pressed }) => [s.iconBtn, s.iconBtnGold, { width: iconSize, height: iconSize }, pressed && { opacity: 0.8 }]}
             >
-              <Text style={s.todayNum}>{format(new Date(), "d")}</Text>
+              <Sun size={isPhone ? 15 : 17} color={colors.paper} strokeWidth={1.9} />
             </Pressable>
           ) : null}
         </View>
@@ -180,8 +179,6 @@ const s = StyleSheet.create({
   iconBtn: { borderRadius: 999, alignItems: "center", justifyContent: "center" },
   iconBtnOutline: { borderWidth: 1, borderColor: colors.rule, marginLeft: space.xs },
   iconBtnGold: { backgroundColor: colors.gold },
-  iconBtnGoldActive: { backgroundColor: colors.ink },
-  todayNum: { fontFamily: fonts.sansSemiBold, fontSize: 13, color: colors.paper },
   bottomBar: {
     position: "absolute",
     left: 0,
