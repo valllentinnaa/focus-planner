@@ -28,14 +28,7 @@ export default function SettingsScreen() {
           <Hint>{`Shown as "${name || "Focus"}${name ? "'s" : ""} planner".`}</Hint>
         </View>
 
-        <View>
-          <SectionLabel>Sections</SectionLabel>
-          <Toggle label="Today" value={settings.showDaily} onChange={(showDaily) => update({ showDaily })} />
-          <Toggle label="Food" value={settings.showFood} onChange={(showFood) => update({ showFood })} />
-          <Toggle label="Presents" value={settings.showPresents} onChange={(showPresents) => update({ showPresents })} />
-        </View>
-
-        <MenuSection />
+        <PagesSection />
 
         <GoogleCalendarSection />
 
@@ -61,28 +54,83 @@ export default function SettingsScreen() {
   );
 }
 
-/** Which pages sit in the main menu; the rest go under "More". Week and Today are fixed. */
-function MenuSection() {
+type Place = "menu" | "more" | "off";
+
+/**
+ * One list for every page: where it lives. Menu = always visible, More = under "More",
+ * Off = hidden. Week is fixed; Today is the gold button (on/off).
+ */
+function PagesSection() {
   const { settings, update } = useSettings();
-  const pages = PAGES.filter(
-    (p): p is (typeof PAGES)[number] & { key: MenuPage } =>
-      (MENU_PAGES as string[]).includes(p.key) && (p.key !== "food" || settings.showFood) && (p.key !== "presents" || settings.showPresents),
-  );
-  const chosen = new Set(settings.menuPages);
-  const set = (key: MenuPage, on: boolean) =>
-    update({ menuPages: MENU_PAGES.filter((k) => (k === key ? on : chosen.has(k))) });
-  const overPhone = pages.filter((p) => chosen.has(p.key)).length > PHONE_MAX_EXTRA;
+  const inMenu = new Set(settings.menuPages);
+  const place = (key: MenuPage): Place => {
+    if ((key === "food" && !settings.showFood) || (key === "presents" && !settings.showPresents)) return "off";
+    return inMenu.has(key) ? "menu" : "more";
+  };
+  const setPlace = (key: MenuPage, next: Place) => {
+    const menuPages = MENU_PAGES.filter((k) => (k === key ? next === "menu" : inMenu.has(k)));
+    update({
+      menuPages,
+      ...(key === "food" ? { showFood: next !== "off" } : {}),
+      ...(key === "presents" ? { showPresents: next !== "off" } : {}),
+    });
+  };
+  const rows = PAGES.filter((p): p is (typeof PAGES)[number] & { key: MenuPage } => (MENU_PAGES as string[]).includes(p.key));
+  const menuCount = rows.filter((p) => place(p.key) === "menu").length;
 
   return (
     <View>
-      <SectionLabel>Main menu</SectionLabel>
-      <Hint>Switched on: always visible. Off: under “More”. Week and Today are always there.</Hint>
+      <SectionLabel>Pages</SectionLabel>
+      <Hint>Menu: always visible · More: under “⋯ More” · Off: hidden</Hint>
       <View style={{ marginTop: space.sm }}>
-        {pages.map((p) => (
-          <Toggle key={p.key} label={p.label} value={chosen.has(p.key)} onChange={(on) => set(p.key, on)} />
-        ))}
+        <View style={s.pageRow}>
+          <Text style={s.toggleLabel}>Week</Text>
+          <Text style={s.fixed}>Always in menu</Text>
+        </View>
+        <View style={s.pageRow}>
+          <Text style={s.toggleLabel}>Today</Text>
+          <Segmented
+            options={[["on", "Button"], ["off", "Off"]]}
+            value={settings.showDaily ? "on" : "off"}
+            onChange={(v) => update({ showDaily: v === "on" })}
+          />
+        </View>
+        {rows.map((p) => {
+          const canHide = p.key === "food" || p.key === "presents";
+          return (
+            <View key={p.key} style={s.pageRow}>
+              <Text style={s.toggleLabel}>{p.label}</Text>
+              <Segmented
+                options={canHide ? [["menu", "Menu"], ["more", "More"], ["off", "Off"]] : [["menu", "Menu"], ["more", "More"]]}
+                value={place(p.key)}
+                onChange={(v) => setPlace(p.key, v as Place)}
+              />
+            </View>
+          );
+        })}
       </View>
-      {overPhone ? <Hint>{`On phones the bottom bar fits ${PHONE_MAX_EXTRA} besides Week; the rest go under “More”.`}</Hint> : null}
+      {menuCount > PHONE_MAX_EXTRA ? <Hint>{`Phones show Week + ${PHONE_MAX_EXTRA} at the bottom; the rest go under More.`}</Hint> : null}
+    </View>
+  );
+}
+
+function Segmented({ options, value, onChange }: { options: [string, string][]; value: string; onChange: (v: string) => void }) {
+  return (
+    <View style={s.seg} accessibilityRole="radiogroup">
+      {options.map(([v, label]) => {
+        const active = v === value;
+        return (
+          <Pressable
+            key={v}
+            onPress={() => onChange(v)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: active }}
+            style={[s.segItem, active && s.segItemActive]}
+          >
+            <Text style={[s.segText, active && s.segTextActive]}>{label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -169,6 +217,13 @@ function Toggle({ label, value, onChange, color }: { label: string; value: boole
 
 const s = StyleSheet.create({
   toggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
+  pageRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 7, gap: space.md },
+  fixed: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
+  seg: { flexDirection: "row", borderWidth: 1, borderColor: colors.rule, borderRadius: 999, padding: 2 },
+  segItem: { paddingVertical: 5, minWidth: 64, alignItems: "center", borderRadius: 999 },
+  segItemActive: { backgroundColor: colors.gold },
+  segText: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: colors.mutedForeground },
+  segTextActive: { color: colors.paper },
   toggleLeft: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: space.md },
   toggleLabel: { fontFamily: fonts.sans, fontSize: 14, color: colors.ink, flexShrink: 1 },
   dot: { width: 8, height: 8, borderRadius: 4 },
