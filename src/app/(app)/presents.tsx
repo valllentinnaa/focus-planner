@@ -45,6 +45,10 @@ export default function PresentsScreen() {
     }
   }
   const [importing, setImporting] = useState(params.calendar === "connected");
+  const goToPerson = (id: string) => {
+    setTab("people");
+    setOpen(id);
+  };
   const today = useMemo(() => new Date(), []);
 
   const sorted = useMemo(() => byUpcoming(people.items, today), [people.items, today]);
@@ -67,12 +71,18 @@ export default function PresentsScreen() {
         </View>
       ) : tab === "friends" ? (
         <View style={s.tabBody}>
-          <FriendsSection />
+          <FriendsSection
+            personFor={(userId) => people.items.find((p) => p.linked_user_id === userId)}
+            onOpenPerson={goToPerson}
+            onAddPerson={(name, userId) => goToPerson(people.add({ name: name.slice(0, 120), linked_user_id: userId }))}
+          />
           <CirclesSection />
         </View>
       ) : (
       <View style={[s.tabBody, { gap: space.xl }]}>
       {importing ? <ImportPanel onClose={() => setImporting(false)} /> : null}
+
+      <OnAppSuggestions people={people.items} onAdd={(name, userId) => goToPerson(people.add({ name: name.slice(0, 120), linked_user_id: userId }))} onLink={(personId, userId) => { people.update(personId, { linked_user_id: userId }); goToPerson(personId); }} />
 
       {soon.length ? (
         <View>
@@ -136,18 +146,75 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 const isTab = (v: unknown): v is Tab => TABS.some((t) => t.key === v);
 
+/**
+ * Friends and circle-mates who aren't in People yet: add them, or say they're someone already
+ * there — so each person is one entry, with their birthday, gift ideas and wishlist together.
+ */
+function OnAppSuggestions({
+  people,
+  onAdd,
+  onLink,
+}: {
+  people: PersonRow[];
+  onAdd: (name: string, userId: string) => void;
+  onLink: (personId: string, userId: string) => void;
+}) {
+  const mates = useMates();
+  const [linking, setLinking] = useState<string | null>(null);
+  const linked = new Set(people.map((p) => p.linked_user_id).filter(Boolean));
+  const fresh = mates.filter((m) => !linked.has(m.user_id));
+  if (!fresh.length) return null;
+  const unlinkedPeople = people.filter((p) => !p.linked_user_id);
+  return (
+    <View style={s.suggest}>
+      <Text style={s.suggestTitle}>On Focus Planner</Text>
+      {fresh.slice(0, 5).map((m) => (
+        <View key={m.user_id} style={{ gap: space.xs }}>
+          <View style={s.suggestRow}>
+            <Text style={s.suggestName}>{m.name}</Text>
+            <View style={s.suggestActions}>
+              <GhostButton onPress={() => onAdd(m.name, m.user_id)}>Add to people</GhostButton>
+              {unlinkedPeople.length ? (
+                <GhostButton onPress={() => setLinking(linking === m.user_id ? null : m.user_id)}>{linking === m.user_id ? "Cancel" : "Already here"}</GhostButton>
+              ) : null}
+            </View>
+          </View>
+          {linking === m.user_id ? (
+            <View style={s.chips}>
+              <Text style={s.meta}>Which one is {m.name}?</Text>
+              {unlinkedPeople.map((p) => (
+                <Pressable key={p.id} style={s.chip} onPress={() => { onLink(p.id, m.user_id); setLinking(null); }}>
+                  <Text style={s.chipText}>{p.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ))}
+      <Hint>One entry per person: their birthday, your gift ideas and their wishlist in one place.</Hint>
+    </View>
+  );
+}
+
 function Tabs({ value, onChange, counts }: { value: Tab; onChange: (t: Tab) => void; counts: Partial<Record<Tab, number>> }) {
   return (
     <View style={s.tabs} accessibilityRole="tablist">
       {TABS.map((t) => {
         const active = t.key === value;
         return (
-          <Pressable key={t.key} onPress={() => onChange(t.key)} accessibilityRole="tab" accessibilityState={{ selected: active }} style={s.tab}>
-            <Text style={[s.tabText, active && s.tabTextActive]}>
-              {t.label}
-              {counts[t.key] ? <Text style={s.tabCount}>  {counts[t.key]}</Text> : null}
-            </Text>
-            <View style={[s.tabLine, active && s.tabLineActive]} />
+          <Pressable
+            key={t.key}
+            onPress={() => onChange(t.key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            style={({ pressed }) => [s.tab, active && s.tabActive, pressed && !active && { opacity: 0.6 }]}
+          >
+            <Text style={[s.tabText, active && s.tabTextActive]}>{t.label}</Text>
+            {counts[t.key] ? (
+              <View style={[s.tabCount, active && s.tabCountActive]}>
+                <Text style={[s.tabCountText, active && s.tabCountTextActive]}>{counts[t.key]}</Text>
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -215,6 +282,7 @@ function PersonRowView({
           <Text style={[s.meta, !has && { fontStyle: "italic" }]}>
             {has ? `${formatBirthday(p.birth_month!, p.birth_day!)}${n!.turns ? ` · turns ${n!.turns}` : ""}` : "No birthday yet"}
             {openIdeas ? ` · ${openIdeas} idea${openIdeas > 1 ? "s" : ""}` : ""}
+            {p.linked_user_id ? <Text style={s.onApp}>  · has a wishlist</Text> : null}
           </Text>
         </View>
         {n ? <Text style={[s.when, n.daysUntil <= SOON_DAYS && { color: colors.ink }]}>{daysLabel(n.daysUntil)}</Text> : null}
@@ -604,13 +672,22 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
 }
 
 const s = StyleSheet.create({
-  tabs: { flexDirection: "row", flexWrap: "wrap", gap: space.lg, borderBottomWidth: 1, borderBottomColor: colors.rule },
-  tab: { paddingTop: space.xs },
-  tabText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 2.5, textTransform: "uppercase", color: colors.mutedForeground, paddingBottom: space.sm },
-  tabTextActive: { color: colors.ink },
-  tabCount: { fontFamily: fonts.sans, color: colors.gold, letterSpacing: 0 },
-  tabLine: { height: 2, marginBottom: -1, backgroundColor: "transparent" },
-  tabLineActive: { backgroundColor: colors.ink },
+  // Segmented control: separate pills in one rounded track, the active one filled.
+  tabs: { flexDirection: "row", flexWrap: "wrap", alignSelf: "flex-start", gap: 4, padding: 4, borderWidth: 1, borderColor: colors.rule, borderRadius: radius.pill },
+  tab: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 9, paddingHorizontal: 18, borderRadius: radius.pill },
+  tabActive: { backgroundColor: colors.ink },
+  tabText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
+  tabTextActive: { color: colors.paper },
+  tabCount: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: alpha("gold", "22") },
+  tabCountActive: { backgroundColor: colors.paper },
+  tabCountText: { fontFamily: fonts.sansMedium, fontSize: 11, color: colors.ink },
+  tabCountTextActive: { color: colors.ink },
+  onApp: { fontFamily: fonts.sans, fontSize: 12, color: colors.gold },
+  suggest: { borderWidth: 1, borderColor: colors.gold, borderRadius: 16, padding: space.lg, gap: space.sm, backgroundColor: alpha("card", "80") },
+  suggestTitle: { fontFamily: fonts.sansSemiBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.gold },
+  suggestRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: space.sm },
+  suggestName: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
+  suggestActions: { flexDirection: "row", gap: space.xs },
   tabBody: { width: "100%", maxWidth: 760 },
   meta: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
   addRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginVertical: space.sm, flexWrap: "wrap" },

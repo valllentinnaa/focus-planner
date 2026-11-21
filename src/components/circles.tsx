@@ -74,7 +74,16 @@ function AvatarStack({
 }
 
 /** Friends: connect with people directly through your profile link. */
-export function FriendsSection() {
+export function FriendsSection({
+  personFor,
+  onOpenPerson,
+  onAddPerson,
+}: {
+  /** The People entry linked to this friend, if any. */
+  personFor?: (userId: string) => { id: string; name: string } | undefined;
+  onOpenPerson?: (personId: string) => void;
+  onAddPerson?: (name: string, userId: string) => void;
+} = {}) {
   const { connections, remove } = useConnections();
   const link = useProfileLink();
   const { settings } = useSettings();
@@ -126,6 +135,22 @@ export function FriendsSection() {
               </IconBtn>
             )}
           </View>
+          {(() => {
+            const person = personFor?.(friend.user_id);
+            if (person && onOpenPerson)
+              return (
+                <Pressable onPress={() => onOpenPerson(person.id)} style={s.peopleLink} accessibilityRole="link">
+                  <Text style={s.peopleLinkText}>In your People as {person.name} — birthday & gift ideas →</Text>
+                </Pressable>
+              );
+            if (!person && onAddPerson)
+              return (
+                <Pressable onPress={() => onAddPerson(friend.name, friend.user_id)} style={s.peopleLink} accessibilityRole="button">
+                  <Text style={s.peopleLinkText}>+ Add {friend.name} to People (birthday & gift ideas)</Text>
+                </Pressable>
+              );
+            return null;
+          })()}
           <MateWishlist mateId={friend.user_id} />
         </View>
       ) : connections.length ? (
@@ -296,6 +321,8 @@ const s = StyleSheet.create({
   cta: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.gold, borderRadius: radius.pill, paddingVertical: 12, paddingHorizontal: 22 },
   ctaText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: colors.paper },
   friendPanel: { alignSelf: "stretch", marginTop: space.sm, paddingTop: space.md, borderTopWidth: 1, borderTopColor: colors.rule },
+  peopleLink: { alignSelf: "flex-start", paddingVertical: space.xs },
+  peopleLinkText: { fontFamily: fonts.sans, fontSize: 12, color: colors.gold },
   friendHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   // Avatars
   stack: { flexDirection: "row", alignItems: "center" },
