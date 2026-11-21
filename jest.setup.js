@@ -18,4 +18,9 @@ jest.mock("expo-router", () => {
     Stack: () => null,
   };
 });
-jest.mock("@/components/app-header", () => ({ AppHeader: () => null }));
+// Keep the header's helpers (useIsPhone, …); only the header and bottom bar render nothing.
+jest.mock("@/components/app-header", () => ({
+  ...jest.requireActual("@/components/app-header"),
+  AppHeader: () => null,
+  BottomNav: () => null,
+}));
