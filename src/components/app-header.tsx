@@ -1,6 +1,6 @@
 import { Link, usePathname, useRouter } from "expo-router";
 import { CalendarDays, CalendarRange, Gift, MoreHorizontal, Settings as SettingsIcon, Sun, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
-import { useState } from "react";
+import { type ComponentRef, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/data/profile";
@@ -9,7 +9,7 @@ import { colors, fonts, layout, space } from "@/theme/tokens";
 type Href = "/" | "/month" | "/today" | "/food" | "/presents" | "/quarter";
 type Tab = { href: Href; label: string; icon: LucideIcon; setting?: "showDaily" | "showFood" | "showPresents" };
 
-// Top tabs on desktop. Today isn't a tab: it's the gold round button next to Settings.
+// All pages. Week + 12W are always visible; the rest go under "More" (phone sheet / desktop dropdown).
 const TABS: Tab[] = [
   { href: "/", label: "Week", icon: CalendarDays },
   { href: "/month", label: "Month", icon: CalendarRange },
@@ -18,8 +18,6 @@ const TABS: Tab[] = [
   { href: "/presents", label: "Presents", icon: Gift, setting: "showPresents" },
   { href: "/quarter", label: "12W", icon: Target },
 ];
-const DIVIDER_BEFORE = new Set(["/food", "/quarter"]);
-// On phones the bottom bar holds Week + 12W; everything else lives under "More".
 const PRIMARY = new Set<string>(["/", "/quarter"]);
 
 export const PHONE_MAX = 600;
@@ -36,7 +34,6 @@ export function AppHeader() {
   const router = useRouter();
   const { settings } = useSettings();
   const isPhone = useIsPhone();
-  const tabs = useTabs();
   const name = settings.ownerName.trim();
   const ownerLabel = name ? `${name}'s` : "Focus";
   const iconSize = isPhone ? 32 : 36;
@@ -52,22 +49,7 @@ export function AppHeader() {
         </Link>
 
         <View style={s.nav}>
-          {isPhone
-            ? null
-            : tabs.filter((t) => t.href !== "/today").map((t, i) => {
-                const active = pathname === t.href;
-                return (
-                  <View key={t.href} style={s.tabWrap}>
-                    {i > 0 && DIVIDER_BEFORE.has(t.href) ? <View style={s.divider} /> : null}
-                    <Link href={t.href} asChild>
-                      <Pressable hitSlop={4} style={s.tab}>
-                        <Text style={[s.tabText, active && s.tabTextActive]}>{t.label}</Text>
-                        <View style={[s.underline, active && s.underlineActive]} />
-                      </Pressable>
-                    </Link>
-                  </View>
-                );
-              })}
+          {isPhone ? null : <DesktopTabs />}
 
           {settings.showDaily ? (
             <Pressable
@@ -88,6 +70,70 @@ export function AppHeader() {
         </View>
       </View>
     </View>
+  );
+}
+
+/** Desktop: Week · 12W stay visible; the other pages sit in a "⋯" dropdown. */
+function DesktopTabs() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const tabs = useTabs();
+  const anchor = useRef<ComponentRef<typeof View>>(null);
+  const [menu, setMenu] = useState<{ top: number; right: number } | null>(null);
+  const { width } = useWindowDimensions();
+  const primary = tabs.filter((t) => PRIMARY.has(t.href));
+  const more = tabs.filter((t) => !PRIMARY.has(t.href));
+  const moreActive = more.some((t) => t.href === pathname);
+
+  const open = () =>
+    anchor.current?.measureInWindow((x, y, w, h) => setMenu({ top: y + h + 4, right: Math.max(8, width - (x + w)) }));
+
+  return (
+    <>
+      {primary.map((t) => {
+        const active = pathname === t.href;
+        return (
+          <Link key={t.href} href={t.href} asChild>
+            <Pressable hitSlop={4} style={s.tab}>
+              <Text style={[s.tabText, active && s.tabTextActive]}>{t.label}</Text>
+              <View style={[s.underline, active && s.underlineActive]} />
+            </Pressable>
+          </Link>
+        );
+      })}
+      {more.length ? (
+        <View ref={anchor} collapsable={false}>
+          <Pressable hitSlop={4} style={s.tab} onPress={open} accessibilityLabel="More pages" accessibilityState={{ expanded: !!menu }}>
+            <MoreHorizontal size={16} color={moreActive || menu ? colors.ink : colors.mutedForeground} strokeWidth={1.75} />
+            <View style={[s.underline, moreActive && s.underlineActive]} />
+          </Pressable>
+        </View>
+      ) : null}
+
+      <Modal visible={!!menu} transparent animationType="fade" onRequestClose={() => setMenu(null)}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenu(null)} accessibilityLabel="Close menu" />
+        {menu ? (
+          <View style={[s.dropdown, { top: menu.top, right: menu.right }]}>
+            {more.map((t) => {
+              const active = pathname === t.href;
+              return (
+                <Pressable
+                  key={t.href}
+                  style={(state) => [s.dropItem, ((state as { hovered?: boolean }).hovered || state.pressed) && { backgroundColor: colors.muted }]}
+                  onPress={() => {
+                    setMenu(null);
+                    router.navigate(t.href);
+                  }}
+                >
+                  <t.icon size={16} color={active ? colors.gold : colors.ink} strokeWidth={1.6} />
+                  <Text style={[s.dropText, active && { color: colors.gold }]}>{t.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+      </Modal>
+    </>
   );
 }
 
@@ -180,6 +226,21 @@ const s = StyleSheet.create({
   iconBtnOutline: { borderWidth: 1, borderColor: colors.rule, marginLeft: space.xs },
   todayBtn: { borderRadius: 999, backgroundColor: colors.gold, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
   todayText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.paper },
+  dropdown: {
+    position: "absolute",
+    minWidth: 180,
+    paddingVertical: 6,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 8,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  dropItem: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: 10, paddingHorizontal: space.lg },
+  dropText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.ink },
   bottomBar: {
     position: "absolute",
     left: 0,
