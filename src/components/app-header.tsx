@@ -32,6 +32,8 @@ export function AppHeader() {
   const name = settings.ownerName.trim();
   const ownerLabel = name ? `${name}'s` : "Focus";
   const iconSize = 38;
+  const pathname = usePathname();
+  const onToday = pathname === "/today";
 
   return (
     <View style={[s.bar, { paddingTop: insets.top + space.sm }]} nativeID="fp-header">
@@ -48,9 +50,10 @@ export function AppHeader() {
             <Pressable
               accessibilityLabel="Today"
               onPress={() => router.push("/today")}
-              style={({ pressed }) => [s.todayBtn, { height: iconSize }, pressed && { opacity: 0.8 }]}
+              accessibilityState={{ selected: onToday }}
+              style={({ pressed }) => [s.todayBtn, { height: iconSize }, onToday && s.todayBtnActive, pressed && { opacity: 0.8 }]}
             >
-              <Text style={s.todayText}>Today</Text>
+              <Text style={[s.todayText, onToday && s.todayTextActive]}>Today</Text>
             </Pressable>
           ) : null}
           {isPhone ? null : <DesktopTabs />}
@@ -228,7 +231,10 @@ const s = StyleSheet.create({
   iconCenter: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center" },
   // marginLeft + the nav's 6px gap = the original 8px (space.sm) spacing.
   iconBtnOutline: { borderWidth: 1, borderColor: colors.gold, marginLeft: space.sm - 6 },
-  todayBtn: { borderRadius: 999, backgroundColor: colors.gold, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
+  todayBtn: { borderRadius: 999, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.gold, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
+  // On the Today page: inverted (outline + gold text) to show where you are.
+  todayBtnActive: { backgroundColor: "transparent" },
+  todayTextActive: { color: colors.gold },
   todayText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.paper },
   dropdown: {
     position: "absolute",
