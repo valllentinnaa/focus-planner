@@ -15,7 +15,7 @@ import { ShareProfileSection } from "@/components/share-profile";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "@/components/ui";
 
 export default function SettingsScreen() {
-  const { settings, update } = useSettings();
+  const { settings, update, saveError } = useSettings();
   const { session } = useAuth();
   const name = settings.ownerName.trim();
 
@@ -23,6 +23,9 @@ export default function SettingsScreen() {
     <Screen>
       <PageTitle eyebrow="Your planner" title="Settings" />
       <View style={{ maxWidth: 480, gap: space.xl }}>
+        {saveError ? (
+          <Text style={s.error}>{`Couldn't save your settings: ${(saveError as { message?: string }).message ?? "unknown error"}`}</Text>
+        ) : null}
         <View>
           <SectionLabel>Your name</SectionLabel>
           <RuleInput value={settings.ownerName} onChangeText={(ownerName) => update({ ownerName })} placeholder="e.g. Val" />
@@ -220,6 +223,7 @@ function Toggle({ label, value, onChange, color }: { label: string; value: boole
 
 const s = StyleSheet.create({
   toggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
+  error: { fontFamily: fonts.sans, fontSize: 13, color: colors.destructive },
   pageRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 7, gap: space.md },
   fixed: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
   seg: { flexDirection: "row", borderWidth: 1, borderColor: colors.rule, borderRadius: 999, padding: 2 },

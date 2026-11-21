@@ -11,6 +11,24 @@ type DocTable = "weeks" | "daily_entries" | "food_weeks" | "profiles" | "quarter
 
 const SAVE_DELAY_MS = 600;
 
+type Db = { from: (table: string) => any }; // supabase client or the demo fake
+
+/**
+ * Write one document row. `updateOnly` rows already exist (profiles), so they're UPDATEd; RLS
+ * there allows update but not insert, and an upsert counts as an insert. Others are upserted.
+ */
+export async function saveRow(
+  db: Db,
+  o: { table: string; keyColumn: string; keyValue: string; columns: Record<string, unknown>; conflictColumns?: string; updateOnly?: boolean },
+): Promise<Record<string, unknown>> {
+  const q = o.updateOnly
+    ? db.from(o.table).update(o.columns).eq(o.keyColumn, o.keyValue)
+    : db.from(o.table).upsert({ ...o.columns, [o.keyColumn]: o.keyValue }, { onConflict: o.conflictColumns ?? `user_id,${o.keyColumn}` });
+  const { data, error } = await q.select("*").single();
+  if (error) throw error;
+  return data;
+}
+
 export function useDocument<T extends DocTable, Doc extends object>(opts: {
   table: T;
   /** Column + value that identify the row (e.g. week_start = '2026-10-26'). */
@@ -22,6 +40,11 @@ export function useDocument<T extends DocTable, Doc extends object>(opts: {
   toRow: (doc: Doc) => Partial<Tables[T]["Insert"]>;
   /** For profiles the key is the user id and there is no user_id column. */
   conflictColumns?: string;
+  /**
+   * The row always exists already (profiles: created by a trigger at sign-up), so save with a plain
+   * UPDATE. An upsert would be refused there: RLS allows users to update their profile, never insert.
+   */
+  updateOnly?: boolean;
 }) {
   const userId = useUserId();
   const qc = useQueryClient();
@@ -50,14 +73,14 @@ export function useDocument<T extends DocTable, Doc extends object>(opts: {
 
   const save = useMutation({
     mutationFn: async (next: Doc) => {
-      const row = { ...opts.toRow(next), [opts.keyColumn]: opts.keyValue } as Tables[T]["Insert"];
-      const { data, error } = await rawDb
-        .from(opts.table)
-        .upsert(row, { onConflict: opts.conflictColumns ?? `user_id,${opts.keyColumn}` })
-        .select("*")
-        .single();
-      if (error) throw error;
-      return data as unknown as Tables[T]["Row"];
+      return (await saveRow(rawDb, {
+        table: opts.table,
+        keyColumn: opts.keyColumn as string,
+        keyValue: opts.keyValue,
+        columns: opts.toRow(next) as Record<string, unknown>,
+        conflictColumns: opts.conflictColumns,
+        updateOnly: opts.updateOnly,
+      })) as unknown as Tables[T]["Row"];
     },
     onSuccess: (row) => qc.setQueryData(queryKey, row),
     onSettled: () => setDirty(false),

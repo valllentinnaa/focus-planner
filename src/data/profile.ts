@@ -11,6 +11,7 @@ export function useSettings() {
     keyColumn: "id",
     keyValue: userId,
     conflictColumns: "id",
+    updateOnly: true,
     fromRow: (r) => ({
       ownerName: r?.display_name ?? "",
       showDaily: r?.show_daily ?? false,
@@ -20,5 +21,5 @@ export function useSettings() {
     }),
     toRow: (s) => ({ display_name: s.ownerName, show_daily: s.showDaily, show_food: s.showFood, show_presents: s.showPresents, menu_pages: s.menuPages }),
   });
-  return { settings: d.doc, update: d.patch, loading: d.loading };
+  return { settings: d.doc, update: d.patch, loading: d.loading, saveError: d.error };
 }

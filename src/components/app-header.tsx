@@ -63,7 +63,7 @@ export function AppHeader() {
           <Pressable
             accessibilityLabel="Settings"
             onPress={() => router.push("/settings")}
-            style={[s.iconBtn, s.iconBtnOutline, { width: iconSize, height: iconSize }]}
+            style={[s.iconBtn, s.iconBtnOutline]}
           >
             <GearIcon color={colors.ink} />
           </Pressable>
@@ -223,8 +223,10 @@ const s = StyleSheet.create({
   tabTextActive: { color: colors.ink },
   underline: { height: 2, alignSelf: "stretch", marginTop: 6, backgroundColor: "transparent" },
   underlineActive: { backgroundColor: colors.ink },
-  iconBtn: { borderRadius: 999, alignItems: "center", justifyContent: "center" },
-  iconBtnOutline: { borderWidth: 1, borderColor: colors.rule, marginLeft: space.xs },
+  // Settings button: exactly as it was originally (36px circle, hairline border, ⚙︎ glyph).
+  iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  // marginLeft + the nav's 6px gap = the original 8px (space.sm) spacing.
+  iconBtnOutline: { borderWidth: 1, borderColor: colors.rule, marginLeft: space.sm - 6 },
   todayBtn: { borderRadius: 999, backgroundColor: colors.gold, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
   todayText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.paper },
   dropdown: {
