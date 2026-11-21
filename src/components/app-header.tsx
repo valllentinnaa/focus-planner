@@ -1,16 +1,11 @@
 import { Link, usePathname, useRouter } from "expo-router";
-import { CalendarDays, CalendarRange, Gift, MoreHorizontal, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
+import { CalendarDays, CalendarRange, Gift, MoreHorizontal, Settings as SettingsIcon, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
 import { type ComponentRef, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/data/profile";
 import { splitMenu, type PageKey } from "@/lib/menu";
 import { colors, fonts, layout, space } from "@/theme/tokens";
-
-/** The original gear: a text glyph, as before. */
-function GearIcon({ color }: { color: string }) {
-  return <Text style={{ fontSize: 15, color, lineHeight: 18 }}>⚙︎</Text>;
-}
 
 const ICONS: Record<PageKey, LucideIcon> = {
   week: CalendarDays,
@@ -63,9 +58,9 @@ export function AppHeader() {
           <Pressable
             accessibilityLabel="Settings"
             onPress={() => router.push("/settings")}
-            style={[s.iconBtn, s.iconBtnOutline]}
+            style={[s.iconBtn, s.iconBtnOutline, isPhone && { width: 32, height: 32, borderRadius: 16 }]}
           >
-            <GearIcon color={colors.ink} />
+            <SettingsIcon size={isPhone ? 14 : 16} color={colors.ink} strokeWidth={2} />
           </Pressable>
         </View>
       </View>
@@ -223,7 +218,7 @@ const s = StyleSheet.create({
   tabTextActive: { color: colors.ink },
   underline: { height: 2, alignSelf: "stretch", marginTop: 6, backgroundColor: "transparent" },
   underlineActive: { backgroundColor: colors.ink },
-  // Settings button: exactly as it was originally (36px circle, hairline border, ⚙︎ glyph).
+  // Settings button, as in the design prototype: thin line gear in a light 36px circle (32 on phones).
   iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   // marginLeft + the nav's 6px gap = the original 8px (space.sm) spacing.
   iconBtnOutline: { borderWidth: 1, borderColor: colors.rule, marginLeft: space.sm - 6 },
