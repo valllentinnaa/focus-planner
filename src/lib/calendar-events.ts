@@ -13,6 +13,8 @@ export type CalendarEvent = {
   calendar: string;
   color: string;
   link: string | null;
+  /** In-app route to open instead of `link` (e.g. a birthday opens Presents). */
+  appHref?: string;
 };
 
 export type DayEvent = CalendarEvent & { /** "All day", "10:00", or "10:00 →" for one that continues. */ label: string };

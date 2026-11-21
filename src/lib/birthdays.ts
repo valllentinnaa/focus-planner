@@ -1,5 +1,7 @@
 // Birthday maths for the Presents view. Birthdays are month/day (+ optional year).
-import { differenceInCalendarDays, isLeapYear } from "date-fns";
+import { addDays, differenceInCalendarDays, isLeapYear } from "date-fns";
+import type { CalendarEvent } from "./calendar-events";
+import { fromISO, toISO } from "./dates";
 
 export type Birthday = { month: number; day: number; year?: number | null };
 
@@ -43,4 +45,36 @@ export function daysLabel(days: number) {
 export function byUpcoming<T extends { name: string; birth_month: number | null; birth_day: number | null }>(people: T[], today: Date) {
   const key = (p: T) => (p.birth_month && p.birth_day ? nextBirthday({ month: p.birth_month, day: p.birth_day }, today).daysUntil : Infinity);
   return [...people].sort((a, b) => key(a) - key(b) || a.name.localeCompare(b.name));
+}
+
+type BirthdayPerson = { id: string; name: string; birth_month: number | null; birth_day: number | null; birth_year: number | null };
+
+/**
+ * Birthdays falling in a range of local days, as all-day calendar events. The key carries the year,
+ * so removing one from the planner hides only that year's.
+ */
+export function birthdayEvents(people: BirthdayPerson[], firstISO: string, lastISO: string): CalendarEvent[] {
+  const out: CalendarEvent[] = [];
+  const first = fromISO(firstISO);
+  const last = fromISO(lastISO);
+  for (const p of people) {
+    if (!p.birth_month || !p.birth_day) continue;
+    for (let y = first.getFullYear(); y <= last.getFullYear(); y++) {
+      const date = birthdayIn(y, { month: p.birth_month, day: p.birth_day });
+      if (date < first || date > last) continue;
+      const turns = p.birth_year ? y - p.birth_year : null;
+      out.push({
+        key: `birthday|${p.id}|${y}`,
+        title: `🎂 ${p.name}${turns && turns > 0 ? ` turns ${turns}` : "'s birthday"}`,
+        start: toISO(date),
+        end: toISO(addDays(date, 1)),
+        allDay: true,
+        calendar: "Birthdays",
+        color: "",
+        link: null,
+        appHref: `/presents?person=${p.id}`,
+      });
+    }
+  }
+  return out;
 }

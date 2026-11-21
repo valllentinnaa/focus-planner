@@ -1,4 +1,4 @@
-import { byUpcoming, daysLabel, isValidBirthday, nextBirthday } from "./birthdays";
+import { birthdayEvents, byUpcoming, daysLabel, isValidBirthday, nextBirthday } from "./birthdays";
 
 const d = (iso: string) => new Date(`${iso}T00:00:00`);
 
@@ -40,5 +40,22 @@ describe("birthdays", () => {
     expect(daysLabel(0)).toBe("Today");
     expect(daysLabel(1)).toBe("Tomorrow");
     expect(daysLabel(3)).toBe("In 3 days");
+  });
+});
+
+describe("birthdayEvents", () => {
+  const people = [
+    { id: "a", name: "Ana", birth_month: 12, birth_day: 31, birth_year: 1990 },
+    { id: "b", name: "Bo", birth_month: 1, birth_day: 2, birth_year: null },
+    { id: "c", name: "No date", birth_month: null, birth_day: null, birth_year: null },
+  ];
+  test("spans a year boundary", () => {
+    const ev = birthdayEvents(people, "2026-12-28", "2027-01-03");
+    expect(ev.map((e) => [e.start, e.title])).toEqual([
+      ["2026-12-31", "🎂 Ana turns 36"],
+      ["2027-01-02", "🎂 Bo's birthday"],
+    ]);
+    expect(ev[0]!.key).toBe("birthday|a|2026");
+    expect(ev[0]!.allDay).toBe(true);
   });
 });

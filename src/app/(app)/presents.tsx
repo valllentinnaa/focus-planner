@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useCalendarOps } from "@/data/calendar";
 import { contactsImportAvailable, fetchGoogleContacts, useGiftIdeas, useImportContacts, usePeople, type GoogleContact } from "@/data/presents";
@@ -18,8 +18,12 @@ const STATUS_LABEL: Record<GiftIdeaRow["status"], string> = { idea: "Idea", boug
 export default function PresentsScreen() {
   const people = usePeople();
   const ideas = useGiftIdeas();
-  const params = useLocalSearchParams<{ calendar?: string }>();
-  const [open, setOpen] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ calendar?: string; person?: string }>();
+  const [open, setOpen] = useState<string | null>(params.person ?? null);
+  // Opened from a birthday in Week/Month: jump to that person.
+  useEffect(() => {
+    if (params.person) setOpen(params.person);
+  }, [params.person]);
   const [importing, setImporting] = useState(params.calendar === "connected");
   const today = useMemo(() => new Date(), []);
 
