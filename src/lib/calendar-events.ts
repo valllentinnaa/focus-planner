@@ -51,3 +51,36 @@ export function eventsByDay(events: CalendarEvent[], hidden: ReadonlySet<string>
 export function rangeBounds(firstISO: string, lastISO: string) {
   return { timeMin: fromISO(firstISO).toISOString(), timeMax: addDays(fromISO(lastISO), 1).toISOString() };
 }
+
+export type AgendaItem = {
+  event: DayEvent;
+  /** First and last day of this event inside the range (equal for a one-day event). */
+  firstISO: string;
+  lastISO: string;
+};
+
+/**
+ * A compact agenda for a range of days (the Month view's week box): an event spanning several
+ * consecutive days becomes ONE item with a day range; items are grouped under their first day.
+ */
+export function rangeAgenda(byDay: Record<string, DayEvent[]>, firstISO: string, lastISO: string) {
+  const open = new Map<string, AgendaItem>();
+  const days: { day: string; items: AgendaItem[] }[] = [];
+  for (let d = fromISO(firstISO); toISO(d) <= lastISO; d = addDays(d, 1)) {
+    const iso = toISO(d);
+    const prevISO = toISO(addDays(d, -1));
+    const fresh: AgendaItem[] = [];
+    for (const event of byDay[iso] ?? []) {
+      const running = open.get(event.key);
+      if (running && running.lastISO === prevISO) {
+        running.lastISO = iso;
+        continue;
+      }
+      const item = { event, firstISO: iso, lastISO: iso };
+      open.set(event.key, item);
+      fresh.push(item);
+    }
+    if (fresh.length) days.push({ day: iso, items: fresh });
+  }
+  return days;
+}

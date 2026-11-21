@@ -1,4 +1,4 @@
-import { eventsByDay, rangeBounds, type CalendarEvent } from "./calendar-events";
+import { eventsByDay, rangeAgenda, rangeBounds, type CalendarEvent } from "./calendar-events";
 
 const ev = (over: Partial<CalendarEvent>): CalendarEvent => ({
   key: "cal|1",
@@ -59,5 +59,24 @@ describe("rangeBounds", () => {
   it("covers the whole last day", () => {
     const { timeMin, timeMax } = rangeBounds("2026-11-23", "2026-11-29");
     expect(new Date(timeMax).getTime() - new Date(timeMin).getTime()).toBeGreaterThanOrEqual(7 * 864e5 - 3600e3);
+  });
+});
+
+describe("rangeAgenda", () => {
+  it("merges a multi-day event into one item with a range, grouped by first day", () => {
+    const byDay = eventsByDay([
+      ev({ key: "trip", title: "Away", start: "2026-11-16", end: "2026-11-20" }),
+      ev({ key: "x", title: "One day", start: "2026-11-17", end: "2026-11-18" }),
+    ]);
+    const agenda = rangeAgenda(byDay, "2026-11-16", "2026-11-22");
+    expect(agenda.map((d) => d.day)).toEqual(["2026-11-16", "2026-11-17"]);
+    expect(agenda[0]!.items[0]).toMatchObject({ firstISO: "2026-11-16", lastISO: "2026-11-19" });
+    expect(agenda[1]!.items.map((i) => i.event.title)).toEqual(["One day"]);
+  });
+
+  it("clips a range to the given days", () => {
+    const byDay = eventsByDay([ev({ key: "trip", start: "2026-11-14", end: "2026-11-18" })]);
+    const agenda = rangeAgenda(byDay, "2026-11-16", "2026-11-22");
+    expect(agenda[0]).toMatchObject({ day: "2026-11-16", items: [{ firstISO: "2026-11-16", lastISO: "2026-11-17" }] });
   });
 });
