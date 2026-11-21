@@ -220,7 +220,7 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
       <RuleInput italicGold value={day.doc.focus} onChangeText={(v) => day.patch({ focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
       {eventsLoading ? <EventsLoading /> : events.length ? (
         <View style={{ gap: 2, marginBottom: 4 }}>
-          {events.map((e) => <CalendarEventRow key={e.key} event={e} onRemove={onRemoveEvent} />)}
+          {events.map((e) => <CalendarEventRow key={e.key} event={e} day={iso} onRemove={onRemoveEvent} />)}
         </View>
       ) : null}
       <View style={{ gap: 2 }}>

@@ -87,6 +87,12 @@ describe("isPast", () => {
     expect(isPast(ev({ allDay: false, start: local(2026, 11, 21, 9), end: local(2026, 11, 21, 10) }), now)).toBe(true);
     expect(isPast(ev({ allDay: false, start: local(2026, 11, 21, 11), end: local(2026, 11, 21, 13) }), now)).toBe(false);
   });
+  it("a multi-day event is done on the days already behind us", () => {
+    const trip = ev({ start: "2026-11-18", end: "2026-11-25" });
+    expect(isPast(trip, now)).toBe(false);
+    expect(isPast(trip, now, "2026-11-20")).toBe(true);
+    expect(isPast(trip, now, "2026-11-21")).toBe(false);
+  });
   it("all-day: past only after its last day", () => {
     expect(isPast(ev({ start: "2026-11-20", end: "2026-11-21" }), now)).toBe(true);
     expect(isPast(ev({ start: "2026-11-21", end: "2026-11-22" }), now)).toBe(false);

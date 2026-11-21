@@ -87,8 +87,13 @@ export function rangeAgenda(byDay: Record<string, DayEvent[]>, firstISO: string,
   return days;
 }
 
-/** Whether an event is over: timed → its end has passed; all-day → its last day has ended. */
-export function isPast(e: Pick<CalendarEvent, "start" | "end" | "allDay">, now: Date = new Date()) {
+/**
+ * Whether to show an event as done. Shown on a given day (`onDay`), it's done once that day is over,
+ * even if the event itself continues. Otherwise: timed → its end has passed; all-day → its last day
+ * has ended.
+ */
+export function isPast(e: Pick<CalendarEvent, "start" | "end" | "allDay">, now: Date = new Date(), onDay?: string) {
+  if (onDay && onDay < toISO(now)) return true;
   if (e.allDay) return (e.end || toISO(addDays(fromISO(e.start), 1))) <= toISO(now);
   const end = new Date(e.end || e.start);
   return !Number.isNaN(end.getTime()) && end <= now;

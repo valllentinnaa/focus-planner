@@ -70,10 +70,10 @@ export function EventsLoading({ rows = 2 }: { rows?: number }) {
 }
 
 /** Week day box: time + title, up to two lines. */
-export function CalendarEventRow({ event, onRemove }: { event: DayEvent; onRemove: (key: string) => void }) {
+export function CalendarEventRow({ event, day, onRemove }: { event: DayEvent; /** The day box it sits in. */ day?: string; onRemove: (key: string) => void }) {
   return (
     <EventLine event={event} onRemove={onRemove}>
-      <Text style={[s.text, isPast(event) && s.past]} numberOfLines={2}>
+      <Text style={[s.text, isPast(event, undefined, day) && s.past]} numberOfLines={2}>
         {event.allDay ? null : <Text style={s.when}>{event.label}  </Text>}
         {event.title}
       </Text>
@@ -103,7 +103,7 @@ export function MonthAgenda({ agenda, onRemove, limit = 4 }: { agenda: { day: st
             <Text style={[s.dayCol, !showDay && s.hidden]}>{dayLabel(day)}</Text>
             <View style={s.agendaMain}>
               <EventLine event={event} onRemove={onRemove}>
-                <Text style={[s.text, isPast(event) && s.past]} numberOfLines={1}>
+                <Text style={[s.text, isPast(event, undefined, lastISO) && s.past]} numberOfLines={1}>
                   {lastISO > firstISO ? <Text style={s.when}>→ {dayLabel(lastISO)}  </Text> : null}
                   {!event.allDay && lastISO === firstISO ? <Text style={s.when}>{event.label}  </Text> : null}
                   {event.title}
