@@ -1,6 +1,8 @@
 import { type ComponentRef, type ReactNode, useRef, useState } from "react";
 import { KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { noteLaunchPath } from "@/lib/planner-opening";
 import { colors, fonts, layout, space } from "@/theme/tokens";
 import { Display, Eyebrow } from "./ui";
 import { AppHeader, BOTTOM_NAV_HEIGHT, BottomNav, useIsPhone } from "./app-header";
@@ -16,6 +18,8 @@ if (Platform.OS === "web" && typeof document !== "undefined" && !document.getEle
 
 export function Screen({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  noteLaunchPath(pathname); // remembers only the very first screen after launch
   const isPhone = useIsPhone();
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>

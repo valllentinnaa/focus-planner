@@ -1,4 +1,4 @@
-import { preferredOpening } from "./planner-opening";
+import { claimLaunchOpening, noteLaunchPath, preferredOpening, resetLaunchForTests } from "./planner-opening";
 
 describe("preferredOpening", () => {
   const day = "2026-10-29";
@@ -12,5 +12,21 @@ describe("preferredOpening", () => {
   it("opens Today on later openings or when the journal has content", () => {
     expect(preferredOpening(day, day, false, true)).toBe("today");
     expect(preferredOpening(day, null, true, true)).toBe("today");
+  });
+});
+
+describe("claimLaunchOpening", () => {
+  beforeEach(resetLaunchForTests);
+
+  it("applies once when the app launched on Week, never again (tapping Week later)", () => {
+    noteLaunchPath("/");
+    expect(claimLaunchOpening()).toBe(true);
+    expect(claimLaunchOpening()).toBe(false);
+  });
+
+  it("never applies when the app launched on another page", () => {
+    noteLaunchPath("/settings");
+    noteLaunchPath("/"); // later navigation to Week
+    expect(claimLaunchOpening()).toBe(false);
   });
 });

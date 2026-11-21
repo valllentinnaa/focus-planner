@@ -12,7 +12,7 @@ import type { DayEvent } from "@/lib/calendar-events";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import type { TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
-import { resolveOpening } from "@/lib/planner-opening";
+import { claimLaunchOpening, resolveOpening } from "@/lib/planner-opening";
 import { AREAS, AREA_LABELS } from "@/lib/tasks";
 import { colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, SwipePager, useIsWide } from "@/components/screen";
@@ -46,6 +46,7 @@ export default function WeekScreen() {
   useEffect(() => {
     if (resolved.current || settingsLoading || today.loading) return;
     resolved.current = true;
+    if (!claimLaunchOpening()) return; // only on app launch, never when you tap Week
     resolveOpening(new Date(), dailyHasContent(today.doc), settings.showDaily).then((dest) => {
       if (dest === "today") router.replace("/today");
     });

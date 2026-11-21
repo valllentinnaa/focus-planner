@@ -216,10 +216,12 @@ const s = StyleSheet.create({
   nav: { flexDirection: "row", alignItems: "center", flexShrink: 1, flexWrap: "wrap", gap: 6 },
   tabWrap: { flexDirection: "row", alignItems: "center" },
   divider: { width: 1, height: 12, backgroundColor: colors.rule, marginHorizontal: 6 },
-  tab: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 6, alignItems: "center" },
+  // Same height as the Today / Settings buttons with the label centred on the same line;
+  // the underline sits just below the label without pushing it up.
+  tab: { height: 38, paddingHorizontal: 10, alignItems: "center", justifyContent: "center" },
   tabText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", color: colors.mutedForeground },
   tabTextActive: { color: colors.ink },
-  underline: { height: 2, alignSelf: "stretch", marginTop: 6, backgroundColor: "transparent" },
+  underline: { position: "absolute", left: 10, right: 10, bottom: 5, height: 1.5, borderRadius: 1, backgroundColor: "transparent" },
   underlineActive: { backgroundColor: colors.ink },
   // Settings button: 38px circle, gold border, gear centred. Same size on phones and desktop.
   iconBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
