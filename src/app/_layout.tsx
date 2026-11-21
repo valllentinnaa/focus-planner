@@ -87,6 +87,8 @@ function RootStack() {
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
       <Stack.Screen name="auth/callback" />
+      {/* Shared wishlists are public: open signed in or not. */}
+      <Stack.Screen name="w/[token]" />
     </Stack>
   );
 }

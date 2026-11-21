@@ -98,6 +98,17 @@ export type GiftIdeaRow = {
   position: number;
 } & Timestamps;
 
+export type WishlistItemRow = {
+  id: string;
+  user_id: string;
+  text: string;
+  link: string | null;
+  note: string;
+  position: number;
+} & Timestamps;
+
+export type WishlistShareRow = { user_id: string; token: string; created_at: string };
+
 export type QuarterRow = {
   id: string;
   user_id: string;
@@ -140,6 +151,7 @@ export type Database = {
       goal_steps: Table<GoalStepRow, "goal_id">;
       people: Table<PersonRow, "name">;
       gift_ideas: Table<GiftIdeaRow, "person_id" | "text">;
+      wishlist_items: Table<WishlistItemRow, "text">;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

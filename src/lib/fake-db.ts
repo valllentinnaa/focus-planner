@@ -31,6 +31,7 @@ const defaultsFor: Record<string, () => Row> = {
   goals: () => ({ text: "", done: false, is_project: false, position: 0 }),
   goal_steps: () => ({ text: "", done: false, position: 0 }),
   people: () => ({ birth_month: null, birth_day: null, birth_year: null, notes: "", source: "manual", external_id: null }),
+  wishlist_items: () => ({ link: null, note: "", position: 0 }),
   gift_ideas: () => ({ link: null, status: "idea", given_year: null, position: 0 }),
 };
 

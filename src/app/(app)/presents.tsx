@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useCalendarOps } from "@/data/calendar";
+import { shareUrl, sharingAvailable, useWishlist, useWishlistShare } from "@/data/wishlist";
 import { contactsImportAvailable, fetchGoogleContacts, useGiftIdeas, useImportContacts, usePeople, type GoogleContact } from "@/data/presents";
 import { byUpcoming, daysLabel, nextBirthday } from "@/lib/birthdays";
 import { formatBirthday, formatBirthdayInput, parseBirthday, splitLink } from "@/lib/birthday-input";
 import type { GiftIdeaRow, PersonRow } from "@/lib/database.types";
 import { colors, fonts, radius, space } from "@/theme/tokens";
-import { Hint, PageTitle, Screen } from "@/components/screen";
+import { Column, Columns, Hint, PageTitle, Screen } from "@/components/screen";
 import { Body, Card, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
 
 const SOON_DAYS = 30;
@@ -63,7 +64,8 @@ export default function PresentsScreen() {
         </View>
       ) : null}
 
-      <View style={{ maxWidth: 720, width: "100%" }}>
+      <Columns>
+      <Column flex={3}>
         <SectionLabel right={<Text style={s.meta}>{people.items.length}</Text>}>People</SectionLabel>
         <AddPerson onAdd={(row) => setOpen(people.add(row))} />
         {people.items.length === 0 && !people.loading ? (
@@ -87,7 +89,11 @@ export default function PresentsScreen() {
             ideaOps={ideas}
           />
         ))}
-      </View>
+      </Column>
+      <Column flex={2}>
+        <MyWishlist />
+      </Column>
+      </Columns>
     </Screen>
   );
 }
@@ -268,6 +274,86 @@ function PersonDetail({
   );
 }
 
+function MyWishlist() {
+  const list = useWishlist();
+  const share = useWishlistShare();
+  const [draft, setDraft] = useState("");
+  const [copied, setCopied] = useState(false);
+  const url = share.token ? shareUrl(share.token) : null;
+
+  const add = () => {
+    const { text, link } = splitLink(draft);
+    if (!text) return;
+    list.add({ text: text.slice(0, 500), link, position: list.items.length });
+    setDraft("");
+  };
+  const sendLink = async () => {
+    if (!url) return;
+    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      await Share.share({ message: url });
+    }
+  };
+
+  return (
+    <View>
+      <SectionLabel right={<Text style={s.meta}>{list.items.length}</Text>}>My wishlist</SectionLabel>
+      <View style={s.addRow}>
+        <RuleInput value={draft} onChangeText={setDraft} placeholder="Something you'd like, or a link…" onSubmitEditing={add} blurOnSubmit={false} style={{ flex: 1 }} />
+        <OutlineButton onPress={add}>Add</OutlineButton>
+      </View>
+      {list.items.length === 0 && !list.loading ? (
+        <Body muted style={{ fontStyle: "italic", paddingVertical: 4 }}>Add what you'd love to get, then share the list.</Body>
+      ) : null}
+      {list.items.map((i) => (
+        <View key={i.id} style={s.idea}>
+          <View style={{ flex: 1 }}>
+            <Body>{i.text}</Body>
+            {i.link && i.link !== i.text ? (
+              <Text style={s.link} numberOfLines={1} onPress={() => Linking.openURL(i.link!)}>
+                {i.link.replace(/^https?:\/\//, "")}
+              </Text>
+            ) : null}
+          </View>
+          <GhostButton accessibilityLabel="Remove" onPress={() => list.remove(i.id)}>
+            <Text style={s.x}>✕</Text>
+          </GhostButton>
+        </View>
+      ))}
+
+      {sharingAvailable ? (
+        <View style={s.shareBox}>
+          <Text style={s.shareTitle}>Share</Text>
+          {share.loading ? null : share.token ? (
+            <>
+              {url ? (
+                <Text selectable style={s.shareUrl} numberOfLines={1}>{url}</Text>
+              ) : (
+                <Hint>Open the planner on the web to get the link.</Hint>
+              )}
+              <View style={{ flexDirection: "row", gap: space.sm, alignItems: "center", flexWrap: "wrap" }}>
+                {url ? <OutlineButton gold onPress={sendLink}>{copied ? "Copied" : Platform.OS === "web" ? "Copy link" : "Share link"}</OutlineButton> : null}
+                {url ? <GhostButton onPress={() => Linking.openURL(url)}>Preview</GhostButton> : null}
+                <GhostButton disabled={share.busy} onPress={share.turnOff}>Turn off link</GhostButton>
+              </View>
+              <Hint>Anyone with the link can see the list and mark what they're buying. You won't see who picked what. Turning the link off makes it stop working; a new one is different.</Hint>
+            </>
+          ) : (
+            <>
+              <Hint>Make a private link to send to family and friends. They don't need the app.</Hint>
+              <OutlineButton gold disabled={share.busy} onPress={share.create}>Create share link</OutlineButton>
+            </>
+          )}
+          {share.error ? <Hint>Something went wrong. Try again.</Hint> : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function ImportPanel({ onClose }: { onClose: () => void }) {
   const ops = useCalendarOps();
   const imp = useImportContacts();
@@ -393,6 +479,9 @@ const s = StyleSheet.create({
   x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
   ghostDanger: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.destructive },
   filter: { flexDirection: "row", alignItems: "center", gap: 6 },
+  shareBox: { marginTop: space.lg, borderWidth: 1, borderColor: colors.rule, borderRadius: radius.md, padding: space.md, gap: space.sm },
+  shareTitle: { fontFamily: fonts.sansSemiBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
+  shareUrl: { fontFamily: fonts.sans, fontSize: 13, color: colors.ink },
   contactList: { maxHeight: 360 },
   contact: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.rule },
 });

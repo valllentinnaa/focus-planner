@@ -27,4 +27,6 @@ export const env = {
   demo,
   supabaseUrl: parsed.success ? parsed.data.EXPO_PUBLIC_SUPABASE_URL : "https://demo.invalid",
   supabasePublishableKey: parsed.success ? parsed.data.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY : "demo",
+  /** Public web address (for share links made from the phone app). Web uses its own origin. */
+  webUrl: (process.env.EXPO_PUBLIC_WEB_URL ?? "").replace(/\/$/, ""),
 };
