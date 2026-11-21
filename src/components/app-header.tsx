@@ -69,6 +69,15 @@ export function AppHeader() {
                 );
               })}
 
+          {settings.showDaily ? (
+            <Pressable
+              accessibilityLabel="Today"
+              onPress={() => router.push("/today")}
+              style={({ pressed }) => [s.todayBtn, { height: iconSize }, pressed && { opacity: 0.8 }]}
+            >
+              <Text style={s.todayText}>Today</Text>
+            </Pressable>
+          ) : null}
           <Pressable
             accessibilityLabel="Settings"
             onPress={() => router.push("/settings")}
@@ -76,15 +85,6 @@ export function AppHeader() {
           >
             <SettingsIcon size={isPhone ? 14 : 16} color={colors.ink} strokeWidth={1.75} />
           </Pressable>
-          {settings.showDaily ? (
-            <Pressable
-              accessibilityLabel="Today"
-              onPress={() => router.push("/today")}
-              style={({ pressed }) => [s.iconBtn, s.iconBtnGold, { width: iconSize, height: iconSize }, pressed && { opacity: 0.8 }]}
-            >
-              <Sun size={isPhone ? 15 : 17} color={colors.paper} strokeWidth={1.9} />
-            </Pressable>
-          ) : null}
         </View>
       </View>
     </View>
@@ -178,7 +178,8 @@ const s = StyleSheet.create({
   underlineActive: { backgroundColor: colors.ink },
   iconBtn: { borderRadius: 999, alignItems: "center", justifyContent: "center" },
   iconBtnOutline: { borderWidth: 1, borderColor: colors.rule, marginLeft: space.xs },
-  iconBtnGold: { backgroundColor: colors.gold },
+  todayBtn: { borderRadius: 999, backgroundColor: colors.gold, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
+  todayText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.paper },
   bottomBar: {
     position: "absolute",
     left: 0,
