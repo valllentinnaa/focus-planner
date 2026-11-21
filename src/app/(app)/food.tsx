@@ -36,7 +36,6 @@ export default function FoodScreen() {
       <PageTitle
         eyebrow="Weekly"
         title="Food"
-        plain
         right={
           <DateNav
             label={`${format(weekStart, "MMM d")}  →  ${format(addDays(weekStart, 6), "MMM d, yyyy")}`}

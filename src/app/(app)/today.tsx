@@ -38,9 +38,9 @@ export default function TodayScreen() {
         eyebrow="Today"
         title="Daily Journal"
         right={
-          <View style={{ gap: space.sm, alignItems: "flex-start" }}>
+          <View style={{ gap: space.sm, alignItems: wide ? "flex-end" : "flex-start" }}>
             <Link href="/" asChild>
-              <OutlineButton gold>My Week ↗</OutlineButton>
+              <OutlineButton gold style={wide && { alignSelf: "flex-end" }}>My Week ↗</OutlineButton>
             </Link>
             <DateNav
               printable
