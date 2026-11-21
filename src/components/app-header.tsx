@@ -62,7 +62,7 @@ export function AppHeader() {
           >
             {/* Absolutely centred so the SVG can't sit off-centre on any platform. */}
             <View style={s.iconCenter} pointerEvents="none">
-              <SettingsIcon size={19} color={colors.ink} strokeWidth={1.8} />
+              <SettingsIcon size={19} color={colors.gold} strokeWidth={1.8} />
             </View>
           </Pressable>
         </View>
