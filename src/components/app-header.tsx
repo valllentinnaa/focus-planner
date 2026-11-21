@@ -221,7 +221,7 @@ const s = StyleSheet.create({
   // Settings button, as in the design prototype: thin line gear in a light 36px circle (32 on phones).
   iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   // marginLeft + the nav's 6px gap = the original 8px (space.sm) spacing.
-  iconBtnOutline: { borderWidth: 1, borderColor: colors.rule, marginLeft: space.sm - 6 },
+  iconBtnOutline: { borderWidth: 1, borderColor: colors.gold, marginLeft: space.sm - 6 },
   todayBtn: { borderRadius: 999, backgroundColor: colors.gold, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
   todayText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.paper },
   dropdown: {
