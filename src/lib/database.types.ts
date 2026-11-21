@@ -95,6 +95,9 @@ export type GiftIdeaRow = {
   link: string | null;
   status: "idea" | "bought" | "given";
   given_year: number | null;
+  file_path: string | null;
+  file_name: string | null;
+  file_type: string | null;
   position: number;
 } & Timestamps;
 

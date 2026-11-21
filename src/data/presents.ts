@@ -1,8 +1,10 @@
 // Presents: people (with birthdays) and gift ideas per person. Google Contacts import goes through
 // the `google-calendar` edge function, which holds the Google tokens; nothing is stored until the
 // user picks which contacts to add.
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { rawDb } from "@/lib/supabase";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { env } from "@/lib/env";
+import type { PickedFile } from "@/lib/pick-file";
+import { rawDb, supabase } from "@/lib/supabase";
 import { call, calendarAvailable } from "./calendar";
 import { newId, useItems } from "./items";
 import { useUserId } from "./auth";
@@ -49,4 +51,37 @@ export function useImportContacts() {
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["people", userId] }),
   });
+}
+
+// ---------- files on gift ideas (private bucket, owner-only) ----------
+const BUCKET = "gift-files";
+export const giftFilesAvailable = !env.demo;
+
+export async function uploadGiftFile(userId: string, file: PickedFile) {
+  const ext = file.type === "application/pdf" ? "pdf" : file.type.split("/")[1];
+  const path = `${userId}/${newId()}.${ext}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file.body, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return path;
+}
+
+export async function removeGiftFiles(paths: (string | null | undefined)[]) {
+  const list = paths.filter((p): p is string => !!p);
+  if (list.length) await supabase.storage.from(BUCKET).remove(list);
+}
+
+/** Short-lived links to view the files (bucket is private). */
+export function useGiftFileUrls(paths: string[]) {
+  const key = [...paths].sort().join("|");
+  const q = useQuery({
+    queryKey: ["gift-file-urls", key],
+    enabled: giftFilesAvailable && paths.length > 0,
+    staleTime: 50 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from(BUCKET).createSignedUrls(paths, 3600);
+      if (error) throw error;
+      return Object.fromEntries((data ?? []).filter((d) => d.signedUrl && d.path).map((d) => [d.path!, d.signedUrl as string])) as Record<string, string>;
+    },
+  });
+  return q.data ?? ({} as Record<string, string>);
 }

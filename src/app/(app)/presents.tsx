@@ -1,10 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Paperclip, Trash2 } from "lucide-react-native";
 import { useCalendarOps } from "@/data/calendar";
 import { shareUrl, sharingAvailable, useWishlist, useWishlistShare } from "@/data/wishlist";
-import { contactsImportAvailable, fetchGoogleContacts, useGiftIdeas, useImportContacts, usePeople, type GoogleContact } from "@/data/presents";
+import { useUserId } from "@/data/auth";
+import { canPickFiles, pickFile } from "@/lib/pick-file";
+import {
+  giftFilesAvailable,
+  removeGiftFiles,
+  uploadGiftFile,
+  useGiftFileUrls,
+  contactsImportAvailable,
+  fetchGoogleContacts, useGiftIdeas, useImportContacts, usePeople, type GoogleContact } from "@/data/presents";
 import { byUpcoming, daysLabel, nextBirthday } from "@/lib/birthdays";
 import { formatBirthday, formatBirthdayInput, parseBirthday, splitLink } from "@/lib/birthday-input";
 import type { GiftIdeaRow, PersonRow } from "@/lib/database.types";
@@ -83,6 +92,7 @@ export default function PresentsScreen() {
             onToggle={() => setOpen(open === p.id ? null : p.id)}
             onUpdate={(change) => people.update(p.id, change)}
             onRemove={() => {
+              removeGiftFiles(ideasFor(p.id).map((i) => i.file_path)).catch(() => undefined);
               people.remove(p.id);
               setOpen(null);
             }}
@@ -151,7 +161,7 @@ function PersonRowView({
   const openIdeas = ideas.filter((i) => i.status !== "given").length;
 
   return (
-    <View style={s.person}>
+    <View style={[s.person, open && s.personOpen]}>
       <Pressable onPress={onToggle} style={s.personHead} accessibilityRole="button" accessibilityState={{ expanded: open }}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={s.personName}>{p.name}</Text>
@@ -199,6 +209,34 @@ function PersonDetail({
     ideaOps.add({ person_id: p.id, text: text.slice(0, 1000), link, position: ideas.length });
     setDraft("");
   };
+  const userId = useUserId();
+  const [uploading, setUploading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const canAttach = canPickFiles && giftFilesAvailable;
+  const fileUrls = useGiftFileUrls(ideas.map((i) => i.file_path).filter((x): x is string => !!x));
+  const attach = async () => {
+    setFileError(null);
+    const f = await pickFile();
+    if (!f) return;
+    if (f === "too_big") return setFileError("That file is over 10 MB.");
+    if (f === "wrong_type") return setFileError("Photos (JPG, PNG, WebP, GIF, HEIC) or PDFs only.");
+    if (!userId) return;
+    setUploading(true);
+    try {
+      const path = await uploadGiftFile(userId, f);
+      const { text, link } = splitLink(draft);
+      ideaOps.add({ person_id: p.id, text: (text || f.name).slice(0, 1000), link, file_path: path, file_name: f.name, file_type: f.type, position: ideas.length });
+      setDraft("");
+    } catch {
+      setFileError("Upload failed. Try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+  const removeIdea = (i: GiftIdeaRow) => {
+    ideaOps.remove(i.id);
+    removeGiftFiles([i.file_path]).catch(() => undefined);
+  };
   const cycle = (i: GiftIdeaRow) => {
     const status = STATUS_NEXT[i.status];
     ideaOps.update(i.id, { status, given_year: status === "given" ? new Date().getFullYear() : null });
@@ -217,13 +255,33 @@ function PersonDetail({
           keyboardType="numbers-and-punctuation"
           style={[{ flex: 1, minWidth: 150 }, parsed === "invalid" && { borderBottomColor: colors.destructive }]}
         />
+        {confirmDelete ? (
+          <View style={s.confirm}>
+            <Text style={s.meta}>Delete?</Text>
+            <GhostButton onPress={() => setConfirmDelete(false)}>No</GhostButton>
+            <GhostButton onPress={onRemove}>
+              <Text style={s.ghostDanger}>Yes</Text>
+            </GhostButton>
+          </View>
+        ) : (
+          <Pressable accessibilityRole="button" accessibilityLabel={`Delete ${p.name}`} hitSlop={8} onPress={() => setConfirmDelete(true)} style={s.iconBtn}>
+            <Trash2 size={17} color={colors.mutedForeground} strokeWidth={1.6} />
+          </Pressable>
+        )}
       </View>
 
       <SectionLabel>Gift ideas</SectionLabel>
       <View style={s.addRow}>
-        <RuleInput value={draft} onChangeText={setDraft} placeholder="Idea or link…" onSubmitEditing={addIdea} blurOnSubmit={false} style={{ flex: 1 }} />
+        <RuleInput value={draft} onChangeText={setDraft} placeholder="Idea, link, photo or PDF…" onSubmitEditing={addIdea} blurOnSubmit={false} style={{ flex: 1 }} />
+        {canAttach ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Attach a photo or PDF" hitSlop={8} disabled={uploading} onPress={attach} style={s.iconBtn}>
+            <Paperclip size={17} color={uploading ? colors.rule : colors.ink} strokeWidth={1.6} />
+          </Pressable>
+        ) : null}
         <OutlineButton onPress={addIdea}>Add</OutlineButton>
       </View>
+      {uploading ? <Hint>Uploading…</Hint> : null}
+      {fileError ? <Hint>{fileError}</Hint> : null}
       {ideas.length === 0 ? <Body muted style={{ fontStyle: "italic", paddingVertical: 4 }}>Dump anything they might like.</Body> : null}
       {ideas.map((i) => (
         <View key={i.id} style={s.idea}>
@@ -240,9 +298,19 @@ function PersonDetail({
                 {i.link.replace(/^https?:\/\//, "")}
               </Text>
             ) : null}
+            {i.file_path && i.file_type === "application/pdf" ? (
+              <Text style={s.link} numberOfLines={1} onPress={() => fileUrls[i.file_path!] && Linking.openURL(fileUrls[i.file_path!]!)}>
+                📄 {i.file_name ?? "PDF"}
+              </Text>
+            ) : null}
           </View>
+          {i.file_path && i.file_type?.startsWith("image/") && fileUrls[i.file_path] ? (
+            <Pressable onPress={() => Linking.openURL(fileUrls[i.file_path!]!)} accessibilityLabel={`Open photo ${i.file_name ?? ""}`}>
+              <Image source={{ uri: fileUrls[i.file_path] }} style={s.thumb} />
+            </Pressable>
+          ) : null}
           {i.link && i.link === i.text ? <GhostButton onPress={() => Linking.openURL(i.link!)}>Open</GhostButton> : null}
-          <GhostButton accessibilityLabel="Remove idea" onPress={() => ideaOps.remove(i.id)}>
+          <GhostButton accessibilityLabel="Remove idea" onPress={() => removeIdea(i)}>
             <Text style={s.x}>✕</Text>
           </GhostButton>
         </View>
@@ -257,19 +325,6 @@ function PersonDetail({
         placeholder="Sizes, favourite colours, things to avoid…"
       />
 
-      <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: space.sm }}>
-        {confirmDelete ? (
-          <View style={{ flexDirection: "row", gap: space.sm, alignItems: "center" }}>
-            <Text style={s.meta}>Delete {p.name} and their ideas?</Text>
-            <GhostButton onPress={() => setConfirmDelete(false)}>Cancel</GhostButton>
-            <GhostButton onPress={onRemove}>
-              <Text style={[s.ghostDanger]}>Delete</Text>
-            </GhostButton>
-          </View>
-        ) : (
-          <GhostButton onPress={() => setConfirmDelete(true)}>Delete person</GhostButton>
-        )}
-      </View>
     </View>
   );
 }
@@ -463,11 +518,15 @@ const s = StyleSheet.create({
   soonWhen: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.gold },
   soonName: { fontFamily: fonts.display, fontSize: 24, color: colors.ink },
   person: { borderBottomWidth: 1, borderBottomColor: colors.rule },
+  personOpen: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.md, paddingHorizontal: space.md, marginVertical: space.sm, backgroundColor: colors.card + "80" },
+  iconBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: 16 },
+  confirm: { flexDirection: "row", alignItems: "center", gap: 2 },
+  thumb: { width: 48, height: 48, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.rule },
   personHead: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: space.md },
   personName: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
   when: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: colors.mutedForeground },
   chev: { fontFamily: fonts.sans, fontSize: 18, color: colors.mutedForeground, width: 16, textAlign: "center" },
-  detail: { paddingBottom: space.lg, paddingLeft: space.sm, gap: space.xs },
+  detail: { paddingBottom: space.lg, gap: space.xs },
   idea: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: 6, borderBottomWidth: 1, borderStyle: "dashed", borderBottomColor: colors.rule },
   status: { borderWidth: 1, borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 10, minWidth: 64, alignItems: "center" },
   status_idea: { borderColor: colors.rule },

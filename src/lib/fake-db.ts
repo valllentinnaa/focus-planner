@@ -32,7 +32,7 @@ const defaultsFor: Record<string, () => Row> = {
   goal_steps: () => ({ text: "", done: false, position: 0 }),
   people: () => ({ birth_month: null, birth_day: null, birth_year: null, notes: "", source: "manual", external_id: null }),
   wishlist_items: () => ({ link: null, note: "", position: 0 }),
-  gift_ideas: () => ({ link: null, status: "idea", given_year: null, position: 0 }),
+  gift_ideas: () => ({ link: null, status: "idea", given_year: null, file_path: null, file_name: null, file_type: null, position: 0 }),
 };
 
 async function load(table: string): Promise<Row[]> {
