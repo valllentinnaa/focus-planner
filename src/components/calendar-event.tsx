@@ -1,6 +1,7 @@
 import { format } from "date-fns";
-import { useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { router, type Href } from "expo-router";
+import { useEffect, useState } from "react";
+import { Animated, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { isPast, type AgendaItem, type DayEvent } from "@/lib/calendar-events";
 import { fromISO } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
@@ -22,7 +23,11 @@ function EventLine({ event, onRemove, children }: { event: DayEvent; onRemove: (
       onHoverIn={() => setHover(true)}
       onHoverOut={() => setHover(false)}
       onLongPress={() => setRevealed((v) => !v)}
-      onPress={() => (revealed ? setRevealed(false) : event.link && Linking.openURL(event.link))}
+      onPress={() => {
+        if (revealed) setRevealed(false);
+        else if (event.appHref) router.push(event.appHref as Href);
+        else if (event.link) Linking.openURL(event.link);
+      }}
       accessibilityLabel={`${event.title}, ${event.label}, from ${event.calendar}`}
       accessibilityHint="Long-press to show remove"
       accessibilityActions={[{ name: "remove", label: "Remove from planner" }]}
@@ -36,6 +41,31 @@ function EventLine({ event, onRemove, children }: { event: DayEvent; onRemove: (
         </GhostButton>
       </View>
     </Pressable>
+  );
+}
+
+/** Placeholder lines (gently pulsing) where calendar events will appear while they load. */
+export function EventsLoading({ rows = 2 }: { rows?: number }) {
+  const [pulse] = useState(() => new Animated.Value(0.35));
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.8, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.35, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+  return (
+    <Animated.View style={[s.skeleton, { opacity: pulse }]} accessibilityLabel="Loading calendar events" accessibilityRole="progressbar">
+      {Array.from({ length: rows }).map((_, i) => (
+        <View key={i} style={s.skeletonRow}>
+          <View style={s.skeletonDot} />
+          <View style={[s.skeletonBar, { width: `${[72, 52, 64, 45][i % 4]}%` }]} />
+        </View>
+      ))}
+    </Animated.View>
   );
 }
 
@@ -97,6 +127,10 @@ const s = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, marginLeft: 2 },
   body: { flex: 1, minWidth: 0 },
   text: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
+  skeleton: { gap: 8, paddingVertical: 4, marginBottom: 4 },
+  skeletonRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  skeletonDot: { width: 6, height: 6, borderRadius: 3, marginLeft: 2, backgroundColor: colors.rule },
+  skeletonBar: { height: 9, borderRadius: 5, backgroundColor: colors.rule },
   // Over: struck through and faded, like a ticked-off task.
   past: { textDecorationLine: "line-through", opacity: 0.55 },
   when: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1, color: colors.gold },

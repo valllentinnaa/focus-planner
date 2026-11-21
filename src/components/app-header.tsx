@@ -1,11 +1,16 @@
 import { Link, usePathname, useRouter } from "expo-router";
-import { CalendarDays, CalendarRange, Gift, MoreHorizontal, Settings as SettingsIcon, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
+import { CalendarDays, CalendarRange, Gift, MoreHorizontal, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
 import { type ComponentRef, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/data/profile";
 import { splitMenu, type PageKey } from "@/lib/menu";
 import { colors, fonts, layout, space } from "@/theme/tokens";
+
+/** The original gear: a text glyph, as before. */
+function GearIcon({ color }: { color: string }) {
+  return <Text style={{ fontSize: 15, color, lineHeight: 18 }}>⚙︎</Text>;
+}
 
 const ICONS: Record<PageKey, LucideIcon> = {
   week: CalendarDays,
@@ -26,7 +31,6 @@ function useMenu(phone: boolean) {
 
 export function AppHeader() {
   const insets = useSafeAreaInsets();
-  const pathname = usePathname();
   const router = useRouter();
   const { settings } = useSettings();
   const isPhone = useIsPhone();
@@ -59,9 +63,9 @@ export function AppHeader() {
           <Pressable
             accessibilityLabel="Settings"
             onPress={() => router.push("/settings")}
-            style={[s.iconBtn, s.iconBtnOutline, { width: iconSize, height: iconSize }, pathname === "/settings" && { borderColor: colors.gold }]}
+            style={[s.iconBtn, s.iconBtnOutline, { width: iconSize, height: iconSize }]}
           >
-            <SettingsIcon size={isPhone ? 14 : 16} color={colors.ink} strokeWidth={1.75} />
+            <GearIcon color={colors.ink} />
           </Pressable>
         </View>
       </View>

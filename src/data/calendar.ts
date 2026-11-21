@@ -8,8 +8,16 @@ import { useCallback, useMemo } from "react";
 import { Platform } from "react-native";
 import { eventsByDay, rangeBounds, type CalendarEvent } from "@/lib/calendar-events";
 import { env } from "@/lib/env";
+import { CACHE_MAX_AGE } from "@/lib/query-cache";
 import { rawDb, supabase } from "@/lib/supabase";
+import { birthdayEvents } from "@/lib/birthdays";
 import { useUserId } from "./auth";
+import { useItems } from "./items";
+import { useSettings } from "./profile";
+
+/** Events/calendars count as fresh for 30 min: no refetch within that; afterwards the cached
+ * copy shows instantly while a fresh one loads in the background. */
+const FRESH_MS = 30 * 60_000;
 
 export const calendarAvailable = !env.demo;
 
@@ -29,7 +37,8 @@ export function useCalendarStatus() {
     queryKey: ["gcal", userId, "status"],
     enabled: calendarAvailable && !!userId,
     queryFn: () => call<{ accounts: CalendarAccount[] }>("status"),
-    staleTime: 5 * 60_000,
+    staleTime: FRESH_MS,
+    gcTime: CACHE_MAX_AGE,
   });
   return { accounts: q.data?.accounts ?? [], loading: q.isLoading, error: q.error };
 }
@@ -42,9 +51,11 @@ function useHidden() {
     queryFn: async () => {
       const { data, error } = await rawDb.from("hidden_calendar_events").select("event_key");
       if (error) throw error;
-      return new Set((data ?? []).map((r: { event_key: string }) => r.event_key));
+      // A plain array (not a Set) so it can be cached on the device as JSON.
+      return (data ?? []).map((r: { event_key: string }) => r.event_key) as string[];
     },
     staleTime: Infinity,
+    gcTime: CACHE_MAX_AGE,
   });
 }
 
@@ -58,10 +69,22 @@ export function useCalendarEvents(firstISO: string, lastISO: string) {
     queryKey: ["gcal", userId, "events", firstISO, lastISO],
     enabled: calendarAvailable && !!userId && connected,
     queryFn: () => call<{ events: CalendarEvent[]; errors: AccountError[] }>("events", rangeBounds(firstISO, lastISO)),
-    staleTime: 5 * 60_000,
+    staleTime: FRESH_MS,
+    gcTime: CACHE_MAX_AGE,
   });
-  const byDay = useMemo(() => eventsByDay(q.data?.events ?? [], hidden.data), [q.data, hidden.data]);
-  return { byDay, errors: q.data?.errors ?? [], connected };
+  // Birthdays from Presents ride along as all-day events (they work without Google, too).
+  const { settings } = useSettings();
+  const people = useItems({ table: "people", filters: {}, orderBy: ["name"], enabled: settings.showPresents });
+  const birthdays = useMemo(
+    () => (settings.showPresents ? birthdayEvents(people.items, firstISO, lastISO) : []),
+    [settings.showPresents, people.items, firstISO, lastISO],
+  );
+  const byDay = useMemo(
+    () => eventsByDay([...birthdays, ...(q.data?.events ?? [])], new Set(Array.isArray(hidden.data) ? hidden.data : [])),
+    [birthdays, q.data, hidden.data],
+  );
+  // First load only (no cached copy yet): screens show a placeholder where events go.
+  return { byDay, errors: q.data?.errors ?? [], connected, loading: connected && q.isLoading };
 }
 
 export function useCalendarOps() {
@@ -74,7 +97,7 @@ export function useCalendarOps() {
       const { error } = await rawDb.from("hidden_calendar_events").upsert({ event_key: key }, { onConflict: "user_id,event_key", ignoreDuplicates: true });
       if (error) throw error;
     },
-    onMutate: (key) => qc.setQueryData<Set<string>>(["gcal", userId, "hidden"], (cur) => new Set([...(cur ?? []), key])),
+    onMutate: (key) => qc.setQueryData<string[]>(["gcal", userId, "hidden"], (cur) => [...(Array.isArray(cur) ? cur : []), key]),
     onError: () => qc.invalidateQueries({ queryKey: ["gcal", userId, "hidden"] }),
   });
 
@@ -83,7 +106,7 @@ export function useCalendarOps() {
       const { error } = await rawDb.from("hidden_calendar_events").delete().eq("user_id", userId);
       if (error) throw error;
     },
-    onSuccess: () => qc.setQueryData(["gcal", userId, "hidden"], new Set()),
+    onSuccess: () => qc.setQueryData<string[]>(["gcal", userId, "hidden"], []),
   });
 
   const setEnabled = useMutation({

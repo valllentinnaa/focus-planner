@@ -9,7 +9,7 @@ import { useDaily, dailyHasContent } from "@/data/daily";
 import { useWeekTasks, useTaskOps, type TaskOps } from "@/data/tasks";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import type { DayEvent } from "@/lib/calendar-events";
-import { CalendarEventRow } from "@/components/calendar-event";
+import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import type { TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
 import { resolveOpening } from "@/lib/planner-opening";
@@ -162,6 +162,7 @@ export default function WeekScreen() {
                   isToday={iso === todayISO}
                   tasks={byDay[iso] ?? []}
                   events={calendar.byDay[iso] ?? []}
+                  eventsLoading={calendar.loading}
                   onRemoveEvent={calendarOps.hide}
                   ops={ops}
                   weekStart={key}
@@ -189,12 +190,13 @@ export default function WeekScreen() {
 }
 
 /** A day box: its focus line (shared with the Daily journal) and its scheduled tasks. */
-function DayBox({ label, iso, isToday, tasks, events, onRemoveEvent, ops, weekStart, wide, onOpen }: {
+function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEvent, ops, weekStart, wide, onOpen }: {
   label: string;
   iso: string;
   isToday: boolean;
   tasks: TaskRow[];
   events: DayEvent[];
+  eventsLoading: boolean;
   onRemoveEvent: (key: string) => void;
   ops: TaskOps;
   weekStart: string;
@@ -216,7 +218,7 @@ function DayBox({ label, iso, isToday, tasks, events, onRemoveEvent, ops, weekSt
         <Text style={s.dayDate}>{format(fromISO(iso), "MMM d").toUpperCase()}</Text>
       </View>
       <RuleInput italicGold value={day.doc.focus} onChangeText={(v) => day.patch({ focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
-      {events.length ? (
+      {eventsLoading ? <EventsLoading /> : events.length ? (
         <View style={{ gap: 2, marginBottom: 4 }}>
           {events.map((e) => <CalendarEventRow key={e.key} event={e} onRemove={onRemoveEvent} />)}
         </View>

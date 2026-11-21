@@ -1,14 +1,16 @@
 import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from "@expo-google-fonts/instrument-serif";
 import { WorkSans_400Regular, WorkSans_500Medium, WorkSans_600SemiBold } from "@expo-google-fonts/work-sans";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/data/auth";
+import { CACHE_MAX_AGE, persister } from "@/lib/query-cache";
 import { DragProvider } from "@/components/drag";
 import { colors } from "@/theme/tokens";
 
@@ -40,14 +42,22 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister,
+            maxAge: CACHE_MAX_AGE,
+            // Only Google Calendar data is kept on the device between launches.
+            dehydrateOptions: { shouldDehydrateQuery: (q) => q.queryKey[0] === "gcal" && q.state.status === "success" },
+          }}
+        >
           <AuthProvider>
             <DragProvider>
               <StatusBar style="dark" />
               <RootStack />
             </DragProvider>
           </AuthProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -55,6 +65,17 @@ export default function RootLayout() {
 
 function RootStack() {
   const { session, loading } = useAuth();
+  const qc = useQueryClient();
+  const wasSignedIn = useRef(false);
+  // Signing out wipes cached data (incl. calendar events kept on the device).
+  useEffect(() => {
+    if (loading) return;
+    if (wasSignedIn.current && !session) {
+      qc.clear();
+      persister.removeClient();
+    }
+    wasSignedIn.current = !!session;
+  }, [session, loading, qc]);
   if (loading) return null;
   const signedIn = !!session;
   return (
