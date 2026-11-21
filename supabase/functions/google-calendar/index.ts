@@ -354,7 +354,16 @@ async function handle(req: Request, action: string) {
             if (pageToken) q.set("pageToken", pageToken);
             const res = await fetch(`${PEOPLE}/people/me/connections?${q}`, { headers: { Authorization: `Bearer ${token}` } });
             if (res.status === 403) {
-              needsAccess.push(c.email);
+              // Either the user didn't grant contacts access, or the People API isn't enabled in
+              // the Google Cloud project. Tell them apart so the app can say what to fix.
+              const err = (await res.json().catch(() => ({}))) as { error?: { message?: string; details?: { reason?: string }[] } };
+              const reason = err.error?.details?.find((d) => d.reason)?.reason ?? "";
+              console.error("contacts 403", c.id, reason, err.error?.message);
+              if (reason === "SERVICE_DISABLED" || /has not been used|is disabled/i.test(err.error?.message ?? "")) {
+                errors.push({ account: c.email, error: "api_disabled" });
+              } else {
+                needsAccess.push(c.email);
+              }
               break;
             }
             if (!res.ok) throw new HttpError(res.status === 401 ? 409 : 502, `google_people_${res.status}`);

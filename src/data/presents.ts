@@ -23,7 +23,7 @@ export type ContactsResult = {
   connected: boolean;
   contacts: GoogleContact[];
   needsAccess: string[];
-  errors: { account: string; error: "reconnect" | "failed" }[];
+  errors: { account: string; error: "reconnect" | "failed" | "api_disabled" }[];
 };
 
 export const fetchGoogleContacts = () => call<ContactsResult>("contacts");
