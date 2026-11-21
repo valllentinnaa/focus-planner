@@ -21,6 +21,7 @@ export function useGiftIdeas() {
 export type GoogleContact = { id: string; name: string; month: number | null; day: number | null; year: number | null; account: string };
 export type ContactsResult = {
   connected: boolean;
+  accounts?: string[];
   contacts: GoogleContact[];
   needsAccess: string[];
   errors: { account: string; error: "reconnect" | "failed" | "api_disabled" }[];

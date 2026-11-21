@@ -389,7 +389,7 @@ async function handle(req: Request, action: string) {
           errors.push({ account: c.email, error: e instanceof HttpError && e.status === 409 ? "reconnect" : "failed" });
         }
       }
-      return json({ connected: conns.length > 0, contacts, needsAccess, errors });
+      return json({ connected: conns.length > 0, accounts: conns.map((c) => c.email), contacts, needsAccess, errors });
     }
 
     case "disconnect": {

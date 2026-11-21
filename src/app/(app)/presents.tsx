@@ -296,12 +296,12 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
   else if (q.error) body = <Body muted>{"Couldn't load contacts. Try again in a moment."}</Body>;
   else if (q.data?.errors.some((e) => e.error === "api_disabled") && !q.data.contacts.length) {
     body = <Body muted>Google says the People API isn&apos;t turned on for this app yet. Enable it in Google Cloud, wait a few minutes, then try again.</Body>;
-  } else if (!q.data?.connected || (q.data.needsAccess.length && !q.data.contacts.length)) {
+  } else if (!q.data?.connected || (q.data.needsAccess.length > 0 && q.data.needsAccess.length >= (q.data.accounts?.length ?? 1))) {
     body = (
       <View style={{ gap: space.sm }}>
         <Body>
           {q.data?.connected
-            ? "Allow read-only access to your Google contacts. The planner only saves the people you pick."
+            ? `Allow read-only access to the Google contacts of ${q.data.needsAccess.join(", ")}. The planner only saves the people you pick.`
             : "Connect your Google account to import contacts. Access is read-only; the planner only saves the people you pick."}
         </Body>
         <OutlineButton gold onPress={allowAccess}>{q.data?.connected ? "Allow contacts access" : "Connect Google"}</OutlineButton>
@@ -311,8 +311,12 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
     body = (
       <View style={{ gap: space.sm }}>
         {q.data.needsAccess.length ? (
-          <Hint>{`No contacts access yet for ${q.data.needsAccess.join(", ")}.`}</Hint>
+          <View style={{ gap: space.xs }}>
+            <Hint>{`No contacts access yet for ${q.data.needsAccess.join(", ")}.`}</Hint>
+            <OutlineButton gold onPress={allowAccess}>Allow contacts access</OutlineButton>
+          </View>
         ) : null}
+        {q.data.errors.length ? <Hint>{`Couldn't read contacts for ${q.data.errors.map((e) => e.account).join(", ")}.`}</Hint> : null}
         <View style={s.addRow}>
           <RuleInput value={search} onChangeText={setSearch} placeholder="Search…" style={{ flex: 1 }} />
           <Pressable onPress={() => setOnlyBirthdays(!onlyBirthdays)} style={s.filter}>
@@ -321,7 +325,15 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
           </Pressable>
         </View>
         <ScrollView style={s.contactList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-          {list.length === 0 ? <Body muted style={{ fontStyle: "italic" }}>No contacts match.</Body> : null}
+          {list.length === 0 ? (
+            <Body muted style={{ fontStyle: "italic" }}>
+              {q.data.contacts.length === 0
+                ? `No contacts found in ${(q.data.accounts ?? []).filter((a) => !q.data!.needsAccess.includes(a)).join(", ") || "your Google account"}.`
+                : onlyBirthdays && !search.trim()
+                  ? "None of your contacts have a birthday saved. Untick \"With birthday only\" to see everyone."
+                  : "No contacts match."}
+            </Body>
+          ) : null}
           {list.slice(0, 300).map((c) => (
             <Pressable key={c.id} onPress={() => toggle(c)} style={s.contact}>
               <CheckBox size={16} checked={picked.has(c.id)} onChange={() => toggle(c)} />
