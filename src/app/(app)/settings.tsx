@@ -11,6 +11,7 @@ import { clearDemoData } from "@/lib/fake-db";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, space } from "@/theme/tokens";
 import { Hint, PageTitle, Screen } from "@/components/screen";
+import { ShareProfileSection } from "@/components/share-profile";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "@/components/ui";
 
 export default function SettingsScreen() {
@@ -27,6 +28,8 @@ export default function SettingsScreen() {
           <RuleInput value={settings.ownerName} onChangeText={(ownerName) => update({ ownerName })} placeholder="e.g. Val" />
           <Hint>{`Shown as "${name || "Focus"}${name ? "'s" : ""} planner".`}</Hint>
         </View>
+
+        <ShareProfileSection name={name} />
 
         <PagesSection />
 

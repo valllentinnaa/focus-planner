@@ -90,6 +90,7 @@ function RootStack() {
       {/* Shared wishlists are public: open signed in or not. */}
       <Stack.Screen name="w/[token]" />
       <Stack.Screen name="join/[token]" />
+      <Stack.Screen name="u/[token]" />
     </Stack>
   );
 }

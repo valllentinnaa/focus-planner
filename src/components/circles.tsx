@@ -3,6 +3,8 @@ import { Check, Link2, LogOut, RefreshCw, Trash2, X } from "lucide-react-native"
 import { useState } from "react";
 import { Linking, Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { circlesAvailable, inviteUrl, useCircles, useMateWishlist, type Circle } from "@/data/circles";
+import { useConnections } from "@/data/connections";
+import { Link } from "expo-router";
 import { colors, fonts, radius, space } from "@/theme/tokens";
 import { Hint } from "./screen";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "./ui";
@@ -21,6 +23,48 @@ function IconBtn({ label, onPress, children, disabled }: { label: string; onPres
     <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={8} disabled={disabled} onPress={onPress} style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.5 }]}>
       {children}
     </Pressable>
+  );
+}
+
+/** People you connected with through a profile link. */
+export function FriendsSection() {
+  const { connections, remove } = useConnections();
+  const [open, setOpen] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  if (!circlesAvailable) return null;
+  return (
+    <View style={{ marginTop: space.xl }}>
+      <SectionLabel right={<Text style={s.meta}>{connections.length}</Text>}>Friends</SectionLabel>
+      {connections.length === 0 ? (
+        <Hint>
+          Share your profile link or QR from <Link href="/settings" style={s.metaLink}>Settings</Link> to connect with someone.
+        </Hint>
+      ) : null}
+      {connections.map((f) => (
+        <View key={f.user_id}>
+          <View style={s.member}>
+            <Pressable style={{ flex: 1 }} onPress={() => setOpen(open === f.user_id ? null : f.user_id)} accessibilityRole="button">
+              <Text style={s.memberName}>{f.name}</Text>
+              <Text style={s.metaLink}>{open === f.user_id ? "Hide wishlist" : "See wishlist"}</Text>
+            </Pressable>
+            {confirm === f.user_id ? (
+              <View style={s.row}>
+                <Text style={s.meta}>Disconnect?</Text>
+                <GhostButton onPress={() => setConfirm(null)}>No</GhostButton>
+                <GhostButton onPress={() => remove(f.user_id)}>
+                  <Text style={s.danger}>Yes</Text>
+                </GhostButton>
+              </View>
+            ) : (
+              <IconBtn label={`Disconnect from ${f.name}`} onPress={() => setConfirm(f.user_id)}>
+                <X size={15} color={colors.mutedForeground} strokeWidth={1.6} />
+              </IconBtn>
+            )}
+          </View>
+          {open === f.user_id ? <MateWishlist mateId={f.user_id} /> : null}
+        </View>
+      ))}
+    </View>
   );
 }
 

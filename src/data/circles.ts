@@ -95,12 +95,13 @@ export function useMateWishlist(mateId: string | null) {
 }
 
 // ---------- joining by invite link ----------
-const PENDING_JOIN = "fp.pendingJoin";
-export const savePendingJoin = (token: string) => AsyncStorage.setItem(PENDING_JOIN, token);
-export async function takePendingJoin() {
-  const t = await AsyncStorage.getItem(PENDING_JOIN);
-  if (t) await AsyncStorage.removeItem(PENDING_JOIN);
-  return t;
+// A link opened while signed out (circle invite or profile link) is remembered and reopened after sign-in.
+const PENDING = "fp.pendingLink";
+export const savePendingLink = (path: `/join/${string}` | `/u/${string}`) => AsyncStorage.setItem(PENDING, path);
+export async function takePendingLink() {
+  const p = await AsyncStorage.getItem(PENDING);
+  if (p) await AsyncStorage.removeItem(PENDING);
+  return p && /^\/(join|u)\/[0-9a-f]{32}$/.test(p) ? (p as `/join/${string}` | `/u/${string}`) : null;
 }
 export const circlePreview = (token: string) =>
   rpc<{ name: string; owner: string; members: number; already: boolean } | null>("circle_preview", { p_token: token });

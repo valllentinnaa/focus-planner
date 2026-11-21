@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useAuth } from "@/data/auth";
-import { circlePreview, joinCircle, savePendingJoin } from "@/data/circles";
+import { circlePreview, joinCircle, savePendingLink } from "@/data/circles";
 import { colors, space } from "@/theme/tokens";
 import { Body, Display, Eyebrow, SolidButton } from "@/components/ui";
 
@@ -34,7 +34,7 @@ export default function JoinCirclePage() {
   };
 
   const signIn = async () => {
-    await savePendingJoin(t);
+    await savePendingLink(`/join/${t}`);
     router.replace("/sign-in");
   };
 

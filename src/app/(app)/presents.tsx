@@ -6,8 +6,9 @@ import { Paperclip, Trash2 } from "lucide-react-native";
 import { useCalendarOps } from "@/data/calendar";
 import { shareUrl, sharingAvailable, useWishlist, useWishlistShare } from "@/data/wishlist";
 import { useUserId } from "@/data/auth";
-import { circlesAvailable, useCircles } from "@/data/circles";
-import { CirclesSection, MateWishlist } from "@/components/circles";
+import { circlesAvailable } from "@/data/circles";
+import { CirclesSection, FriendsSection, MateWishlist } from "@/components/circles";
+import { useMates } from "@/data/connections";
 import { canPickFiles, pickFile } from "@/lib/pick-file";
 import {
   giftFilesAvailable,
@@ -104,6 +105,7 @@ export default function PresentsScreen() {
       </Column>
       <Column flex={2}>
         <MyWishlist />
+        <FriendsSection />
         <CirclesSection />
       </Column>
       </Columns>
@@ -336,7 +338,7 @@ function PersonDetail({
 
 /** Tie this contact to someone in your circles, to see their wishlist right here. */
 function LinkedMate({ person: p, onUpdate }: { person: PersonRow; onUpdate: (change: Partial<PersonRow>) => void }) {
-  const { mates } = useCircles();
+  const mates = useMates();
   const [picking, setPicking] = useState(false);
   if (!circlesAvailable) return null;
   const linked = mates.find((m) => m.user_id === p.linked_user_id);
@@ -372,7 +374,7 @@ function LinkedMate({ person: p, onUpdate }: { person: PersonRow; onUpdate: (cha
           ))}
         </View>
       ) : (
-        <Hint>Is {p.name} in one of your circles? Link them to see their wishlist here.</Hint>
+        <Hint>Is {p.name} a friend or in one of your circles? Link them to see their wishlist here.</Hint>
       )}
     </View>
   );
