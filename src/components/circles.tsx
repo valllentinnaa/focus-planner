@@ -1,10 +1,11 @@
 // Circles section for Presents, and a circle-mate's wishlist (with "I'm getting this").
-import { Check, Link2, LogOut, RefreshCw, Trash2, X } from "lucide-react-native";
+import { Check, ChevronDown, ChevronUp, Link2, LogOut, Plus, RefreshCw, Send, Trash2, X } from "lucide-react-native";
 import { useState } from "react";
 import { Linking, Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { circlesAvailable, inviteUrl, useCircles, useMateWishlist, type Circle } from "@/data/circles";
-import { useConnections } from "@/data/connections";
-import { Link } from "expo-router";
+import { profileUrl, useConnections, useProfileLink } from "@/data/connections";
+import { useSettings } from "@/data/profile";
+import { shareInvite } from "./share-profile";
 import { colors, fonts, radius, space } from "@/theme/tokens";
 import { Hint } from "./screen";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "./ui";
@@ -26,44 +27,110 @@ function IconBtn({ label, onPress, children, disabled }: { label: string; onPres
   );
 }
 
-/** People you connected with through a profile link. */
+const initial = (name: string) => (name.trim()[0] ?? "?").toUpperCase();
+
+/** Overlapping initials, like a little group photo. `onAdd` draws the dashed "+" at the end. */
+function AvatarStack({
+  people,
+  selected,
+  onPick,
+  onAdd,
+  max = 6,
+}: {
+  people: { user_id: string; name: string }[];
+  selected?: string | null;
+  onPick?: (id: string) => void;
+  onAdd?: () => void;
+  max?: number;
+}) {
+  const shown = people.slice(0, max);
+  const extra = people.length - shown.length;
+  return (
+    <View style={s.stack}>
+      {shown.map((p, i) => (
+        <Pressable
+          key={p.user_id}
+          disabled={!onPick}
+          onPress={() => onPick?.(p.user_id)}
+          accessibilityRole={onPick ? "button" : undefined}
+          accessibilityLabel={onPick ? `${p.name} — see wishlist` : p.name}
+          style={[s.avatar, i > 0 && s.overlap, selected === p.user_id && s.avatarOn]}
+        >
+          <Text style={[s.avatarText, selected === p.user_id && { color: colors.paper }]}>{initial(p.name)}</Text>
+        </Pressable>
+      ))}
+      {extra > 0 ? (
+        <View style={[s.avatar, s.overlap]}>
+          <Text style={[s.avatarText, { fontSize: 15 }]}>+{extra}</Text>
+        </View>
+      ) : null}
+      {onAdd ? (
+        <Pressable onPress={onAdd} accessibilityRole="button" accessibilityLabel="Invite someone" style={[s.avatar, s.avatarAdd, shown.length > 0 && s.overlap]}>
+          <Plus size={20} color={colors.mutedForeground} strokeWidth={1.4} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/** Friends: connect with people directly through your profile link. */
 export function FriendsSection() {
   const { connections, remove } = useConnections();
+  const link = useProfileLink();
+  const { settings } = useSettings();
   const [open, setOpen] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   if (!circlesAvailable) return null;
+  const friend = connections.find((c) => c.user_id === open);
+
+  const invite = async () => {
+    setNote(null);
+    try {
+      const url = profileUrl(await link.ensure());
+      if (!url) return setNote("Open the planner on the web to get your invite link.");
+      if ((await shareInvite(url, settings.ownerName.trim())) === "copied") setNote("Invite link copied — paste it in a message.");
+    } catch {
+      setNote("Couldn't make the link. Try again.");
+    }
+  };
+
   return (
-    <View style={{ marginTop: space.xl }}>
-      <SectionLabel right={<Text style={s.meta}>{connections.length}</Text>}>Friends</SectionLabel>
-      {connections.length === 0 ? (
-        <Hint>
-          Share your profile link or QR from <Link href="/settings" style={s.metaLink}>Settings</Link> to connect with someone.
-        </Hint>
-      ) : null}
-      {connections.map((f) => (
-        <View key={f.user_id}>
-          <View style={s.member}>
-            <Pressable style={{ flex: 1 }} onPress={() => setOpen(open === f.user_id ? null : f.user_id)} accessibilityRole="button">
-              <Text style={s.memberName}>{f.name}</Text>
-              <Text style={s.metaLink}>{open === f.user_id ? "Hide wishlist" : "See wishlist"}</Text>
-            </Pressable>
-            {confirm === f.user_id ? (
+    <View style={[s.panel, s.hero]}>
+      <AvatarStack people={connections} selected={open} onPick={(id) => { setConfirm(false); setOpen(open === id ? null : id); }} onAdd={invite} />
+      <Text style={s.heroTitle}>
+        Gifting is better <Text style={s.heroItalic}>together</Text>
+      </Text>
+      <Text style={s.heroSub}>Invite someone you love — they'll see your wishlist, and you'll see theirs.</Text>
+      <Pressable onPress={invite} disabled={link.busy} style={({ pressed }) => [s.cta, (pressed || link.busy) && { opacity: 0.7 }]} accessibilityRole="button">
+        <Send size={15} color={colors.paper} strokeWidth={1.6} />
+        <Text style={s.ctaText}>Invite a friend</Text>
+      </Pressable>
+      {note ? <Text style={s.heroNote}>{note}</Text> : null}
+
+      {friend ? (
+        <View style={s.friendPanel}>
+          <View style={s.friendHead}>
+            <Text style={s.circleName}>{friend.name}</Text>
+            {confirm ? (
               <View style={s.row}>
                 <Text style={s.meta}>Disconnect?</Text>
-                <GhostButton onPress={() => setConfirm(null)}>No</GhostButton>
-                <GhostButton onPress={() => remove(f.user_id)}>
+                <GhostButton onPress={() => setConfirm(false)}>No</GhostButton>
+                <GhostButton onPress={() => { remove(friend.user_id); setOpen(null); setConfirm(false); }}>
                   <Text style={s.danger}>Yes</Text>
                 </GhostButton>
               </View>
             ) : (
-              <IconBtn label={`Disconnect from ${f.name}`} onPress={() => setConfirm(f.user_id)}>
+              <IconBtn label={`Disconnect from ${friend.name}`} onPress={() => setConfirm(true)}>
                 <X size={15} color={colors.mutedForeground} strokeWidth={1.6} />
               </IconBtn>
             )}
           </View>
-          {open === f.user_id ? <MateWishlist mateId={f.user_id} /> : null}
+          <MateWishlist mateId={friend.user_id} />
         </View>
-      ))}
+      ) : connections.length ? (
+        <Text style={s.heroHint}>Tap someone to see their wishlist.</Text>
+      ) : null}
     </View>
   );
 }
@@ -80,28 +147,30 @@ export function CirclesSection() {
   return (
     <View style={{ marginTop: space.xl }}>
       <SectionLabel right={<Text style={s.meta}>{c.circles.length}</Text>}>Circles</SectionLabel>
-      <Hint>Family or friends who use the app. Everyone in a circle sees each other's wishlists.</Hint>
+      <Text style={s.lede}>Little gatherings — family, best friends, the book club. Everyone inside shares wishlists.</Text>
+      {c.circles.map((circle) => (
+        <CircleCard key={circle.id} circle={circle} ops={c} />
+      ))}
       <View style={s.addRow}>
         <RuleInput value={name} onChangeText={setName} placeholder="New circle, e.g. Family" onSubmitEditing={create} style={{ flex: 1 }} />
         <OutlineButton onPress={create}>Create</OutlineButton>
       </View>
-      {c.circles.map((circle) => (
-        <CircleCard key={circle.id} circle={circle} ops={c} />
-      ))}
     </View>
   );
 }
 
 function CircleCard({ circle, ops }: { circle: Circle; ops: ReturnType<typeof useCircles> }) {
   const [openMate, setOpenMate] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [copied, setCopied] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const url = circle.invite_token ? inviteUrl(circle.invite_token) : null;
   const others = circle.members.filter((m) => !m.is_me);
+  const mate = others.find((m) => m.user_id === openMate);
 
   return (
-    <View style={s.card}>
-      <View style={s.cardHead}>
+    <View style={[s.panel, s.circle]}>
+      <View style={s.friendHead}>
         <Text style={s.circleName}>{circle.name}</Text>
         {confirm ? (
           <View style={s.row}>
@@ -113,47 +182,60 @@ function CircleCard({ circle, ops }: { circle: Circle; ops: ReturnType<typeof us
           </View>
         ) : (
           <IconBtn label={circle.is_owner ? "Delete circle" : "Leave circle"} onPress={() => setConfirm(true)}>
-            {circle.is_owner ? <Trash2 size={16} color={colors.mutedForeground} strokeWidth={1.6} /> : <LogOut size={16} color={colors.mutedForeground} strokeWidth={1.6} />}
+            {circle.is_owner ? <Trash2 size={15} color={colors.mutedForeground} strokeWidth={1.6} /> : <LogOut size={15} color={colors.mutedForeground} strokeWidth={1.6} />}
           </IconBtn>
         )}
       </View>
 
-      {others.length === 0 ? <Body muted style={{ fontStyle: "italic" }}>Nobody else yet — send the invite link.</Body> : null}
-      {others.map((m) => (
-        <View key={m.user_id}>
-          <View style={s.member}>
-            <Pressable style={{ flex: 1 }} onPress={() => setOpenMate(openMate === m.user_id ? null : m.user_id)} accessibilityRole="button">
-              <Text style={s.memberName}>
-                {m.name}
-                {m.is_owner ? <Text style={s.meta}>  · created it</Text> : null}
-              </Text>
-              <Text style={s.metaLink}>{openMate === m.user_id ? "Hide wishlist" : "See wishlist"}</Text>
-            </Pressable>
+      {others.length ? (
+        <View style={{ alignItems: "flex-start", marginTop: space.sm }}>
+          <AvatarStack people={others} selected={openMate} onPick={(id) => setOpenMate(openMate === id ? null : id)} />
+        </View>
+      ) : null}
+
+      {mate ? (
+        <View style={{ marginTop: space.sm }}>
+          <View style={s.friendHead}>
+            <Text style={s.memberName}>
+              {mate.name}
+              {mate.is_owner ? <Text style={s.meta}>  · created it</Text> : null}
+            </Text>
             {circle.is_owner ? (
-              <IconBtn label={`Remove ${m.name}`} onPress={() => ops.removeMember(circle.id, m.user_id)}>
-                <X size={15} color={colors.mutedForeground} strokeWidth={1.6} />
-              </IconBtn>
+              <GhostButton onPress={() => { ops.removeMember(circle.id, mate.user_id); setOpenMate(null); }}>Remove</GhostButton>
             ) : null}
           </View>
-          {openMate === m.user_id ? <MateWishlist mateId={m.user_id} /> : null}
+          <MateWishlist mateId={mate.user_id} />
         </View>
-      ))}
+      ) : null}
 
       {circle.is_owner ? (
-        <View style={s.invite}>
-          {url ? (
-            <>
-              <OutlineButton gold onPress={() => sendLink(url, () => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>
-                {copied ? "Copied" : Platform.OS === "web" ? "Copy invite link" : "Share invite link"}
-              </OutlineButton>
-              <IconBtn label="Make a new invite link (the old one stops working)" onPress={() => ops.resetInvite(circle.id)}>
-                <RefreshCw size={15} color={colors.mutedForeground} strokeWidth={1.6} />
-              </IconBtn>
-            </>
-          ) : (
-            <Hint>Open the planner on the web to get the invite link.</Hint>
-          )}
-        </View>
+        <>
+          <Pressable onPress={() => setAdding((v) => !v)} style={s.addSomeone} accessibilityRole="button" accessibilityState={{ expanded: adding }}>
+            <Text style={s.addSomeoneText}>+ Add someone</Text>
+            {adding ? <ChevronUp size={14} color={colors.gold} /> : <ChevronDown size={14} color={colors.gold} />}
+          </Pressable>
+          {adding ? (
+            <View style={s.invite}>
+              {url ? (
+                <>
+                  <Text style={s.meta}>Send this link — whoever opens it joins {circle.name}.</Text>
+                  <View style={s.row}>
+                    <OutlineButton gold onPress={() => sendLink(url, () => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>
+                      {copied ? "Copied" : Platform.OS === "web" ? "Copy invite link" : "Share invite link"}
+                    </OutlineButton>
+                    <IconBtn label="Make a new invite link (the old one stops working)" onPress={() => ops.resetInvite(circle.id)}>
+                      <RefreshCw size={15} color={colors.mutedForeground} strokeWidth={1.6} />
+                    </IconBtn>
+                  </View>
+                </>
+              ) : (
+                <Hint>Open the planner on the web to get the invite link.</Hint>
+              )}
+            </View>
+          ) : null}
+        </>
+      ) : others.length === 0 ? (
+        <Text style={s.meta}>Nobody else yet.</Text>
       ) : null}
     </View>
   );
@@ -196,20 +278,47 @@ export function MateWishlist({ mateId }: { mateId: string }) {
   );
 }
 
+const AVATAR = 56;
+
 const s = StyleSheet.create({
   meta: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
-  metaLink: { fontFamily: fonts.sans, fontSize: 11, color: colors.gold },
-  addRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginVertical: space.sm },
-  row: { flexDirection: "row", alignItems: "center", gap: 2 },
-  card: { borderWidth: 1, borderColor: colors.rule, borderRadius: radius.md, padding: space.md, marginTop: space.sm, gap: space.xs },
-  cardHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  circleName: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
-  member: { flexDirection: "row", alignItems: "center", paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.rule },
+  lede: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.mutedForeground, marginBottom: space.md },
+  addRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginTop: space.lg },
+  row: { flexDirection: "row", alignItems: "center", gap: space.xs, flexWrap: "wrap" },
+  panel: { borderWidth: 1, borderColor: colors.rule, borderRadius: 16, backgroundColor: colors.card + "B3" },
+  // Friends
+  hero: { alignItems: "center", paddingVertical: space.xl, paddingHorizontal: space.lg, gap: space.md, marginTop: space.xl },
+  heroTitle: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.ink, textAlign: "center" },
+  heroItalic: { fontFamily: fonts.displayItalic, color: colors.gold },
+  heroSub: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.mutedForeground, textAlign: "center", maxWidth: 440 },
+  heroNote: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground, textAlign: "center" },
+  heroHint: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground, fontStyle: "italic" },
+  cta: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.gold, borderRadius: radius.pill, paddingVertical: 12, paddingHorizontal: 22 },
+  ctaText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: colors.paper },
+  friendPanel: { alignSelf: "stretch", marginTop: space.sm, paddingTop: space.md, borderTopWidth: 1, borderTopColor: colors.rule },
+  friendHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
+  // Avatars
+  stack: { flexDirection: "row", alignItems: "center" },
+  avatar: {
+    width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2, alignItems: "center", justifyContent: "center",
+    backgroundColor: colors.card, borderWidth: 2, borderColor: colors.paper,
+    shadowColor: colors.ink, shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 },
+  },
+  overlap: { marginLeft: -12 },
+  avatarOn: { backgroundColor: colors.gold },
+  avatarAdd: { backgroundColor: colors.paper, borderStyle: "dashed", borderColor: colors.gold, borderWidth: 1.5, shadowOpacity: 0 },
+  avatarText: { fontFamily: fonts.displayItalic, fontSize: 24, color: colors.gold },
+  // Circles
+  circle: { padding: space.lg, marginBottom: space.md },
+  circleName: { fontFamily: fonts.displayItalic, fontSize: 26, color: colors.ink },
   memberName: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.ink },
-  invite: { flexDirection: "row", alignItems: "center", gap: space.sm, marginTop: space.sm },
+  addSomeone: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", marginTop: space.md, paddingVertical: 4, paddingLeft: space.lg },
+  addSomeoneText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: colors.gold },
+  invite: { gap: space.sm, marginTop: space.sm, paddingLeft: space.lg },
   iconBtn: { width: 30, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 15 },
   danger: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.destructive },
-  mateList: { paddingLeft: space.md, borderLeftWidth: 2, borderLeftColor: colors.rule, marginVertical: space.xs },
+  // A mate's wishlist
+  mateList: { paddingLeft: space.md, borderLeftWidth: 2, borderLeftColor: colors.rule, marginVertical: space.xs, alignSelf: "stretch" },
   empty: { fontStyle: "italic", paddingVertical: 4 },
   item: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: 6, borderBottomWidth: 1, borderStyle: "dashed", borderBottomColor: colors.rule },
   struck: { textDecorationLine: "line-through", color: colors.mutedForeground },

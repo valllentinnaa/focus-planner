@@ -10,6 +10,25 @@ import { QrCode } from "./qr-code";
 import { Hint } from "./screen";
 import { OutlineButton, SectionLabel } from "./ui";
 
+/** Share sheet where there is one (phones, phone browsers); otherwise copy the link. */
+export async function shareInvite(url: string, name: string): Promise<"shared" | "copied"> {
+  const message = `${name || "I"} invited you to connect on Focus Planner — see each other's wishlists: ${url}`;
+  if (Platform.OS === "web" && typeof navigator !== "undefined") {
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "Focus Planner", text: message, url });
+        return "shared";
+      } catch {
+        /* cancelled — fall back to copy */
+      }
+    }
+    await navigator.clipboard?.writeText(url);
+    return "copied";
+  }
+  await Share.share({ message });
+  return "shared";
+}
+
 export function ShareProfileSection({ name }: { name: string }) {
   const link = useProfileLink();
   const [showQr, setShowQr] = useState(false);
@@ -19,22 +38,9 @@ export function ShareProfileSection({ name }: { name: string }) {
 
   const share = async () => {
     if (!url) return;
-    const message = `${name || "I"} invited you to connect on Focus Planner — see each other's wishlists: ${url}`;
-    if (Platform.OS === "web" && typeof navigator !== "undefined") {
-      // Phones' browsers offer the share sheet; desktop copies the link.
-      if (typeof navigator.share === "function") {
-        try {
-          await navigator.share({ title: "Focus Planner", text: message, url });
-          return;
-        } catch {
-          /* cancelled — fall back to copy */
-        }
-      }
-      await navigator.clipboard?.writeText(url);
+    if ((await shareInvite(url, name)) === "copied") {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } else {
-      await Share.share({ message });
     }
   };
 

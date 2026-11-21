@@ -44,6 +44,8 @@ export function useProfileLink() {
     token: q.data ?? null,
     loading: q.isLoading,
     create: () => create.mutate(false),
+    /** The link's token, making the link first if there isn't one yet. */
+    ensure: async () => q.data ?? (await create.mutateAsync(false)),
     reset: () => create.mutate(true),
     busy: create.isPending,
   };
