@@ -1,31 +1,27 @@
 import { Link, usePathname, useRouter } from "expo-router";
-import { CalendarDays, CalendarRange, Gift, MoreHorizontal, Settings as SettingsIcon, Sun, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
+import { CalendarDays, CalendarRange, Gift, MoreHorizontal, Settings as SettingsIcon, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
 import { type ComponentRef, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/data/profile";
+import { splitMenu, type PageKey } from "@/lib/menu";
 import { colors, fonts, layout, space } from "@/theme/tokens";
 
-type Href = "/" | "/month" | "/today" | "/food" | "/presents" | "/quarter";
-type Tab = { href: Href; label: string; icon: LucideIcon; setting?: "showDaily" | "showFood" | "showPresents" };
-
-// All pages. Week + 12W are always visible; the rest go under "More" (phone sheet / desktop dropdown).
-const TABS: Tab[] = [
-  { href: "/", label: "Week", icon: CalendarDays },
-  { href: "/month", label: "Month", icon: CalendarRange },
-  { href: "/today", label: "Today", icon: Sun, setting: "showDaily" },
-  { href: "/food", label: "Food", icon: UtensilsCrossed, setting: "showFood" },
-  { href: "/presents", label: "Presents", icon: Gift, setting: "showPresents" },
-  { href: "/quarter", label: "12W", icon: Target },
-];
-const PRIMARY = new Set<string>(["/", "/quarter"]);
+const ICONS: Record<PageKey, LucideIcon> = {
+  week: CalendarDays,
+  month: CalendarRange,
+  quarter: Target,
+  food: UtensilsCrossed,
+  presents: Gift,
+};
 
 export const PHONE_MAX = 600;
 export const useIsPhone = () => useWindowDimensions().width < PHONE_MAX;
 
-function useTabs() {
+/** Main-menu pages and the ones under "More", from the user's Settings. */
+function useMenu(phone: boolean) {
   const { settings } = useSettings();
-  return TABS.filter((t) => !t.setting || settings[t.setting]);
+  return splitMenu(settings, phone);
 }
 
 export function AppHeader() {
@@ -49,8 +45,6 @@ export function AppHeader() {
         </Link>
 
         <View style={s.nav}>
-          {isPhone ? null : <DesktopTabs />}
-
           {settings.showDaily ? (
             <Pressable
               accessibilityLabel="Today"
@@ -60,6 +54,8 @@ export function AppHeader() {
               <Text style={s.todayText}>Today</Text>
             </Pressable>
           ) : null}
+          {isPhone ? null : <DesktopTabs />}
+
           <Pressable
             accessibilityLabel="Settings"
             onPress={() => router.push("/settings")}
@@ -73,16 +69,19 @@ export function AppHeader() {
   );
 }
 
+function Icon({ k, size, color }: { k: PageKey; size: number; color: string }) {
+  const C = ICONS[k];
+  return <C size={size} color={color} strokeWidth={1.6} />;
+}
+
 /** Desktop: Week · 12W stay visible; the other pages sit in a "⋯" dropdown. */
 function DesktopTabs() {
   const pathname = usePathname();
   const router = useRouter();
-  const tabs = useTabs();
+  const { primary, more } = useMenu(false);
   const anchor = useRef<ComponentRef<typeof View>>(null);
   const [menu, setMenu] = useState<{ top: number; right: number } | null>(null);
   const { width } = useWindowDimensions();
-  const primary = tabs.filter((t) => PRIMARY.has(t.href));
-  const more = tabs.filter((t) => !PRIMARY.has(t.href));
   const moreActive = more.some((t) => t.href === pathname);
 
   const open = () =>
@@ -125,7 +124,7 @@ function DesktopTabs() {
                     router.navigate(t.href);
                   }}
                 >
-                  <t.icon size={16} color={active ? colors.gold : colors.ink} strokeWidth={1.6} />
+                  <Icon k={t.key} size={16} color={active ? colors.gold : colors.ink} />
                   <Text style={[s.dropText, active && { color: colors.gold }]}>{t.label}</Text>
                 </Pressable>
               );
@@ -143,17 +142,16 @@ export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const isPhone = useIsPhone();
-  const tabs = useTabs();
+  const { primary, more } = useMenu(true);
   const [moreOpen, setMoreOpen] = useState(false);
   if (!isPhone) return null;
 
-  const more = tabs.filter((t) => !PRIMARY.has(t.href));
   const moreActive = more.some((t) => t.href === pathname);
-  const item = (label: string, active: boolean, Icon: typeof Target, onPress: () => void) => {
+  const item = (label: string, active: boolean, Glyph: LucideIcon, onPress: () => void) => {
     const color = active ? colors.ink : colors.mutedForeground;
     return (
       <Pressable key={label} onPress={onPress} style={s.bottomItem} accessibilityRole="tab" accessibilityState={{ selected: active }}>
-        <Icon size={18} color={color} strokeWidth={1.75} />
+        <Glyph size={18} color={color} strokeWidth={1.75} />
         <Text style={[s.bottomLabel, { color }]}>{label}</Text>
       </Pressable>
     );
@@ -162,9 +160,8 @@ export function BottomNav() {
   return (
     <>
       <View style={[s.bottomBar, { paddingBottom: insets.bottom }]} nativeID="fp-bottom-nav" accessibilityRole="tablist">
-        {item("Week", pathname === "/", CalendarDays, () => router.navigate("/"))}
-        {item("12W", pathname === "/quarter", Target, () => router.navigate("/quarter"))}
-        {item("More", moreActive || moreOpen, MoreHorizontal, () => setMoreOpen(true))}
+        {primary.map((t) => item(t.label, pathname === t.href, ICONS[t.key], () => router.navigate(t.href)))}
+        {more.length ? item("More", moreActive || moreOpen, MoreHorizontal, () => setMoreOpen(true)) : null}
       </View>
 
       <Modal visible={moreOpen} transparent animationType="slide" onRequestClose={() => setMoreOpen(false)}>
@@ -183,7 +180,7 @@ export function BottomNav() {
                     router.navigate(t.href);
                   }}
                 >
-                  <t.icon size={20} color={active ? colors.gold : colors.ink} strokeWidth={1.5} />
+                  <Icon k={t.key} size={20} color={active ? colors.gold : colors.ink} />
                   <Text style={[s.sheetItem, active && s.sheetItemActive]}>{t.label}</Text>
                 </Pressable>
               );

@@ -295,7 +295,7 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
   if (q.isLoading) body = <Body muted>Loading your contacts…</Body>;
   else if (q.error) body = <Body muted>{"Couldn't load contacts. Try again in a moment."}</Body>;
   else if (q.data?.errors.some((e) => e.error === "api_disabled") && !q.data.contacts.length) {
-    body = <Body muted>Google says the People API isn't turned on for this app yet. Enable it in Google Cloud, wait a few minutes, then try again.</Body>;
+    body = <Body muted>Google says the People API isn&apos;t turned on for this app yet. Enable it in Google Cloud, wait a few minutes, then try again.</Body>;
   } else if (!q.data?.connected || (q.data.needsAccess.length && !q.data.contacts.length)) {
     body = (
       <View style={{ gap: space.sm }}>

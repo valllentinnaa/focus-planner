@@ -17,6 +17,7 @@ export type ProfileRow = {
   show_daily: boolean;
   show_food: boolean;
   show_presents: boolean;
+  menu_pages: string[];
 } & Timestamps;
 
 export type WeekRow = {

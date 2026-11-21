@@ -6,6 +6,7 @@ import { useAuth } from "@/data/auth";
 import { calendarAvailable, useCalendarOps, useCalendarStatus } from "@/data/calendar";
 import { useSettings } from "@/data/profile";
 import { env } from "@/lib/env";
+import { MENU_PAGES, PAGES, PHONE_MAX_EXTRA, type MenuPage } from "@/lib/menu";
 import { clearDemoData } from "@/lib/fake-db";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, space } from "@/theme/tokens";
@@ -34,6 +35,8 @@ export default function SettingsScreen() {
           <Toggle label="Presents" value={settings.showPresents} onChange={(showPresents) => update({ showPresents })} />
         </View>
 
+        <MenuSection />
+
         <GoogleCalendarSection />
 
         <View>
@@ -55,6 +58,32 @@ export default function SettingsScreen() {
         </Hint>
       </View>
     </Screen>
+  );
+}
+
+/** Which pages sit in the main menu; the rest go under "More". Week and Today are fixed. */
+function MenuSection() {
+  const { settings, update } = useSettings();
+  const pages = PAGES.filter(
+    (p): p is (typeof PAGES)[number] & { key: MenuPage } =>
+      (MENU_PAGES as string[]).includes(p.key) && (p.key !== "food" || settings.showFood) && (p.key !== "presents" || settings.showPresents),
+  );
+  const chosen = new Set(settings.menuPages);
+  const set = (key: MenuPage, on: boolean) =>
+    update({ menuPages: MENU_PAGES.filter((k) => (k === key ? on : chosen.has(k))) });
+  const overPhone = pages.filter((p) => chosen.has(p.key)).length > PHONE_MAX_EXTRA;
+
+  return (
+    <View>
+      <SectionLabel>Main menu</SectionLabel>
+      <Hint>Switched on: always visible. Off: under “More”. Week and Today are always there.</Hint>
+      <View style={{ marginTop: space.sm }}>
+        {pages.map((p) => (
+          <Toggle key={p.key} label={p.label} value={chosen.has(p.key)} onChange={(on) => set(p.key, on)} />
+        ))}
+      </View>
+      {overPhone ? <Hint>{`On phones the bottom bar fits ${PHONE_MAX_EXTRA} besides Week; the rest go under “More”.`}</Hint> : null}
+    </View>
   );
 }
 
