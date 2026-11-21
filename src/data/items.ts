@@ -1,4 +1,4 @@
-// Lists of rows (month items, food items, goals, steps) with optimistic add / update / remove.
+// Lists of rows (food items, goals, steps, people, gift ideas) with optimistic add / update / remove.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import * as Crypto from "expo-crypto";
@@ -7,7 +7,7 @@ import type { Database } from "@/lib/database.types";
 import { useUserId } from "./auth";
 
 type Tables = Database["public"]["Tables"];
-type ListTable = "food_items" | "goals" | "goal_steps";
+type ListTable = "food_items" | "goals" | "goal_steps" | "people" | "gift_ideas";
 type Row<T extends ListTable> = Tables[T]["Row"];
 type Insert<T extends ListTable> = Tables[T]["Insert"];
 

@@ -17,7 +17,7 @@ export type CalendarSource = { id: string; connection_id: string; calendar_id: s
 export type CalendarAccount = { id: string; email: string; calendars: CalendarSource[] };
 type AccountError = { account: string; error: "reconnect" | "failed" };
 
-async function call<T>(action: string, body: Record<string, unknown> = {}): Promise<T> {
+export async function call<T>(action: string, body: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await supabase.functions.invoke(`google-calendar/${action}`, { body });
   if (error) throw error;
   return data as T;
@@ -101,10 +101,14 @@ export function useCalendarOps() {
   const disconnect = useMutation({ mutationFn: (connectionId: string) => call("disconnect", { connectionId }), onSettled: refreshAll });
   const resync = useMutation({ mutationFn: () => call("refresh"), onSettled: refreshAll });
 
-  /** Send the user to Google to connect an account. Web: full-page redirect back to Settings. */
-  const connect = useCallback(async () => {
-    const returnTo = Platform.OS === "web" ? `${window.location.origin}/settings` : Linking.createURL("settings");
-    const { url } = await call<{ url: string }>("auth-url", { returnTo });
+  /**
+   * Send the user to Google to connect an account. Web: full-page redirect back to `path`.
+   * `contacts` also asks for read-only contacts (Presents import).
+   */
+  const connect = useCallback(async (opts?: { contacts?: boolean; path?: "settings" | "presents" }) => {
+    const path = opts?.path ?? "settings";
+    const returnTo = Platform.OS === "web" ? `${window.location.origin}/${path}` : Linking.createURL(path);
+    const { url } = await call<{ url: string }>("auth-url", { returnTo, contacts: !!opts?.contacts });
     if (Platform.OS === "web") {
       window.location.assign(url);
       return;

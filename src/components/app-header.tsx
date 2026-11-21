@@ -20,13 +20,14 @@ function PrinterIcon({ color, bg }: { color: string; bg: string }) {
   );
 }
 
-type Tab = { href: "/" | "/month" | "/today" | "/food" | "/quarter"; label: string; setting?: "showDaily" | "showFood" };
+type Tab = { href: "/" | "/month" | "/today" | "/food" | "/presents" | "/quarter"; label: string; setting?: "showDaily" | "showFood" | "showPresents" };
 
 const TABS: Tab[] = [
   { href: "/", label: "Week" },
   { href: "/month", label: "Month" },
   { href: "/today", label: "Today", setting: "showDaily" },
   { href: "/food", label: "Food", setting: "showFood" },
+  { href: "/presents", label: "Presents", setting: "showPresents" },
   { href: "/quarter", label: "12W" },
 ];
 

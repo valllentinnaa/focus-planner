@@ -1,0 +1,380 @@
+import { useQuery } from "@tanstack/react-query";
+import { useLocalSearchParams } from "expo-router";
+import { type ReactNode, useMemo, useState } from "react";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCalendarOps } from "@/data/calendar";
+import { contactsImportAvailable, fetchGoogleContacts, useGiftIdeas, useImportContacts, usePeople, type GoogleContact } from "@/data/presents";
+import { byUpcoming, daysLabel, nextBirthday } from "@/lib/birthdays";
+import { formatBirthday, formatBirthdayInput, parseBirthday, splitLink } from "@/lib/birthday-input";
+import type { GiftIdeaRow, PersonRow } from "@/lib/database.types";
+import { colors, fonts, radius, space } from "@/theme/tokens";
+import { Hint, PageTitle, Screen } from "@/components/screen";
+import { Body, Card, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
+
+const SOON_DAYS = 30;
+const STATUS_NEXT: Record<GiftIdeaRow["status"], GiftIdeaRow["status"]> = { idea: "bought", bought: "given", given: "idea" };
+const STATUS_LABEL: Record<GiftIdeaRow["status"], string> = { idea: "Idea", bought: "Bought", given: "Given" };
+
+export default function PresentsScreen() {
+  const people = usePeople();
+  const ideas = useGiftIdeas();
+  const params = useLocalSearchParams<{ calendar?: string }>();
+  const [open, setOpen] = useState<string | null>(null);
+  const [importing, setImporting] = useState(params.calendar === "connected");
+  const today = useMemo(() => new Date(), []);
+
+  const sorted = useMemo(() => byUpcoming(people.items, today), [people.items, today]);
+  const soon = sorted.filter((p) => p.birth_month && p.birth_day && nextBirthday({ month: p.birth_month, day: p.birth_day }, today).daysUntil <= SOON_DAYS);
+  const ideasFor = (id: string) => ideas.items.filter((i) => i.person_id === id);
+
+  return (
+    <Screen>
+      <PageTitle
+        eyebrow="Birthdays & gifts"
+        title="Presents"
+        right={contactsImportAvailable && !importing ? <OutlineButton onPress={() => setImporting(true)}>Import contacts</OutlineButton> : null}
+      />
+
+      {importing ? <ImportPanel onClose={() => setImporting(false)} /> : null}
+
+      {soon.length ? (
+        <View>
+          <SectionLabel>Coming up</SectionLabel>
+          <View style={s.soonRow}>
+            {soon.map((p) => {
+              const n = nextBirthday({ month: p.birth_month!, day: p.birth_day!, year: p.birth_year }, today);
+              const count = ideasFor(p.id).filter((i) => i.status !== "given").length;
+              return (
+                <Pressable key={p.id} onPress={() => setOpen(p.id)} style={s.soonCard}>
+                  <Text style={s.soonWhen}>{daysLabel(n.daysUntil)}</Text>
+                  <Text style={s.soonName}>{p.name}</Text>
+                  <Text style={s.meta}>
+                    {formatBirthday(p.birth_month!, p.birth_day!)}
+                    {n.turns ? ` · turns ${n.turns}` : ""} · {count ? `${count} idea${count > 1 ? "s" : ""}` : "no ideas yet"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
+      <View style={{ maxWidth: 720, width: "100%" }}>
+        <SectionLabel right={<Text style={s.meta}>{people.items.length}</Text>}>People</SectionLabel>
+        <AddPerson onAdd={(row) => setOpen(people.add(row))} />
+        {people.items.length === 0 && !people.loading ? (
+          <Body muted style={{ fontStyle: "italic", paddingVertical: 8 }}>
+            Add the people you buy presents for, or import them from your contacts.
+          </Body>
+        ) : null}
+        {sorted.map((p) => (
+          <PersonRowView
+            key={p.id}
+            person={p}
+            ideas={ideasFor(p.id)}
+            today={today}
+            open={open === p.id}
+            onToggle={() => setOpen(open === p.id ? null : p.id)}
+            onUpdate={(change) => people.update(p.id, change)}
+            onRemove={() => {
+              people.remove(p.id);
+              setOpen(null);
+            }}
+            ideaOps={ideas}
+          />
+        ))}
+      </View>
+    </Screen>
+  );
+}
+
+type PersonInsert = { name: string; birth_month: number | null; birth_day: number | null; birth_year: number | null };
+
+function AddPerson({ onAdd }: { onAdd: (row: PersonInsert) => void }) {
+  const [name, setName] = useState("");
+  const [bday, setBday] = useState("");
+  const parsed = parseBirthday(bday);
+  const invalid = parsed === "invalid";
+  const submit = () => {
+    if (!name.trim() || invalid) return;
+    onAdd({ name: name.trim().slice(0, 120), birth_month: parsed?.month ?? null, birth_day: parsed?.day ?? null, birth_year: parsed?.year ?? null });
+    setName("");
+    setBday("");
+  };
+  return (
+    <View style={s.addRow}>
+      <RuleInput value={name} onChangeText={setName} placeholder="Name…" onSubmitEditing={submit} style={{ flex: 2, minWidth: 140 }} />
+      <RuleInput
+        value={bday}
+        onChangeText={setBday}
+        placeholder="Birthday dd.mm(.yyyy)"
+        onSubmitEditing={submit}
+        keyboardType="numbers-and-punctuation"
+        style={[{ flex: 1, minWidth: 150 }, invalid && { borderBottomColor: colors.destructive }]}
+      />
+      <OutlineButton onPress={submit}>Add</OutlineButton>
+    </View>
+  );
+}
+
+function PersonRowView({
+  person: p,
+  ideas,
+  today,
+  open,
+  onToggle,
+  onUpdate,
+  onRemove,
+  ideaOps,
+}: {
+  person: PersonRow;
+  ideas: GiftIdeaRow[];
+  today: Date;
+  open: boolean;
+  onToggle: () => void;
+  onUpdate: (change: Partial<PersonRow>) => void;
+  onRemove: () => void;
+  ideaOps: ReturnType<typeof useGiftIdeas>;
+}) {
+  const has = !!(p.birth_month && p.birth_day);
+  const n = has ? nextBirthday({ month: p.birth_month!, day: p.birth_day!, year: p.birth_year }, today) : null;
+  const openIdeas = ideas.filter((i) => i.status !== "given").length;
+
+  return (
+    <View style={s.person}>
+      <Pressable onPress={onToggle} style={s.personHead} accessibilityRole="button" accessibilityState={{ expanded: open }}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={s.personName}>{p.name}</Text>
+          <Text style={[s.meta, !has && { fontStyle: "italic" }]}>
+            {has ? `${formatBirthday(p.birth_month!, p.birth_day!)}${n!.turns ? ` · turns ${n!.turns}` : ""}` : "No birthday yet"}
+            {openIdeas ? ` · ${openIdeas} idea${openIdeas > 1 ? "s" : ""}` : ""}
+          </Text>
+        </View>
+        {n ? <Text style={[s.when, n.daysUntil <= SOON_DAYS && { color: colors.ink }]}>{daysLabel(n.daysUntil)}</Text> : null}
+        <Text style={s.chev}>{open ? "–" : "+"}</Text>
+      </Pressable>
+      {open ? <PersonDetail person={p} ideas={ideas} onUpdate={onUpdate} onRemove={onRemove} ideaOps={ideaOps} /> : null}
+    </View>
+  );
+}
+
+function PersonDetail({
+  person: p,
+  ideas,
+  onUpdate,
+  onRemove,
+  ideaOps,
+}: {
+  person: PersonRow;
+  ideas: GiftIdeaRow[];
+  onUpdate: (change: Partial<PersonRow>) => void;
+  onRemove: () => void;
+  ideaOps: ReturnType<typeof useGiftIdeas>;
+}) {
+  const [name, setName] = useState(p.name);
+  const [bday, setBday] = useState(formatBirthdayInput(p.birth_month, p.birth_day, p.birth_year));
+  const [notes, setNotes] = useState(p.notes);
+  const [draft, setDraft] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const parsed = parseBirthday(bday);
+
+  const saveName = () => (name.trim() ? name.trim() !== p.name && onUpdate({ name: name.trim().slice(0, 120) }) : setName(p.name));
+  const saveBday = () => {
+    if (parsed === "invalid") return;
+    onUpdate({ birth_month: parsed?.month ?? null, birth_day: parsed?.day ?? null, birth_year: parsed?.year ?? null });
+  };
+  const addIdea = () => {
+    const { text, link } = splitLink(draft);
+    if (!text) return;
+    ideaOps.add({ person_id: p.id, text: text.slice(0, 1000), link, position: ideas.length });
+    setDraft("");
+  };
+  const cycle = (i: GiftIdeaRow) => {
+    const status = STATUS_NEXT[i.status];
+    ideaOps.update(i.id, { status, given_year: status === "given" ? new Date().getFullYear() : null });
+  };
+
+  return (
+    <View style={s.detail}>
+      <View style={s.addRow}>
+        <RuleInput value={name} onChangeText={setName} onBlur={saveName} onSubmitEditing={saveName} placeholder="Name" style={{ flex: 2, minWidth: 140 }} />
+        <RuleInput
+          value={bday}
+          onChangeText={setBday}
+          onBlur={saveBday}
+          onSubmitEditing={saveBday}
+          placeholder="Birthday dd.mm(.yyyy)"
+          keyboardType="numbers-and-punctuation"
+          style={[{ flex: 1, minWidth: 150 }, parsed === "invalid" && { borderBottomColor: colors.destructive }]}
+        />
+      </View>
+
+      <SectionLabel>Gift ideas</SectionLabel>
+      <View style={s.addRow}>
+        <RuleInput value={draft} onChangeText={setDraft} placeholder="Idea or link…" onSubmitEditing={addIdea} blurOnSubmit={false} style={{ flex: 1 }} />
+        <OutlineButton onPress={addIdea}>Add</OutlineButton>
+      </View>
+      {ideas.length === 0 ? <Body muted style={{ fontStyle: "italic", paddingVertical: 4 }}>Dump anything they might like.</Body> : null}
+      {ideas.map((i) => (
+        <View key={i.id} style={s.idea}>
+          <Pressable onPress={() => cycle(i)} style={[s.status, s[`status_${i.status}`]]} accessibilityLabel={`Status ${STATUS_LABEL[i.status]}, tap to change`}>
+            <Text style={[s.statusText, i.status === "given" && { color: colors.paper }]}>{STATUS_LABEL[i.status]}</Text>
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Body style={i.status === "given" && s.givenText}>
+              {i.text}
+              {i.status === "given" && i.given_year ? ` (${i.given_year})` : ""}
+            </Body>
+            {i.link && i.link !== i.text ? (
+              <Text style={s.link} numberOfLines={1} onPress={() => Linking.openURL(i.link!)}>
+                {i.link.replace(/^https?:\/\//, "")}
+              </Text>
+            ) : null}
+          </View>
+          {i.link && i.link === i.text ? <GhostButton onPress={() => Linking.openURL(i.link!)}>Open</GhostButton> : null}
+          <GhostButton accessibilityLabel="Remove idea" onPress={() => ideaOps.remove(i.id)}>
+            <Text style={s.x}>✕</Text>
+          </GhostButton>
+        </View>
+      ))}
+
+      <SectionLabel>Notes</SectionLabel>
+      <RuledArea
+        lines={2}
+        value={notes}
+        onChangeText={setNotes}
+        onBlur={() => notes !== p.notes && onUpdate({ notes: notes.slice(0, 2000) })}
+        placeholder="Sizes, favourite colours, things to avoid…"
+      />
+
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: space.sm }}>
+        {confirmDelete ? (
+          <View style={{ flexDirection: "row", gap: space.sm, alignItems: "center" }}>
+            <Text style={s.meta}>Delete {p.name} and their ideas?</Text>
+            <GhostButton onPress={() => setConfirmDelete(false)}>Cancel</GhostButton>
+            <GhostButton onPress={onRemove}>
+              <Text style={[s.ghostDanger]}>Delete</Text>
+            </GhostButton>
+          </View>
+        ) : (
+          <GhostButton onPress={() => setConfirmDelete(true)}>Delete person</GhostButton>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function ImportPanel({ onClose }: { onClose: () => void }) {
+  const ops = useCalendarOps();
+  const imp = useImportContacts();
+  const q = useQuery({ queryKey: ["google-contacts"], queryFn: fetchGoogleContacts, staleTime: 0, gcTime: 0, retry: false });
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
+  const [onlyBirthdays, setOnlyBirthdays] = useState(true);
+  const [done, setDone] = useState<number | null>(null);
+
+  const list = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (q.data?.contacts ?? []).filter((c) => (!onlyBirthdays || c.month) && (!term || c.name.toLowerCase().includes(term)));
+  }, [q.data, search, onlyBirthdays]);
+
+  const allowAccess = () => ops.connect({ contacts: true, path: "presents" }).catch(() => undefined);
+  const toggle = (c: GoogleContact) => setPicked((cur) => {
+    const next = new Set(cur);
+    if (next.has(c.id)) next.delete(c.id);
+    else next.add(c.id);
+    return next;
+  });
+  const save = () =>
+    imp.mutate(
+      (q.data?.contacts ?? []).filter((c) => picked.has(c.id)),
+      { onSuccess: (n) => { setDone(n); setPicked(new Set()); } },
+    );
+
+  let body: ReactNode;
+  if (q.isLoading) body = <Body muted>Loading your contacts…</Body>;
+  else if (q.error) body = <Body muted>Couldn't load contacts. Try again in a moment.</Body>;
+  else if (!q.data?.connected || (q.data.needsAccess.length && !q.data.contacts.length)) {
+    body = (
+      <View style={{ gap: space.sm }}>
+        <Body>
+          {q.data?.connected
+            ? "Allow read-only access to your Google contacts. The planner only saves the people you pick."
+            : "Connect your Google account to import contacts. Access is read-only; the planner only saves the people you pick."}
+        </Body>
+        <OutlineButton gold onPress={allowAccess}>{q.data?.connected ? "Allow contacts access" : "Connect Google"}</OutlineButton>
+      </View>
+    );
+  } else {
+    body = (
+      <View style={{ gap: space.sm }}>
+        {q.data.needsAccess.length ? (
+          <Hint>{`No contacts access yet for ${q.data.needsAccess.join(", ")}.`}</Hint>
+        ) : null}
+        <View style={s.addRow}>
+          <RuleInput value={search} onChangeText={setSearch} placeholder="Search…" style={{ flex: 1 }} />
+          <Pressable onPress={() => setOnlyBirthdays(!onlyBirthdays)} style={s.filter}>
+            <CheckBox size={14} checked={onlyBirthdays} onChange={setOnlyBirthdays} />
+            <Text style={s.meta}>With birthday only</Text>
+          </Pressable>
+        </View>
+        <ScrollView style={s.contactList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+          {list.length === 0 ? <Body muted style={{ fontStyle: "italic" }}>No contacts match.</Body> : null}
+          {list.slice(0, 300).map((c) => (
+            <Pressable key={c.id} onPress={() => toggle(c)} style={s.contact}>
+              <CheckBox size={16} checked={picked.has(c.id)} onChange={() => toggle(c)} />
+              <Body style={{ flex: 1 }}>{c.name}</Body>
+              <Text style={s.meta}>{c.month && c.day ? formatBirthday(c.month, c.day) : "—"}</Text>
+            </Pressable>
+          ))}
+          {list.length > 300 ? <Hint>{`Showing 300 of ${list.length}. Search to narrow down.`}</Hint> : null}
+        </ScrollView>
+        {done !== null ? <Hint>{done ? `Added ${done}.` : "Those are already in your list."}</Hint> : null}
+        <View style={{ flexDirection: "row", gap: space.sm, alignItems: "center" }}>
+          <SolidButton disabled={!picked.size || imp.isPending} onPress={save}>
+            {picked.size ? `Add ${picked.size}` : "Pick people"}
+          </SolidButton>
+          {list.length && picked.size < list.length ? (
+            <GhostButton onPress={() => setPicked(new Set(list.map((c) => c.id)))}>Select all shown</GhostButton>
+          ) : null}
+        </View>
+        <Hint>Missing birthdays? Add them later on each person.</Hint>
+      </View>
+    );
+  }
+
+  return (
+    <Card highlighted style={{ maxWidth: 720, gap: space.sm }}>
+      <SectionLabel right={<GhostButton onPress={onClose}>Close</GhostButton>}>Import from Google Contacts</SectionLabel>
+      {body}
+    </Card>
+  );
+}
+
+const s = StyleSheet.create({
+  meta: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
+  addRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginVertical: space.sm, flexWrap: "wrap" },
+  soonRow: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
+  soonCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.md, padding: space.md, minWidth: 180, gap: 2, backgroundColor: colors.card + "80" },
+  soonWhen: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.gold },
+  soonName: { fontFamily: fonts.display, fontSize: 24, color: colors.ink },
+  person: { borderBottomWidth: 1, borderBottomColor: colors.rule },
+  personHead: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: space.md },
+  personName: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
+  when: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: colors.mutedForeground },
+  chev: { fontFamily: fonts.sans, fontSize: 18, color: colors.mutedForeground, width: 16, textAlign: "center" },
+  detail: { paddingBottom: space.lg, paddingLeft: space.sm, gap: space.xs },
+  idea: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: 6, borderBottomWidth: 1, borderStyle: "dashed", borderBottomColor: colors.rule },
+  status: { borderWidth: 1, borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 10, minWidth: 64, alignItems: "center" },
+  status_idea: { borderColor: colors.rule },
+  status_bought: { borderColor: colors.gold },
+  status_given: { borderColor: colors.gold, backgroundColor: colors.gold },
+  statusText: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: colors.ink },
+  givenText: { color: colors.mutedForeground },
+  link: { fontFamily: fonts.sans, fontSize: 12, color: colors.gold, textDecorationLine: "underline" },
+  x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
+  ghostDanger: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.destructive },
+  filter: { flexDirection: "row", alignItems: "center", gap: 6 },
+  contactList: { maxHeight: 360 },
+  contact: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.rule },
+});

@@ -6,10 +6,13 @@
 //   POST /google-calendar/refresh                             → re-sync each account's calendar list
 //   POST /google-calendar/events      { timeMin, timeMax }    → { events, errors }
 //   POST /google-calendar/disconnect  { connectionId }        → revoke at Google + forget
+//   POST /google-calendar/contacts                            → { contacts, needsAccess }  for Presents
 //
 // Security: every API action requires the user's Supabase access token. Google refresh tokens are
 // stored AES-256-GCM encrypted in a table the client cannot reach; access tokens are never stored
-// and never leave this function. Scope is calendar.readonly — the planner can't change Google data.
+// and never leave this function. Scopes are read-only (calendar.readonly, and contacts.readonly only
+// if the user asks to import contacts) — the planner can't change Google data. Contacts are passed
+// through to the user's own device and never stored here; the app saves only the ones they pick.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -17,6 +20,9 @@ const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const GOOGLE_REVOKE = "https://oauth2.googleapis.com/revoke";
 const GCAL = "https://www.googleapis.com/calendar/v3";
 const SCOPES = ["openid", "email", "https://www.googleapis.com/auth/calendar.readonly"];
+const CONTACTS_SCOPE = "https://www.googleapis.com/auth/contacts.readonly";
+const PEOPLE = "https://people.googleapis.com/v1";
+const MAX_CONTACT_PAGES = 5; // 1000 per page
 const STATE_TTL_MS = 10 * 60 * 1000;
 const MAX_RANGE_DAYS = 62;
 const APP_SCHEME = "focusplanner://";
@@ -244,7 +250,7 @@ async function handle(req: Request, action: string) {
         client_id: env("GOOGLE_CLIENT_ID"),
         redirect_uri: callbackUrl(),
         response_type: "code",
-        scope: SCOPES.join(" "),
+        scope: [...SCOPES, ...(body.contacts === true ? [CONTACTS_SCOPE] : [])].join(" "),
         access_type: "offline",
         prompt: "consent select_account",
         include_granted_scopes: "true",
@@ -327,6 +333,54 @@ async function handle(req: Request, action: string) {
         }),
       );
       return json({ events, errors });
+    }
+
+    case "contacts": {
+      type GPerson = {
+        resourceName: string;
+        names?: { displayName?: string; metadata?: { primary?: boolean } }[];
+        birthdays?: { date?: { year?: number; month?: number; day?: number }; metadata?: { primary?: boolean } }[];
+      };
+      const contacts: { id: string; name: string; month: number | null; day: number | null; year: number | null; account: string }[] = [];
+      const needsAccess: string[] = [];
+      const errors: { account: string; error: string }[] = [];
+      const conns = await connections();
+      for (const c of conns) {
+        try {
+          const token = await accessTokenFor(c);
+          let pageToken = "";
+          for (let page = 0; page < MAX_CONTACT_PAGES; page++) {
+            const q = new URLSearchParams({ personFields: "names,birthdays", pageSize: "1000", sortOrder: "FIRST_NAME_ASCENDING" });
+            if (pageToken) q.set("pageToken", pageToken);
+            const res = await fetch(`${PEOPLE}/people/me/connections?${q}`, { headers: { Authorization: `Bearer ${token}` } });
+            if (res.status === 403) {
+              needsAccess.push(c.email);
+              break;
+            }
+            if (!res.ok) throw new HttpError(res.status === 401 ? 409 : 502, `google_people_${res.status}`);
+            const body = (await res.json()) as { connections?: GPerson[]; nextPageToken?: string };
+            for (const p of body.connections ?? []) {
+              const name = (p.names?.find((n) => n.metadata?.primary) ?? p.names?.[0])?.displayName?.trim();
+              if (!name) continue;
+              const b = (p.birthdays?.find((x) => x.metadata?.primary && x.date?.month) ?? p.birthdays?.find((x) => x.date?.month))?.date;
+              contacts.push({
+                id: p.resourceName.slice(0, 200),
+                name: name.slice(0, 120),
+                month: b?.month && b.day ? b.month : null,
+                day: b?.month && b.day ? b.day : null,
+                year: b?.month && b.day && b.year ? b.year : null,
+                account: c.email,
+              });
+            }
+            if (!body.nextPageToken) break;
+            pageToken = body.nextPageToken;
+          }
+        } catch (e) {
+          console.error("contacts", c.id, e);
+          errors.push({ account: c.email, error: e instanceof HttpError && e.status === 409 ? "reconnect" : "failed" });
+        }
+      }
+      return json({ connected: conns.length > 0, contacts, needsAccess, errors });
     }
 
     case "disconnect": {

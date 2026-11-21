@@ -16,6 +16,7 @@ export type ProfileRow = {
   display_name: string;
   show_daily: boolean;
   show_food: boolean;
+  show_presents: boolean;
 } & Timestamps;
 
 export type WeekRow = {
@@ -73,6 +74,29 @@ export type FoodItemRow = {
   position: number;
 } & Timestamps;
 
+export type PersonRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  birth_month: number | null;
+  birth_day: number | null;
+  birth_year: number | null;
+  notes: string;
+  source: "manual" | "google" | "device" | "file";
+  external_id: string | null;
+} & Timestamps;
+
+export type GiftIdeaRow = {
+  id: string;
+  user_id: string;
+  person_id: string;
+  text: string;
+  link: string | null;
+  status: "idea" | "bought" | "given";
+  given_year: number | null;
+  position: number;
+} & Timestamps;
+
 export type QuarterRow = {
   id: string;
   user_id: string;
@@ -113,6 +137,8 @@ export type Database = {
       quarters: Table<QuarterRow, "start_date">;
       goals: Table<GoalRow, "quarter_id" | "area">;
       goal_steps: Table<GoalStepRow, "goal_id">;
+      people: Table<PersonRow, "name">;
+      gift_ideas: Table<GiftIdeaRow, "person_id" | "text">;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

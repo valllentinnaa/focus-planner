@@ -1,7 +1,7 @@
 import { useUserId } from "./auth";
 import { useDocument } from "./document";
 
-export type Settings = { ownerName: string; showDaily: boolean; showFood: boolean };
+export type Settings = { ownerName: string; showDaily: boolean; showFood: boolean; showPresents: boolean };
 
 export function useSettings() {
   const userId = useUserId() ?? "";
@@ -14,8 +14,9 @@ export function useSettings() {
       ownerName: r?.display_name ?? "",
       showDaily: r?.show_daily ?? false,
       showFood: r?.show_food ?? true,
+      showPresents: r?.show_presents ?? true,
     }),
-    toRow: (s) => ({ display_name: s.ownerName, show_daily: s.showDaily, show_food: s.showFood }),
+    toRow: (s) => ({ display_name: s.ownerName, show_daily: s.showDaily, show_food: s.showFood, show_presents: s.showPresents }),
   });
   return { settings: d.doc, update: d.patch, loading: d.loading };
 }

@@ -31,6 +31,7 @@ export default function SettingsScreen() {
           <SectionLabel>Sections</SectionLabel>
           <Toggle label="Today" value={settings.showDaily} onChange={(showDaily) => update({ showDaily })} />
           <Toggle label="Food" value={settings.showFood} onChange={(showFood) => update({ showFood })} />
+          <Toggle label="Presents" value={settings.showPresents} onChange={(showPresents) => update({ showPresents })} />
         </View>
 
         <GoogleCalendarSection />
