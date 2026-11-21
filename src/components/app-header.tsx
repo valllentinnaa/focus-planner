@@ -251,7 +251,8 @@ const s = StyleSheet.create({
     flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: colors.rule,
-    backgroundColor: colors.paper + "f2",
+    // Lighter "card" tone (like the Focus box) so the bar stands out from the page.
+    backgroundColor: colors.card,
   },
   bottomItem: { flex: 1, alignItems: "center", gap: 4, paddingVertical: 10 },
   bottomLabel: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.8, textTransform: "uppercase" },
