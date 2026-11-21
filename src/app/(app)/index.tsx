@@ -88,12 +88,8 @@ export default function WeekScreen() {
         title="Focus Plan"
         right={
           <View style={s.titleRight}>
-            {settings.showDaily ? (
-              <Link href="/today" asChild>
-                <Pressable hitSlop={6}><Text style={s.goldLink}>Today ↗</Text></Pressable>
-              </Link>
-            ) : null}
             <DateNav
+              printable
               label={`${format(weekStart, "MMM d")}  →  ${format(weekEnd, "MMM d, yyyy")}`}
               isoValue={key}
               onPrev={() => setWeekStartState(addWeeks(weekStart, -1))}
@@ -238,7 +234,6 @@ function DayBox({ label, iso, isToday, tasks, events, onRemoveEvent, ops, weekSt
 
 const s = StyleSheet.create({
   titleRight: { gap: space.sm, alignItems: "flex-start" },
-  goldLink: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.gold, letterSpacing: 1 },
   themeReminder: { borderLeftWidth: 2, borderLeftColor: colors.gold, paddingLeft: space.md, paddingVertical: 2, gap: 2 },
   themeReminderLabel: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   themeReminderText: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.gold },

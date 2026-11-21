@@ -3,22 +3,32 @@ import { KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts, layout, space } from "@/theme/tokens";
 import { Display, Eyebrow } from "./ui";
-import { AppHeader } from "./app-header";
+import { AppHeader, BOTTOM_NAV_HEIGHT, BottomNav, useIsPhone } from "./app-header";
 
 /** Full-page scroll container with the brand header, safe areas and a max content width. */
+// Web print: leave the app chrome (top bar, bottom tabs) and print buttons off the page.
+if (Platform.OS === "web" && typeof document !== "undefined" && !document.getElementById("fp-print-css")) {
+  const style = document.createElement("style");
+  style.id = "fp-print-css";
+  style.textContent = "@media print { #fp-header, #fp-bottom-nav, [id^='fp-print-btn'] { display: none !important; } }";
+  document.head.appendChild(style);
+}
+
 export function Screen({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
+  const isPhone = useIsPhone();
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         style={s.root}
-        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + space.xxl }]}
+        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + space.xxl + (isPhone ? BOTTOM_NAV_HEIGHT : 0) }]}
         keyboardShouldPersistTaps="handled"
         contentInsetAdjustmentBehavior="automatic"
       >
         <AppHeader />
         <View style={s.inner}>{children}</View>
       </ScrollView>
+      <BottomNav />
     </KeyboardAvoidingView>
   );
 }

@@ -48,6 +48,7 @@
     "expo-system-ui": "~58.0.7",
     "expo-updates": "~58.0.19",
     "expo-web-browser": "~58.0.7",
+    "lucide-react-native": "^1.77.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
@@ -55,6 +56,7 @@
     "react-native-get-random-values": "^2.1.0",
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.0",
+    "react-native-svg": "15.16.0",
     "react-native-web": "~0.21.4",
     "zod": "^4.6.7"
   },

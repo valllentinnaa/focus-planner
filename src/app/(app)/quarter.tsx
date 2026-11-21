@@ -41,6 +41,7 @@ export default function QuarterScreen() {
         title="Q Plan"
         right={
           <DateNav
+              printable
             label={`${format(start, "MMM d")}  →  ${format(end, "MMM d, yyyy")}`}
             isoValue={quarter?.start_date ?? toISO(start)}
             onPick={(iso) => save({ start_date: iso })}

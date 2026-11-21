@@ -43,6 +43,7 @@ export default function TodayScreen() {
               <OutlineButton gold>My Week ↗</OutlineButton>
             </Link>
             <DateNav
+              printable
               label={format(date, "MMM d, yyyy")}
               isoValue={iso}
               onPrev={() => goTo(toISO(addDays(date, -1)))}

@@ -293,7 +293,7 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
 
   let body: ReactNode;
   if (q.isLoading) body = <Body muted>Loading your contacts…</Body>;
-  else if (q.error) body = <Body muted>Couldn't load contacts. Try again in a moment.</Body>;
+  else if (q.error) body = <Body muted>{"Couldn't load contacts. Try again in a moment."}</Body>;
   else if (!q.data?.connected || (q.data.needsAccess.length && !q.data.contacts.length)) {
     body = (
       <View style={{ gap: space.sm }}>
