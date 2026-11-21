@@ -28,7 +28,7 @@ export default function ProfileLinkPage() {
     try {
       if (!(await connectWith(t))) throw new Error("no");
       await qc.invalidateQueries({ queryKey: ["connections"] });
-      router.replace("/presents");
+      router.replace("/presents?tab=friends");
     } catch {
       setFailed(true);
       setBusy(false);
@@ -68,7 +68,7 @@ export default function ProfileLinkPage() {
           <>
             <Display italic>You’re connected</Display>
             <Body muted style={s.gap}>You and {name} can see each other’s wishlists in Presents.</Body>
-            <SolidButton onPress={() => router.replace("/presents")}>Open Presents</SolidButton>
+            <SolidButton onPress={() => router.replace("/presents?tab=friends")}>Open Presents</SolidButton>
           </>
         ) : (
           <>

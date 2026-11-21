@@ -287,7 +287,7 @@ const s = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space.xs, flexWrap: "wrap" },
   panel: { borderWidth: 1, borderColor: colors.rule, borderRadius: 16, backgroundColor: colors.card + "B3" },
   // Friends
-  hero: { alignItems: "center", paddingVertical: space.xl, paddingHorizontal: space.lg, gap: space.md, marginTop: space.xl },
+  hero: { alignItems: "center", paddingVertical: space.xl, paddingHorizontal: space.lg, gap: space.md },
   heroTitle: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.ink, textAlign: "center" },
   heroItalic: { fontFamily: fonts.displayItalic, color: colors.gold },
   heroSub: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.mutedForeground, textAlign: "center", maxWidth: 440 },

@@ -21,7 +21,7 @@ import { byUpcoming, daysLabel, nextBirthday } from "@/lib/birthdays";
 import { formatBirthday, formatBirthdayInput, parseBirthday, splitLink } from "@/lib/birthday-input";
 import type { GiftIdeaRow, PersonRow } from "@/lib/database.types";
 import { colors, fonts, radius, space } from "@/theme/tokens";
-import { Column, Columns, Hint, PageTitle, Screen } from "@/components/screen";
+import { Hint, PageTitle, Screen } from "@/components/screen";
 import { Body, Card, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
 
 const SOON_DAYS = 30;
@@ -31,14 +31,18 @@ const STATUS_LABEL: Record<GiftIdeaRow["status"], string> = { idea: "Idea", boug
 export default function PresentsScreen() {
   const people = usePeople();
   const ideas = useGiftIdeas();
-  const params = useLocalSearchParams<{ calendar?: string; person?: string }>();
+  const params = useLocalSearchParams<{ calendar?: string; person?: string; tab?: string }>();
+  const [tab, setTab] = useState<Tab>(isTab(params.tab) ? params.tab : "people");
   const [open, setOpen] = useState<string | null>(params.person ?? null);
   // Opened from a birthday in Week/Month: jump to that person (adjusting state during render,
   // as React recommends, instead of in an effect).
   const [seenPerson, setSeenPerson] = useState(params.person);
   if (params.person !== seenPerson) {
     setSeenPerson(params.person);
-    if (params.person) setOpen(params.person);
+    if (params.person) {
+      setOpen(params.person);
+      setTab("people");
+    }
   }
   const [importing, setImporting] = useState(params.calendar === "connected");
   const today = useMemo(() => new Date(), []);
@@ -52,9 +56,22 @@ export default function PresentsScreen() {
       <PageTitle
         eyebrow="Birthdays & gifts"
         title="Presents"
-        right={contactsImportAvailable && !importing ? <OutlineButton onPress={() => setImporting(true)}>Import contacts</OutlineButton> : null}
+        right={tab === "people" && contactsImportAvailable && !importing ? <OutlineButton onPress={() => setImporting(true)}>Import contacts</OutlineButton> : null}
       />
 
+      <Tabs value={tab} onChange={setTab} counts={{ people: people.items.length }} />
+
+      {tab === "wishlist" ? (
+        <View style={s.tabBody}>
+          <MyWishlist />
+        </View>
+      ) : tab === "friends" ? (
+        <View style={s.tabBody}>
+          <FriendsSection />
+          <CirclesSection />
+        </View>
+      ) : (
+      <View style={[s.tabBody, { gap: space.xl }]}>
       {importing ? <ImportPanel onClose={() => setImporting(false)} /> : null}
 
       {soon.length ? (
@@ -79,8 +96,7 @@ export default function PresentsScreen() {
         </View>
       ) : null}
 
-      <Columns>
-      <Column flex={1}>
+      <View>
         <SectionLabel right={<Text style={s.meta}>{people.items.length}</Text>}>People</SectionLabel>
         <AddPerson onAdd={(row) => setOpen(people.add(row))} />
         {people.items.length === 0 && !people.loading ? (
@@ -105,14 +121,37 @@ export default function PresentsScreen() {
             ideaOps={ideas}
           />
         ))}
-      </Column>
-      <Column flex={1}>
-        <MyWishlist />
-        <FriendsSection />
-        <CirclesSection />
-      </Column>
-      </Columns>
+      </View>
+      </View>
+      )}
     </Screen>
+  );
+}
+
+type Tab = "people" | "wishlist" | "friends";
+const TABS: { key: Tab; label: string }[] = [
+  { key: "people", label: "People" },
+  { key: "wishlist", label: "My wishlist" },
+  { key: "friends", label: "Friends & circles" },
+];
+const isTab = (v: unknown): v is Tab => TABS.some((t) => t.key === v);
+
+function Tabs({ value, onChange, counts }: { value: Tab; onChange: (t: Tab) => void; counts: Partial<Record<Tab, number>> }) {
+  return (
+    <View style={s.tabs} accessibilityRole="tablist">
+      {TABS.map((t) => {
+        const active = t.key === value;
+        return (
+          <Pressable key={t.key} onPress={() => onChange(t.key)} accessibilityRole="tab" accessibilityState={{ selected: active }} style={s.tab}>
+            <Text style={[s.tabText, active && s.tabTextActive]}>
+              {t.label}
+              {counts[t.key] ? <Text style={s.tabCount}>  {counts[t.key]}</Text> : null}
+            </Text>
+            <View style={[s.tabLine, active && s.tabLineActive]} />
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -565,6 +604,14 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
 }
 
 const s = StyleSheet.create({
+  tabs: { flexDirection: "row", flexWrap: "wrap", gap: space.lg, borderBottomWidth: 1, borderBottomColor: colors.rule },
+  tab: { paddingTop: space.xs },
+  tabText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 2.5, textTransform: "uppercase", color: colors.mutedForeground, paddingBottom: space.sm },
+  tabTextActive: { color: colors.ink },
+  tabCount: { fontFamily: fonts.sans, color: colors.gold, letterSpacing: 0 },
+  tabLine: { height: 2, marginBottom: -1, backgroundColor: "transparent" },
+  tabLineActive: { backgroundColor: colors.ink },
+  tabBody: { width: "100%", maxWidth: 760 },
   meta: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
   addRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginVertical: space.sm, flexWrap: "wrap" },
   soonRow: { flexDirection: "row", flexWrap: "wrap", gap: space.md },

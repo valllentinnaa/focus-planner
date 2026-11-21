@@ -61,8 +61,17 @@ describe("Presents screen", () => {
     await waitFor(() => expect(screen.queryByText("Ana")).toBeNull());
   });
 
+  test("tabs: People is the default; My wishlist and Friends & circles switch the view", async () => {
+    await renderScreen(<PresentsScreen />);
+    expect(screen.getByPlaceholderText("Name…")).toBeTruthy();
+    await fireEvent.press(screen.getByText("My wishlist"));
+    expect(screen.queryByPlaceholderText("Name…")).toBeNull();
+    expect(screen.getByPlaceholderText("Something you'd like, or a link…")).toBeTruthy();
+  });
+
   test("my wishlist: add and remove an item", async () => {
     await renderScreen(<PresentsScreen />);
+    await fireEvent.press(screen.getByText("My wishlist"));
     const input = screen.getByPlaceholderText("Something you'd like, or a link…");
     await fireEvent.changeText(input, "Good headphones");
     await fireEvent(input, "submitEditing");

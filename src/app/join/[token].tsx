@@ -26,7 +26,7 @@ export default function JoinCirclePage() {
       const id = await joinCircle(t);
       if (!id) throw new Error("no circle");
       await qc.invalidateQueries({ queryKey: ["circles"] });
-      router.replace("/presents");
+      router.replace("/presents?tab=friends");
     } catch {
       setFailed(true);
       setJoining(false);
@@ -55,7 +55,7 @@ export default function JoinCirclePage() {
           <>
             <Display italic>Link not working</Display>
             <Body muted style={s.gap}>This invite was turned off or replaced. Ask for a new one.</Body>
-            <SolidButton onPress={() => router.replace("/presents")}>Go to Presents</SolidButton>
+            <SolidButton onPress={() => router.replace("/presents?tab=friends")}>Go to Presents</SolidButton>
           </>
         ) : (
           <>
@@ -64,7 +64,7 @@ export default function JoinCirclePage() {
               {p.owner} invited you. {p.members} {p.members === 1 ? "person is" : "people are"} in it. Members see each other’s wishlists; nobody sees who’s buying what for them.
             </Body>
             {p.already ? (
-              <SolidButton onPress={() => router.replace("/presents")}>You’re in — open Presents</SolidButton>
+              <SolidButton onPress={() => router.replace("/presents?tab=friends")}>You’re in — open Presents</SolidButton>
             ) : (
               <SolidButton disabled={joining} onPress={join}>{joining ? "Joining…" : "Join circle"}</SolidButton>
             )}
