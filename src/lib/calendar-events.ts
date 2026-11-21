@@ -84,3 +84,10 @@ export function rangeAgenda(byDay: Record<string, DayEvent[]>, firstISO: string,
   }
   return days;
 }
+
+/** Whether an event is over: timed → its end has passed; all-day → its last day has ended. */
+export function isPast(e: Pick<CalendarEvent, "start" | "end" | "allDay">, now: Date = new Date()) {
+  if (e.allDay) return (e.end || toISO(addDays(fromISO(e.start), 1))) <= toISO(now);
+  const end = new Date(e.end || e.start);
+  return !Number.isNaN(end.getTime()) && end <= now;
+}

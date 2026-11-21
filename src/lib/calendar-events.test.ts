@@ -1,4 +1,4 @@
-import { eventsByDay, rangeAgenda, rangeBounds, type CalendarEvent } from "./calendar-events";
+import { eventsByDay, isPast, rangeAgenda, rangeBounds, type CalendarEvent } from "./calendar-events";
 
 const ev = (over: Partial<CalendarEvent>): CalendarEvent => ({
   key: "cal|1",
@@ -78,5 +78,17 @@ describe("rangeAgenda", () => {
     const byDay = eventsByDay([ev({ key: "trip", start: "2026-11-14", end: "2026-11-18" })]);
     const agenda = rangeAgenda(byDay, "2026-11-16", "2026-11-22");
     expect(agenda[0]).toMatchObject({ day: "2026-11-16", items: [{ firstISO: "2026-11-16", lastISO: "2026-11-17" }] });
+  });
+});
+
+describe("isPast", () => {
+  const now = new Date(2026, 10, 21, 12, 0);
+  it("timed: past once it has ended", () => {
+    expect(isPast(ev({ allDay: false, start: local(2026, 11, 21, 9), end: local(2026, 11, 21, 10) }), now)).toBe(true);
+    expect(isPast(ev({ allDay: false, start: local(2026, 11, 21, 11), end: local(2026, 11, 21, 13) }), now)).toBe(false);
+  });
+  it("all-day: past only after its last day", () => {
+    expect(isPast(ev({ start: "2026-11-20", end: "2026-11-21" }), now)).toBe(true);
+    expect(isPast(ev({ start: "2026-11-21", end: "2026-11-22" }), now)).toBe(false);
   });
 });

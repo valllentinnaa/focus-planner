@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { useState } from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import type { AgendaItem, DayEvent } from "@/lib/calendar-events";
+import { isPast, type AgendaItem, type DayEvent } from "@/lib/calendar-events";
 import { fromISO } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
 import { GhostButton } from "./ui";
@@ -43,7 +43,7 @@ function EventLine({ event, onRemove, children }: { event: DayEvent; onRemove: (
 export function CalendarEventRow({ event, onRemove }: { event: DayEvent; onRemove: (key: string) => void }) {
   return (
     <EventLine event={event} onRemove={onRemove}>
-      <Text style={s.text} numberOfLines={2}>
+      <Text style={[s.text, isPast(event) && s.past]} numberOfLines={2}>
         {event.allDay ? null : <Text style={s.when}>{event.label}  </Text>}
         {event.title}
       </Text>
@@ -73,7 +73,7 @@ export function MonthAgenda({ agenda, onRemove, limit = 4 }: { agenda: { day: st
             <Text style={[s.dayCol, !showDay && s.hidden]}>{dayLabel(day)}</Text>
             <View style={s.agendaMain}>
               <EventLine event={event} onRemove={onRemove}>
-                <Text style={s.text} numberOfLines={1}>
+                <Text style={[s.text, isPast(event) && s.past]} numberOfLines={1}>
                   {lastISO > firstISO ? <Text style={s.when}>→ {dayLabel(lastISO)}  </Text> : null}
                   {!event.allDay && lastISO === firstISO ? <Text style={s.when}>{event.label}  </Text> : null}
                   {event.title}
@@ -97,6 +97,8 @@ const s = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, marginLeft: 2 },
   body: { flex: 1, minWidth: 0 },
   text: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
+  // Over: struck through and faded, like a ticked-off task.
+  past: { textDecorationLine: "line-through", opacity: 0.55 },
   when: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1, color: colors.gold },
   xWrap: { marginLeft: 2 },
   hidden: { opacity: 0 },
