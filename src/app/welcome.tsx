@@ -1,17 +1,19 @@
-// First-run setup, one calm question per screen. Today, Week and 12W are always on; Food and
-// Presents are offered with a line on why they're worth it. Everything can be changed in Settings.
+// First-run setup: quick, tappable, one idea per screen. Picking an answer moves on by itself.
+// Today, Week and 12W are always on; Food and Presents are pitched in three short lines each.
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { CakeSlice, Check, Gift, Lightbulb, ListChecks, ShoppingBasket, Sparkles, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFinishOnboarding } from "@/data/profile";
 import { defaultTheme, GENDERS, type Answers, type Gender } from "@/lib/onboarding";
 import { setThemePref } from "@/theme/theme";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
-import { Body, Display, Eyebrow, GhostButton, RuleInput, SolidButton } from "@/components/ui";
+import { Display, Eyebrow, GhostButton, RuleInput } from "@/components/ui";
 
 type Step = "name" | "gender" | "food" | "presents" | "done";
 const STEPS: Step[] = ["name", "gender", "food", "presents", "done"];
+const AUTO_ADVANCE_MS = 280;
 
 export default function Welcome() {
   const router = useRouter();
@@ -22,9 +24,21 @@ export default function Welcome() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const i = STEPS.indexOf(step);
-  const next = () => setStep(STEPS[Math.min(i + 1, STEPS.length - 1)]!);
-  const back = () => setStep(STEPS[Math.max(i - 1, 0)]!);
-  const set = (change: Partial<Answers>) => setAnswers((a) => ({ ...a, ...change }));
+  const go = (to: number) => setStep(STEPS[Math.max(0, Math.min(STEPS.length - 1, to))]!);
+  const next = () => go(i + 1);
+  const back = () => go(i - 1);
+  // Tap an answer → it lights up → the next screen slides in.
+  const pick = (change: Partial<Answers>) => {
+    setAnswers((a) => ({ ...a, ...change }));
+    setTimeout(next, AUTO_ADVANCE_MS);
+  };
+
+  // Each screen fades + slides in.
+  const [anim] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    anim.setValue(0);
+    Animated.timing(anim, { toValue: 1, duration: 320, useNativeDriver: true }).start();
+  }, [step, anim]);
 
   const start = async () => {
     setSaving(true);
@@ -39,127 +53,208 @@ export default function Welcome() {
     }
   };
 
+  const name = answers.name.trim();
+
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={[s.page, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.xxl }]} keyboardShouldPersistTaps="handled">
         <View style={s.inner}>
-          <View style={s.progress} accessibilityLabel={`Step ${i + 1} of ${STEPS.length}`}>
-            {STEPS.map((k, j) => (
-              <View key={k} style={[s.dot, j <= i && s.dotOn]} />
-            ))}
+          <View style={s.topRow}>
+            <View style={s.progress} accessibilityLabel={`Step ${i + 1} of ${STEPS.length}`}>
+              {STEPS.map((k, j) => (
+                <View key={k} style={[s.dot, j <= i && s.dotOn]} />
+              ))}
+            </View>
+            {i > 0 && step !== "done" ? <GhostButton onPress={back}>Back</GhostButton> : null}
           </View>
 
-          {step === "name" ? (
-            <>
-              <Eyebrow>Welcome</Eyebrow>
-              <Display italic style={s.title}>Let’s set up your planner</Display>
-              <Body muted style={s.lead}>A few quick questions so it fits the way you plan. Everything can be changed later in Settings.</Body>
-              <Text style={s.q}>What should we call you?</Text>
-              <RuleInput autoFocus value={answers.name} onChangeText={(name) => set({ name })} placeholder="Your name" onSubmitEditing={next} returnKeyType="next" />
-              <Actions onNext={next} nextLabel={answers.name.trim() ? "Continue" : "Skip"} />
-            </>
-          ) : null}
+          <Animated.View style={{ opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }], gap: space.md }}>
+            {step === "name" ? (
+              <>
+                <Eyebrow>Welcome</Eyebrow>
+                <Display italic style={s.title}>Plan less.{"\n"}Focus more.</Display>
+                <Text style={s.lead}>First things first — what should we call you?</Text>
+                <RuleInput autoFocus value={answers.name} onChangeText={(v) => setAnswers((a) => ({ ...a, name: v }))} placeholder="Your name" onSubmitEditing={next} returnKeyType="next" style={{ fontSize: 20 }} />
+                {/* Live preview of their planner's name */}
+                <View style={s.preview}>
+                  <Text style={s.previewName}>{name ? `${name}'s` : "Your"}</Text>
+                  <Text style={s.previewSub}> planner</Text>
+                </View>
+                <Gold onPress={next}>{name ? "That's me" : "Skip"}</Gold>
+              </>
+            ) : null}
 
-          {step === "gender" ? (
-            <>
-              <Eyebrow>About you</Eyebrow>
-              <Display italic style={s.title}>How do you identify?</Display>
-              <Body muted style={s.lead}>Optional — only you can see it. It also sets your starting theme, which you can change anytime in Settings.</Body>
-              <View style={s.choices}>
-                {GENDERS.map((g) => (
-                  <Choice key={g.value} label={g.label} selected={answers.gender === g.value} onPress={() => set({ gender: g.value as Gender })} />
-                ))}
-              </View>
-              <Actions onBack={back} onNext={next} nextLabel={answers.gender ? "Continue" : "Skip"} />
-            </>
-          ) : null}
+            {step === "gender" ? (
+              <>
+                <Eyebrow>Optional</Eyebrow>
+                <Display italic style={s.title}>A little about you</Display>
+                <Text style={s.lead}>Only you see this. It sets your starting look — light or dark.</Text>
+                <View style={s.choices}>
+                  {GENDERS.map((g) => (
+                    <Choice key={g.value} selected={answers.gender === g.value} onPress={() => pick({ gender: g.value as Gender })}>
+                      {g.label}
+                    </Choice>
+                  ))}
+                </View>
+                <GhostButton style={s.skip} onPress={() => pick({ gender: null })}>Skip</GhostButton>
+              </>
+            ) : null}
 
-          {step === "food" ? (
-            <>
-              <Eyebrow>Food</Eyebrow>
-              <Display italic style={s.title}>Plan your meals & groceries?</Display>
-              <Body muted style={s.lead}>
-                A weekly shopping list and cooking plan, in one place. Your shopping shows up in your Week, so the fridge never surprises you on Thursday.
-              </Body>
-              <YesNo value={answers.food} onChange={(food) => set({ food })} yes="Yes, add Food" no="Not for me" />
-              <Actions onBack={back} onNext={next} />
-            </>
-          ) : null}
+            {step === "food" ? (
+              <Feature
+                icon={UtensilsCrossed}
+                eyebrow="Food"
+                title="Dinner, sorted."
+                points={[
+                  [ShoppingBasket, "One shopping list for the whole week"],
+                  [UtensilsCrossed, "Know what you’re cooking, every day"],
+                  [ListChecks, "Ticks off right inside your Week"],
+                ]}
+                yes="Add Food"
+                onPick={(food) => pick({ food })}
+              />
+            ) : null}
 
-          {step === "presents" ? (
-            <>
-              <Eyebrow>Presents</Eyebrow>
-              <Display italic style={s.title}>Never scramble for a gift again</Display>
-              <Body muted style={s.lead}>
-                Keep the birthdays of the people you love and jot gift ideas the moment they strike. Make your own wishlist and share it with friends — so they always know what you’d love, and nobody doubles up.
-              </Body>
-              <YesNo value={answers.presents} onChange={(presents) => set({ presents })} yes="Yes, add Presents" no="Not for me" />
-              <Actions onBack={back} onNext={next} />
-            </>
-          ) : null}
+            {step === "presents" ? (
+              <Feature
+                icon={Gift}
+                eyebrow="Presents"
+                title="Be the friend who never forgets."
+                points={[
+                  [CakeSlice, "Every birthday on your radar"],
+                  [Lightbulb, "Save gift ideas the second they strike"],
+                  [Gift, "Share your wishlist — no more doubles"],
+                ]}
+                yes="Add Presents"
+                onPick={(presents) => pick({ presents })}
+              />
+            ) : null}
 
-          {step === "done" ? (
-            <>
-              <Eyebrow>All set</Eyebrow>
-              <Display italic style={s.title}>{answers.name.trim() ? `Your planner is ready, ${answers.name.trim()}` : "Your planner is ready"}</Display>
-              <Body muted style={s.lead}>
-                Today, your Week and your 12-week plan are always there.
-                {answers.food || answers.presents ? ` ${[answers.food && "Food", answers.presents && "Presents"].filter(Boolean).join(" and ")} ${answers.food && answers.presents ? "are" : "is"} in your menu too.` : ""} You can change any of this in Settings.
-              </Body>
-              {error ? <Text style={s.error}>{error}</Text> : null}
-              <View style={s.actions}>
-                <GhostButton onPress={back}>Back</GhostButton>
-                <SolidButton disabled={saving} onPress={start}>{saving ? "Saving…" : "Start planning"}</SolidButton>
-              </View>
-            </>
-          ) : null}
+            {step === "done" ? (
+              <>
+                <View style={s.hero}>
+                  <Sparkles size={28} color={colors.gold} strokeWidth={1.5} />
+                </View>
+                <Display italic style={s.title}>{name ? `You’re all set, ${name}.` : "You’re all set."}</Display>
+                <Text style={s.lead}>Here’s your planner:</Text>
+                <View style={s.tags}>
+                  {["Today", "Week", "12 weeks", ...(answers.food ? ["Food"] : []), ...(answers.presents ? ["Presents"] : [])].map((t) => (
+                    <View key={t} style={s.tag}>
+                      <Check size={12} color={colors.gold} strokeWidth={2.2} />
+                      <Text style={s.tagText}>{t}</Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={s.small}>Change anything later in Settings.</Text>
+                {error ? <Text style={s.error}>{error}</Text> : null}
+                <Gold disabled={saving} onPress={start}>{saving ? "Setting up…" : "Start planning"}</Gold>
+                <GhostButton style={s.skip} onPress={back}>Back</GhostButton>
+              </>
+            ) : null}
+          </Animated.View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-function Actions({ onBack, onNext, nextLabel = "Continue" }: { onBack?: () => void; onNext: () => void; nextLabel?: string }) {
+/** A feature pitch: big icon, catchy title, three one-liners, then Add / Not now. */
+function Feature({ icon: Icon, eyebrow, title, points, yes, onPick }: {
+  icon: LucideIcon;
+  eyebrow: string;
+  title: string;
+  points: [LucideIcon, string][];
+  yes: string;
+  onPick: (v: boolean) => void;
+}) {
   return (
-    <View style={s.actions}>
-      {onBack ? <GhostButton onPress={onBack}>Back</GhostButton> : <View />}
-      <SolidButton onPress={onNext}>{nextLabel}</SolidButton>
-    </View>
+    <>
+      <View style={s.hero}>
+        <Icon size={28} color={colors.gold} strokeWidth={1.5} />
+      </View>
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <Display italic style={s.title}>{title}</Display>
+      <View style={s.points}>
+        {points.map(([P, text]) => (
+          <View key={text} style={s.point}>
+            <View style={s.pointIcon}>
+              <P size={16} color={colors.gold} strokeWidth={1.7} />
+            </View>
+            <Text style={s.pointText}>{text}</Text>
+          </View>
+        ))}
+      </View>
+      <Gold onPress={() => onPick(true)}>{yes}</Gold>
+      <GhostButton style={s.skip} onPress={() => onPick(false)}>Not now</GhostButton>
+    </>
   );
 }
 
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+/** The Today-button style: gold pill, light uppercase label. */
+function Gold({ children, onPress, disabled }: { children: ReactNode; onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} style={[s.choice, selected && s.choiceOn]}>
-      <Text style={[s.choiceText, selected && s.choiceTextOn]}>{label}</Text>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [s.gold, (pressed || disabled) && { opacity: 0.75 }]}
+    >
+      <Text style={s.goldText}>{children}</Text>
     </Pressable>
   );
 }
 
-function YesNo({ value, onChange, yes, no }: { value: boolean; onChange: (v: boolean) => void; yes: string; no: string }) {
+function Choice({ children, selected, onPress }: { children: ReactNode; selected: boolean; onPress: () => void }) {
+  const [scale] = useState(() => new Animated.Value(1));
   return (
-    <View style={s.choices}>
-      <Choice label={yes} selected={value} onPress={() => onChange(true)} />
-      <Choice label={no} selected={!value} onPress={() => onChange(false)} />
-    </View>
+    <Pressable
+      onPress={() => {
+        Animated.sequence([
+          Animated.timing(scale, { toValue: 0.97, duration: 80, useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true }),
+        ]).start();
+        onPress();
+      }}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+    >
+      <Animated.View style={[s.choice, selected && s.choiceOn, { transform: [{ scale }] }]}>
+        <Text style={[s.choiceText, selected && s.choiceTextOn]}>{children}</Text>
+        {selected ? <Check size={16} color={colors.paper} strokeWidth={2.2} /> : null}
+      </Animated.View>
+    </Pressable>
   );
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   page: { flexGrow: 1, paddingHorizontal: space.lg },
-  inner: { width: "100%", maxWidth: 520, alignSelf: "center", gap: space.md },
-  progress: { flexDirection: "row", gap: 6, marginBottom: space.lg },
+  inner: { width: "100%", maxWidth: 480, alignSelf: "center", gap: space.md },
+  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 32, marginBottom: space.lg },
+  progress: { flexDirection: "row", gap: 6 },
   dot: { width: 22, height: 3, borderRadius: 2, backgroundColor: colors.rule },
   dotOn: { backgroundColor: colors.gold },
-  title: { fontSize: 40, lineHeight: 44 },
-  lead: { fontSize: 15, lineHeight: 22, marginBottom: space.md },
-  q: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginTop: space.sm },
-  choices: { gap: space.sm },
-  choice: { borderWidth: 1, borderColor: colors.rule, borderRadius: 10, paddingVertical: 14, paddingHorizontal: space.lg, backgroundColor: alpha("card", "80") },
-  choiceOn: { borderColor: colors.gold, backgroundColor: alpha("gold", "22") },
-  choiceText: { fontFamily: fonts.sans, fontSize: 15, color: colors.ink },
-  choiceTextOn: { fontFamily: fonts.sansMedium },
-  actions: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: space.xl },
+  title: { fontSize: 44, lineHeight: 48 },
+  lead: { fontFamily: fonts.sans, fontSize: 16, lineHeight: 23, color: colors.mutedForeground },
+  small: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
+  preview: { flexDirection: "row", alignItems: "baseline", alignSelf: "flex-start", borderWidth: 1, borderColor: colors.rule, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, backgroundColor: alpha("card", "80") },
+  previewName: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
+  previewSub: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.gold },
+  hero: { width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center", backgroundColor: alpha("gold", "22"), marginBottom: space.xs },
+  points: { gap: space.md, marginVertical: space.sm },
+  point: { flexDirection: "row", alignItems: "center", gap: space.md },
+  pointIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.rule },
+  pointText: { flex: 1, fontFamily: fonts.sansMedium, fontSize: 16, color: colors.ink },
+  choices: { gap: space.sm, marginTop: space.xs },
+  choice: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderColor: colors.rule, borderRadius: 14, paddingVertical: 16, paddingHorizontal: space.lg, backgroundColor: alpha("card", "80") },
+  choiceOn: { borderColor: colors.gold, backgroundColor: colors.gold },
+  choiceText: { fontFamily: fonts.sansMedium, fontSize: 16, color: colors.ink },
+  choiceTextOn: { color: colors.paper },
+  tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  tag: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: colors.gold, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  tagText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase", color: colors.ink },
+  gold: { alignSelf: "stretch", alignItems: "center", justifyContent: "center", height: 50, borderRadius: 999, backgroundColor: colors.gold, marginTop: space.md },
+  goldText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 2.5, textTransform: "uppercase", color: colors.paper },
+  skip: { alignSelf: "center" },
   error: { fontFamily: fonts.sans, fontSize: 13, color: colors.destructive },
 });
