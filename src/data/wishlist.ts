@@ -16,8 +16,10 @@ export function useWishlist() {
   return useItems({ table: "wishlist_items", filters: {}, orderBy: ["position", "created_at"] });
 }
 
+export const shareBase = () => env.webUrl || (Platform.OS === "web" && typeof window !== "undefined" ? window.location.origin : "");
+
 export function shareUrl(token: string) {
-  const base = env.webUrl || (Platform.OS === "web" && typeof window !== "undefined" ? window.location.origin : "");
+  const base = shareBase();
   return base ? `${base}/w/${token}` : null;
 }
 

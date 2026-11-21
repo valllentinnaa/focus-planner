@@ -6,6 +6,8 @@ import { Paperclip, Trash2 } from "lucide-react-native";
 import { useCalendarOps } from "@/data/calendar";
 import { shareUrl, sharingAvailable, useWishlist, useWishlistShare } from "@/data/wishlist";
 import { useUserId } from "@/data/auth";
+import { circlesAvailable, useCircles } from "@/data/circles";
+import { CirclesSection, MateWishlist } from "@/components/circles";
 import { canPickFiles, pickFile } from "@/lib/pick-file";
 import {
   giftFilesAvailable,
@@ -102,6 +104,7 @@ export default function PresentsScreen() {
       </Column>
       <Column flex={2}>
         <MyWishlist />
+        <CirclesSection />
       </Column>
       </Columns>
     </Screen>
@@ -316,6 +319,8 @@ function PersonDetail({
         </View>
       ))}
 
+      <LinkedMate person={p} onUpdate={onUpdate} />
+
       <SectionLabel>Notes</SectionLabel>
       <RuledArea
         lines={2}
@@ -325,6 +330,50 @@ function PersonDetail({
         placeholder="Sizes, favourite colours, things to avoid…"
       />
 
+    </View>
+  );
+}
+
+/** Tie this contact to someone in your circles, to see their wishlist right here. */
+function LinkedMate({ person: p, onUpdate }: { person: PersonRow; onUpdate: (change: Partial<PersonRow>) => void }) {
+  const { mates } = useCircles();
+  const [picking, setPicking] = useState(false);
+  if (!circlesAvailable) return null;
+  const linked = mates.find((m) => m.user_id === p.linked_user_id);
+  if (!linked && !mates.length) return null;
+  return (
+    <View style={{ marginTop: space.sm }}>
+      <SectionLabel
+        right={
+          linked ? (
+            <GhostButton onPress={() => onUpdate({ linked_user_id: null })}>Unlink</GhostButton>
+          ) : (
+            <GhostButton onPress={() => setPicking((v) => !v)}>{picking ? "Cancel" : "Link"}</GhostButton>
+          )
+        }
+      >
+        {linked ? `${linked.name}'s wishlist` : "Their wishlist"}
+      </SectionLabel>
+      {linked ? (
+        <MateWishlist mateId={linked.user_id} />
+      ) : picking ? (
+        <View style={s.chips}>
+          {mates.map((m) => (
+            <Pressable
+              key={m.user_id}
+              style={s.chip}
+              onPress={() => {
+                onUpdate({ linked_user_id: m.user_id });
+                setPicking(false);
+              }}
+            >
+              <Text style={s.chipText}>{m.name}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : (
+        <Hint>Is {p.name} in one of your circles? Link them to see their wishlist here.</Hint>
+      )}
     </View>
   );
 }
@@ -538,6 +587,9 @@ const s = StyleSheet.create({
   x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
   ghostDanger: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.destructive },
   filter: { flexDirection: "row", alignItems: "center", gap: 6 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, paddingVertical: space.xs },
+  chip: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.pill, paddingVertical: 5, paddingHorizontal: 12 },
+  chipText: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.ink },
   shareBox: { marginTop: space.lg, borderWidth: 1, borderColor: colors.rule, borderRadius: radius.md, padding: space.md, gap: space.sm },
   shareTitle: { fontFamily: fonts.sansSemiBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   shareUrl: { fontFamily: fonts.sans, fontSize: 13, color: colors.ink },

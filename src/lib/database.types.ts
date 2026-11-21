@@ -85,6 +85,7 @@ export type PersonRow = {
   notes: string;
   source: "manual" | "google" | "device" | "file";
   external_id: string | null;
+  linked_user_id: string | null;
 } & Timestamps;
 
 export type GiftIdeaRow = {
