@@ -18,6 +18,8 @@ export type ProfileRow = {
   show_food: boolean;
   show_presents: boolean;
   menu_pages: string[];
+  gender: string | null;
+  onboarded_at: string | null;
 } & Timestamps;
 
 export type WeekRow = {

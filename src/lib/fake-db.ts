@@ -11,7 +11,7 @@ export const DEMO_USER_ID = "00000000-0000-4000-8000-000000000001";
 const PREFIX = "fp.demo.";
 
 const defaultsFor: Record<string, () => Row> = {
-  profiles: () => ({ display_name: "", show_daily: false, show_food: true, show_presents: true, menu_pages: ["quarter"] }),
+  profiles: () => ({ display_name: "", gender: null, onboarded_at: null, show_daily: true, show_food: true, show_presents: true, menu_pages: ["quarter"] }),
   weeks: () => ({ focus: "", notes: "", prompt_dismissed: false }),
   daily_entries: () => ({
     gratitude: "",

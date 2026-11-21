@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { useAuth } from "@/data/auth";
 import { calendarAvailable, useCalendarOps, useCalendarStatus } from "@/data/calendar";
-import { useSettings } from "@/data/profile";
+import { useRestartOnboarding, useSettings } from "@/data/profile";
 import { env } from "@/lib/env";
 import { MENU_PAGES, PAGES, PHONE_MAX_EXTRA, type MenuPage } from "@/lib/menu";
 import { clearDemoData } from "@/lib/fake-db";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, space } from "@/theme/tokens";
 import { getThemePref, setThemePref, type ThemePref } from "@/theme/theme";
+import { GENDERS } from "@/lib/onboarding";
 import { Hint, PageTitle, Screen } from "@/components/screen";
 import { ShareProfileSection } from "@/components/share-profile";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "@/components/ui";
@@ -31,6 +32,21 @@ export default function SettingsScreen() {
           <SectionLabel>Your name</SectionLabel>
           <RuleInput value={settings.ownerName} onChangeText={(ownerName) => update({ ownerName })} placeholder="e.g. Val" />
           <Hint>{`Shown as "${name || "Focus"}${name ? "'s" : ""} planner".`}</Hint>
+        </View>
+
+        <View>
+          <SectionLabel>Gender</SectionLabel>
+          <View style={s.chips}>
+            {GENDERS.map((g) => {
+              const on = settings.gender === g.value;
+              return (
+                <Pressable key={g.value} onPress={() => update({ gender: on ? null : g.value })} accessibilityRole="radio" accessibilityState={{ selected: on }} style={[s.chip, on && s.chipOn]}>
+                  <Text style={[s.segText, on && s.segTextActive]}>{g.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Hint>Optional. Only you can see it.</Hint>
         </View>
 
         <ShareProfileSection name={name} />
@@ -55,11 +71,24 @@ export default function SettingsScreen() {
           )}
         </View>
 
+        <RunSetupAgain />
+
         <Hint>
           Focus Planner {Constants.expoConfig?.version} · internal build
         </Hint>
       </View>
     </Screen>
+  );
+}
+
+/** Re-run the first-run setup (it pre-fills nothing; answers replace the current choices). */
+function RunSetupAgain() {
+  const restart = useRestartOnboarding();
+  const router = useRouter();
+  return (
+    <GhostButton style={{ alignSelf: "flex-start" }} onPress={() => restart().then(() => router.replace("/welcome")).catch(() => undefined)}>
+      Run setup again
+    </GhostButton>
   );
 }
 
@@ -249,6 +278,9 @@ function Toggle({ label, value, onChange, color }: { label: string; value: boole
 const s = StyleSheet.create({
   toggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
   error: { fontFamily: fonts.sans, fontSize: 13, color: colors.destructive },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: space.sm },
+  chip: { borderWidth: 1, borderColor: colors.rule, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  chipOn: { backgroundColor: colors.gold, borderColor: colors.gold },
   pageRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 7, gap: space.md },
   fixed: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
   seg: { flexDirection: "row", borderWidth: 1, borderColor: colors.rule, borderRadius: 999, padding: 2 },

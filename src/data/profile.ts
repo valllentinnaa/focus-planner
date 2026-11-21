@@ -1,8 +1,12 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { DEFAULT_MENU, MENU_PAGES, type MenuPage } from "@/lib/menu";
+import { onboardingProfile, type Answers } from "@/lib/onboarding";
+import { rawDb } from "@/lib/supabase";
 import { useUserId } from "./auth";
-import { useDocument } from "./document";
+import { saveRow, useDocument } from "./document";
 
-export type Settings = { ownerName: string; showDaily: boolean; showFood: boolean; showPresents: boolean; menuPages: MenuPage[] };
+export type Settings = { ownerName: string; showDaily: boolean; showFood: boolean; showPresents: boolean; menuPages: MenuPage[]; gender: string | null; onboarded: boolean };
 
 export function useSettings() {
   const userId = useUserId() ?? "";
@@ -14,12 +18,38 @@ export function useSettings() {
     updateOnly: true,
     fromRow: (r) => ({
       ownerName: r?.display_name ?? "",
-      showDaily: r?.show_daily ?? false,
+      showDaily: r?.show_daily ?? true,
       showFood: r?.show_food ?? true,
       showPresents: r?.show_presents ?? true,
       menuPages: (r?.menu_pages ?? DEFAULT_MENU).filter((p): p is MenuPage => (MENU_PAGES as string[]).includes(p)),
+      gender: r?.gender ?? null,
+      // No row yet (still loading) counts as onboarded, so nobody is bounced to setup by mistake.
+      onboarded: r ? r.onboarded_at != null : true,
     }),
-    toRow: (s) => ({ display_name: s.ownerName, show_daily: s.showDaily, show_food: s.showFood, show_presents: s.showPresents, menu_pages: s.menuPages }),
+    toRow: (s) => ({ display_name: s.ownerName, show_daily: s.showDaily, show_food: s.showFood, show_presents: s.showPresents, menu_pages: s.menuPages, gender: s.gender }),
   });
   return { settings: d.doc, update: d.patch, loading: d.loading, saveError: d.error };
+}
+
+/** Save the setup answers in one write and update the cached profile, so the app opens at once. */
+export function useFinishOnboarding() {
+  const userId = useUserId() ?? "";
+  const qc = useQueryClient();
+  return useCallback(
+    async (answers: Answers) => {
+      const row = await saveRow(rawDb, { table: "profiles", keyColumn: "id", keyValue: userId, columns: onboardingProfile(answers), updateOnly: true });
+      qc.setQueryData(["profiles", userId, userId], row);
+    },
+    [qc, userId],
+  );
+}
+
+/** Settings → "Run setup again". */
+export function useRestartOnboarding() {
+  const userId = useUserId() ?? "";
+  const qc = useQueryClient();
+  return useCallback(async () => {
+    const row = await saveRow(rawDb, { table: "profiles", keyColumn: "id", keyValue: userId, columns: { onboarded_at: null }, updateOnly: true });
+    qc.setQueryData(["profiles", userId, userId], row);
+  }, [qc, userId]);
 }

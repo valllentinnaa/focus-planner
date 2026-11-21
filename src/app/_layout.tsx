@@ -83,6 +83,7 @@ function RootStack() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.paper } }}>
       <Stack.Protected guard={signedIn} redirectTo="/sign-in">
         <Stack.Screen name="(app)" />
+        <Stack.Screen name="welcome" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn} redirectTo="/">
         <Stack.Screen name="sign-in" />
