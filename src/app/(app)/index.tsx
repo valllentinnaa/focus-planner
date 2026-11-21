@@ -10,6 +10,7 @@ import { useWeekTasks, useTaskOps, type TaskOps } from "@/data/tasks";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import type { DayEvent } from "@/lib/calendar-events";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
+import { ShoppingLine } from "@/components/shopping-line";
 import type { TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
 import { claimLaunchOpening, resolveOpening } from "@/lib/planner-opening";
@@ -133,6 +134,7 @@ export default function WeekScreen() {
             <DropZone key={area} id={`area-${area}`} onDrop={(t) => ops.move(t, { kind: "area", area })} style={s.zone} highlightStyle={s.zoneActive}>
               <SectionLabel>{AREA_LABELS[area]}</SectionLabel>
               <View style={{ gap: 4 }}>
+                {area === "personal" && settings.showFood ? <ShoppingLine weekStart={key} /> : null}
                 {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} draggable />)}
                 <BlankRows count={Math.max(0, 5 - byArea[area]!.length)} onAdd={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} />
               </View>
