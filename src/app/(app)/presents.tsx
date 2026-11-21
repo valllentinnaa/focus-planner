@@ -77,7 +77,7 @@ export default function PresentsScreen() {
       ) : null}
 
       <Columns>
-      <Column flex={3}>
+      <Column flex={1}>
         <SectionLabel right={<Text style={s.meta}>{people.items.length}</Text>}>People</SectionLabel>
         <AddPerson onAdd={(row) => setOpen(people.add(row))} />
         {people.items.length === 0 && !people.loading ? (
@@ -103,7 +103,7 @@ export default function PresentsScreen() {
           />
         ))}
       </Column>
-      <Column flex={2}>
+      <Column flex={1}>
         <MyWishlist />
         <FriendsSection />
         <CirclesSection />
@@ -405,7 +405,7 @@ function MyWishlist() {
   };
 
   return (
-    <View>
+    <View style={s.wishBox}>
       <SectionLabel right={<Text style={s.meta}>{list.items.length}</Text>}>My wishlist</SectionLabel>
       <View style={s.addRow}>
         <RuleInput value={draft} onChangeText={setDraft} placeholder="Something you'd like, or a link…" onSubmitEditing={add} blurOnSubmit={false} style={{ flex: 1 }} />
@@ -592,7 +592,9 @@ const s = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, paddingVertical: space.xs },
   chip: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.pill, paddingVertical: 5, paddingHorizontal: 12 },
   chipText: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.ink },
-  shareBox: { marginTop: space.lg, borderWidth: 1, borderColor: colors.rule, borderRadius: radius.md, padding: space.md, gap: space.sm },
+  // One box around the whole wishlist, like the Week view's boxes.
+  wishBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.lg, gap: 4 },
+  shareBox: { marginTop: space.lg, paddingTop: space.md, borderTopWidth: 1, borderTopColor: colors.rule, gap: space.sm },
   shareTitle: { fontFamily: fonts.sansSemiBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   shareUrl: { fontFamily: fonts.sans, fontSize: 13, color: colors.ink },
   contactList: { maxHeight: 360 },
