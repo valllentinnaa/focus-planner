@@ -1,6 +1,7 @@
 // Share my profile: a personal link/QR. Opening it and tapping Connect links two people directly,
 // so they see each other's wishlists (like a two-person circle).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { buildLink } from "@/lib/links";
 import { rawDb, supabase } from "@/lib/supabase";
 import { useUserId } from "./auth";
 import { circlesAvailable, useCircles } from "./circles";
@@ -12,10 +13,7 @@ const rpc = async <T>(fn: string, args: Record<string, unknown> = {}) => {
   return data as unknown as T;
 };
 
-export const profileUrl = (token: string) => {
-  const base = shareBase();
-  return base ? `${base}/u/${token}` : null;
-};
+export const profileUrl = (token: string) => buildLink(shareBase(), "u", token);
 
 export function useProfileLink() {
   const userId = useUserId();

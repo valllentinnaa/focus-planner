@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Crypto from "expo-crypto";
 import { Platform } from "react-native";
 import { env } from "@/lib/env";
+import { buildLink } from "@/lib/links";
 import { rawDb, supabase } from "@/lib/supabase";
 import { useUserId } from "./auth";
 import { useItems } from "./items";
@@ -18,10 +19,7 @@ export function useWishlist() {
 
 export const shareBase = () => env.webUrl || (Platform.OS === "web" && typeof window !== "undefined" ? window.location.origin : "");
 
-export function shareUrl(token: string) {
-  const base = shareBase();
-  return base ? `${base}/w/${token}` : null;
-}
+export const shareUrl = (token: string) => buildLink(shareBase(), "w", token);
 
 export function useWishlistShare() {
   const userId = useUserId();

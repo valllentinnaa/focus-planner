@@ -4,6 +4,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { env } from "@/lib/env";
+import { buildLink, isPendingPath } from "@/lib/links";
 import { rawDb, supabase } from "@/lib/supabase";
 import { useUserId } from "./auth";
 import { newId } from "./items";
@@ -20,10 +21,7 @@ const rpc = async <T>(fn: string, args: Record<string, unknown> = {}) => {
   return data as unknown as T;
 };
 
-export const inviteUrl = (token: string) => {
-  const base = shareBase();
-  return base ? `${base}/join/${token}` : null;
-};
+export const inviteUrl = (token: string) => buildLink(shareBase(), "join", token);
 
 export function useCircles() {
   const userId = useUserId();
@@ -101,7 +99,7 @@ export const savePendingLink = (path: `/join/${string}` | `/u/${string}`) => Asy
 export async function takePendingLink() {
   const p = await AsyncStorage.getItem(PENDING);
   if (p) await AsyncStorage.removeItem(PENDING);
-  return p && /^\/(join|u)\/[0-9a-f]{32}$/.test(p) ? (p as `/join/${string}` | `/u/${string}`) : null;
+  return isPendingPath(p) ? p : null;
 }
 export const circlePreview = (token: string) =>
   rpc<{ name: string; owner: string; members: number; already: boolean } | null>("circle_preview", { p_token: token });
