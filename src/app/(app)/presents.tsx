@@ -20,7 +20,7 @@ import {
 import { byUpcoming, daysLabel, nextBirthday } from "@/lib/birthdays";
 import { formatBirthday, formatBirthdayInput, parseBirthday, splitLink } from "@/lib/birthday-input";
 import type { GiftIdeaRow, PersonRow } from "@/lib/database.types";
-import { colors, fonts, radius, space } from "@/theme/tokens";
+import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
 import { Hint, PageTitle, Screen } from "@/components/screen";
 import { Body, Card, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
 
@@ -615,11 +615,11 @@ const s = StyleSheet.create({
   meta: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
   addRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginVertical: space.sm, flexWrap: "wrap" },
   soonRow: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
-  soonCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.md, padding: space.md, minWidth: 180, gap: 2, backgroundColor: colors.card + "80" },
+  soonCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.md, padding: space.md, minWidth: 180, gap: 2, backgroundColor: alpha("card", "80") },
   soonWhen: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.gold },
   soonName: { fontFamily: fonts.display, fontSize: 24, color: colors.ink },
   person: { borderBottomWidth: 1, borderBottomColor: colors.rule },
-  personOpen: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.md, paddingHorizontal: space.md, marginVertical: space.sm, backgroundColor: colors.card + "80" },
+  personOpen: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.md, paddingHorizontal: space.md, marginVertical: space.sm, backgroundColor: alpha("card", "80") },
   iconBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: 16 },
   confirm: { flexDirection: "row", alignItems: "center", gap: 2 },
   thumb: { width: 48, height: 48, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.rule },

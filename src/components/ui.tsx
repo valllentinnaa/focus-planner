@@ -13,7 +13,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { colors, fonts, radius, space } from "@/theme/tokens";
+import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
 
 export function Display({ children, italic, style }: { children: ReactNode; italic?: boolean; style?: StyleProp<TextStyle> }) {
   const { width } = useWindowDimensions();
@@ -44,7 +44,7 @@ export function RuleInput({ style, italicGold, lines, ...props }: TextInputProps
   const multiline = (lines ?? 1) > 1 || props.multiline;
   return (
     <TextInput
-      placeholderTextColor={colors.mutedForeground + "99"}
+      placeholderTextColor={alpha("mutedForeground", "99")}
       {...props}
       multiline={multiline}
       numberOfLines={lines}
@@ -170,7 +170,7 @@ const s = StyleSheet.create({
   solid: { backgroundColor: colors.ink, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 18, alignItems: "center" },
   solidText: { fontFamily: fonts.sansMedium, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", color: colors.paper },
   card: { borderWidth: 1, borderColor: colors.rule, borderRadius: radius.md, padding: space.md, backgroundColor: "transparent" },
-  cardHighlighted: { borderColor: colors.gold, backgroundColor: colors.card + "80" },
+  cardHighlighted: { borderColor: colors.gold, backgroundColor: alpha("card", "80") },
   rule: { borderBottomWidth: 1, borderBottomColor: colors.rule, height: 28 },
   blankRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 });

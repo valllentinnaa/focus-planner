@@ -15,7 +15,7 @@ import type { TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
 import { claimLaunchOpening, resolveOpening } from "@/lib/planner-opening";
 import { AREAS, AREA_LABELS } from "@/lib/tasks";
-import { colors, fonts, space } from "@/theme/tokens";
+import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, SwipePager, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
 import { BlankRows, GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
@@ -243,16 +243,16 @@ const s = StyleSheet.create({
   themeReminderLabel: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   themeReminderText: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.gold },
   calendarWarning: { fontFamily: fonts.sans, fontSize: 12, color: colors.destructive },
-  focusCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: colors.card + "66", padding: space.lg },
+  focusCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg },
   focusLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginBottom: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   dayBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.md, minHeight: 120, gap: 4 },
   dayBoxCol: { flexBasis: "48%", flexGrow: 1 },
   dayBoxColNarrow: { minHeight: 96, padding: space.sm },
-  dayBoxToday: { borderColor: colors.gold, backgroundColor: colors.card + "80" },
-  dayBoxDrop: { borderColor: colors.gold, backgroundColor: colors.gold + "22" },
+  dayBoxToday: { borderColor: colors.gold, backgroundColor: alpha("card", "80") },
+  dayBoxDrop: { borderColor: colors.gold, backgroundColor: alpha("gold", "22") },
   zone: { borderRadius: 4 },
-  zoneActive: { backgroundColor: colors.gold + "18" },
+  zoneActive: { backgroundColor: alpha("gold", "18") },
   dayHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 },
   dayName: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
   dayDate: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, color: colors.mutedForeground },

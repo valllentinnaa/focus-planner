@@ -1,4 +1,5 @@
 // QR code drawn with react-native-svg (works on web and phone). Encoding by qrcode-generator.
+import { palettes } from "@/theme/palettes";
 import makeQr from "qrcode-generator";
 import { useMemo } from "react";
 import Svg, { Path, Rect } from "react-native-svg";
@@ -19,7 +20,8 @@ export function QrCode({ value, size = 200 }: { value: string; size?: number }) 
   return (
     <Svg width={size} height={size} viewBox={`${-quiet} ${-quiet} ${total} ${total}`} accessibilityLabel="QR code">
       <Rect x={-quiet} y={-quiet} width={total} height={total} fill={colors.white} />
-      <Path d={path} fill={colors.ink} />
+      {/* Always dark on white, in either theme, so it scans. */}
+      <Path d={path} fill={palettes.light.ink} />
     </Svg>
   );
 }

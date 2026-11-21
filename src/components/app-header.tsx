@@ -5,7 +5,7 @@ import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/data/profile";
 import { splitMenu, type PageKey } from "@/lib/menu";
-import { colors, fonts, layout, space } from "@/theme/tokens";
+import { alpha, colors, fonts, layout, space } from "@/theme/tokens";
 
 const ICONS: Record<PageKey, LucideIcon> = {
   week: CalendarDays,
@@ -264,7 +264,7 @@ const s = StyleSheet.create({
   },
   bottomItem: { flex: 1, alignItems: "center", gap: 4, paddingVertical: 10 },
   bottomLabel: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.8, textTransform: "uppercase" },
-  sheetBackdrop: { flex: 1, backgroundColor: colors.ink + "4d", justifyContent: "flex-end" },
+  sheetBackdrop: { flex: 1, backgroundColor: alpha("ink", "4d"), justifyContent: "flex-end" },
   sheet: { backgroundColor: colors.paper, borderTopWidth: 1, borderColor: colors.rule, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: space.xl, paddingTop: space.lg },
   grabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: colors.rule, marginBottom: space.lg },
   sheetLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginBottom: space.md },

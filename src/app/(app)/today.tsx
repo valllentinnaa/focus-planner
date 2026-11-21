@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useDaily, type DailyDoc } from "@/data/daily";
 import { useDayTasks, useTaskOps } from "@/data/tasks";
 import { fromISO, isISODate, mondayOf, toISO } from "@/lib/dates";
-import { colors, fonts, space } from "@/theme/tokens";
+import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
 import { GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
@@ -110,7 +110,7 @@ const s = StyleSheet.create({
   dotCircle: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.rule },
   dotSelected: { backgroundColor: colors.gold, borderWidth: 2, borderColor: colors.paper, outlineWidth: 1, outlineColor: colors.gold },
   dotLabel: { fontFamily: fonts.sans, fontSize: 10, color: colors.mutedForeground },
-  focusCard: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, backgroundColor: colors.card + "66", padding: space.lg },
+  focusCard: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg },
   focusHead: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
   small: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, color: colors.mutedForeground },
   itemRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },

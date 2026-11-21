@@ -1,7 +1,7 @@
 import Constants from "expo-constants";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { useAuth } from "@/data/auth";
 import { calendarAvailable, useCalendarOps, useCalendarStatus } from "@/data/calendar";
 import { useSettings } from "@/data/profile";
@@ -10,6 +10,7 @@ import { MENU_PAGES, PAGES, PHONE_MAX_EXTRA, type MenuPage } from "@/lib/menu";
 import { clearDemoData } from "@/lib/fake-db";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, space } from "@/theme/tokens";
+import { getThemePref, setThemePref, type ThemePref } from "@/theme/theme";
 import { Hint, PageTitle, Screen } from "@/components/screen";
 import { ShareProfileSection } from "@/components/share-profile";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "@/components/ui";
@@ -34,6 +35,8 @@ export default function SettingsScreen() {
 
         <ShareProfileSection name={name} />
 
+        <AppearanceSection />
+
         <PagesSection />
 
         <GoogleCalendarSection />
@@ -57,6 +60,28 @@ export default function SettingsScreen() {
         </Hint>
       </View>
     </Screen>
+  );
+}
+
+/** Light / Dark / Auto (follows the device). Saved on this device. */
+function AppearanceSection() {
+  const [theme, setTheme] = useState<ThemePref>(getThemePref());
+  return (
+    <View>
+      <SectionLabel>Appearance</SectionLabel>
+      <View style={s.pageRow}>
+        <Text style={s.toggleLabel}>Theme</Text>
+        <Segmented
+          options={[["light", "Light"], ["dark", "Dark"], ["system", "Auto"]]}
+          value={theme}
+          onChange={(v) => {
+            setTheme(v as ThemePref);
+            void setThemePref(v as ThemePref);
+          }}
+        />
+      </View>
+      <Hint>Auto follows your device’s light / dark setting.{Platform.OS === "web" ? "" : " The app restarts once to apply it."}</Hint>
+    </View>
   );
 }
 

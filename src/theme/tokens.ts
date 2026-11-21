@@ -1,17 +1,10 @@
 import { Platform } from "react-native";
+import { themeColors } from "./theme";
 
-// Paper & Ink — tokens ported from the Lovable prototype (src/styles.css).
-export const colors = {
-  paper: "#ede9e0",
-  ink: "#2b2926",
-  gold: "#a69b85",
-  rule: "#ddd8cc",
-  card: "#faf7f0",
-  muted: "#f5f0e8",
-  mutedForeground: "#8b857a",
-  destructive: "#c45c5c",
-  white: "#ffffff",
-} as const;
+// Paper & Ink colours — light/dark palettes live in ./palettes, switching in ./theme.
+// On web these are CSS variables; on native, the palette chosen at launch.
+export { alpha } from "./theme";
+export const colors = themeColors;
 
 // Keys match the names passed to useFonts in src/app/_layout.tsx.
 // Work Sans / Instrument Serif have no Cyrillic. Native platforms fall back to the system font for

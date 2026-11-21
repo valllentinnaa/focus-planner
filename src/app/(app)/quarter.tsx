@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useCurrentQuarter, useGoals } from "@/data/quarter";
 import { fromISO, mondayOf, toISO } from "@/lib/dates";
 import { AREAS, AREA_LABELS } from "@/lib/quarter-goals";
-import { colors, fonts, space } from "@/theme/tokens";
+import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
 import { BlankRows, Body, CheckBox, GhostButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
@@ -146,7 +146,7 @@ function QuarterNotes({ id }: { id: string }) {
 }
 
 const s = StyleSheet.create({
-  themeCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: colors.card + "66", padding: space.lg },
+  themeCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg },
   themeHead: { marginBottom: 4 },
   themeLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   cols: { flexDirection: "row", gap: space.lg },

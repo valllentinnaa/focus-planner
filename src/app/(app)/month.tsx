@@ -6,7 +6,7 @@ import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import { EventsLoading, MonthAgenda } from "@/components/calendar-event";
 import { rangeAgenda } from "@/lib/calendar-events";
 import { fromISO, inWeek, mondayOf, monthWeeks, toISO, type MonthWeek } from "@/lib/dates";
-import { colors, fonts, space } from "@/theme/tokens";
+import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Column, Columns, PageTitle, Screen, useIsWide } from "@/components/screen";
 import { BlankRows, Display, GhostButton, RuleInput, SectionLabel, SolidButton } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
@@ -190,17 +190,17 @@ const s = StyleSheet.create({
   weeksGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   weekBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.md, minHeight: 160 },
   weekBoxWide: { flexBasis: "48%", flexGrow: 1 },
-  weekBoxCurrent: { borderColor: colors.gold, backgroundColor: colors.card + "80" },
+  weekBoxCurrent: { borderColor: colors.gold, backgroundColor: alpha("card", "80") },
   weekHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", borderBottomWidth: 1, borderStyle: "dashed", borderBottomColor: colors.rule, paddingBottom: 6, marginBottom: 10 },
   weekTitle: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
   weekDate: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 1.5, color: colors.mutedForeground },
   taskDate: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 1.5, color: colors.mutedForeground, marginLeft: 26 },
-  backdrop: { flex: 1, backgroundColor: colors.ink + "66", alignItems: "center", justifyContent: "center", padding: space.lg },
+  backdrop: { flex: 1, backgroundColor: alpha("ink", "66"), alignItems: "center", justifyContent: "center", padding: space.lg },
   sheet: { width: "100%", maxWidth: 440, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.rule, borderRadius: 6, padding: space.xl },
   group: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginTop: space.lg, marginBottom: space.sm },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: { borderWidth: 1, borderColor: colors.rule, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
-  chipActive: { borderColor: colors.gold, backgroundColor: colors.gold + "22" },
+  chipActive: { borderColor: colors.gold, backgroundColor: alpha("gold", "22") },
   chipText: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.ink },
   chipTextActive: { color: colors.gold },
   actions: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: space.md, marginTop: space.xl },

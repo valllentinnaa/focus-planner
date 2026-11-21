@@ -5,7 +5,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { useCurrentQuarter, useGoals } from "@/data/quarter";
 import { quarterWeekNumber } from "@/lib/dates";
 import { AREAS, AREA_LABELS, hasOpenGoals, linesFromPicks, type WeekArea } from "@/lib/quarter-goals";
-import { colors, fonts, space } from "@/theme/tokens";
+import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Body, CheckBox, Display, Eyebrow, GhostButton, RuleInput, SectionLabel, SolidButton } from "./ui";
 
 export function NewWeekDialog({
@@ -113,7 +113,7 @@ export function NewWeekDialog({
 }
 
 const s = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: colors.ink + "66", alignItems: "center", justifyContent: "center", padding: space.lg },
+  backdrop: { flex: 1, backgroundColor: alpha("ink", "66"), alignItems: "center", justifyContent: "center", padding: space.lg },
   sheet: { width: "100%", maxWidth: 720, maxHeight: "85%", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.rule, borderRadius: 6 },
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   plus: { fontFamily: fonts.sans, color: colors.mutedForeground, fontSize: 14 },

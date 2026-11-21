@@ -6,7 +6,7 @@ import { circlesAvailable, inviteUrl, useCircles, useMateWishlist, type Circle }
 import { profileUrl, useConnections, useProfileLink } from "@/data/connections";
 import { useSettings } from "@/data/profile";
 import { shareInvite } from "./share-profile";
-import { colors, fonts, radius, space } from "@/theme/tokens";
+import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
 import { Hint } from "./screen";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "./ui";
 
@@ -285,7 +285,7 @@ const s = StyleSheet.create({
   lede: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.mutedForeground, marginBottom: space.md },
   addRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginTop: space.lg },
   row: { flexDirection: "row", alignItems: "center", gap: space.xs, flexWrap: "wrap" },
-  panel: { borderWidth: 1, borderColor: colors.rule, borderRadius: 16, backgroundColor: colors.card + "B3" },
+  panel: { borderWidth: 1, borderColor: colors.rule, borderRadius: 16, backgroundColor: alpha("card", "B3") },
   // Friends
   hero: { alignItems: "center", paddingVertical: space.xl, paddingHorizontal: space.lg, gap: space.md },
   heroTitle: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.ink, textAlign: "center" },

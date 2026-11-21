@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from "@/data/auth";
 import { CACHE_MAX_AGE, persister } from "@/lib/query-cache";
 import { DragProvider } from "@/components/drag";
 import { colors } from "@/theme/tokens";
+import { isDarkNative } from "@/theme/theme";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,7 +54,7 @@ export default function RootLayout() {
         >
           <AuthProvider>
             <DragProvider>
-              <StatusBar style="dark" />
+              <StatusBar style={isDarkNative ? "light" : "dark"} />
               <RootStack />
             </DragProvider>
           </AuthProvider>
