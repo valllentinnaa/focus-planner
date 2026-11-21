@@ -31,3 +31,8 @@ max_frequency = "60s"
 [auth.rate_limit]
 email_sent = 10
 token_verifications = 30
+
+# OAuth callback from Google arrives without a Supabase JWT; the function verifies the user itself
+# (bearer token on every API action, signed `state` on the callback).
+[functions.google-calendar]
+verify_jwt = false

@@ -7,6 +7,9 @@ import { useCurrentQuarter } from "@/data/quarter";
 import { useWeek } from "@/data/week";
 import { useDaily, dailyHasContent } from "@/data/daily";
 import { useWeekTasks, useTaskOps, type TaskOps } from "@/data/tasks";
+import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
+import type { DayEvent } from "@/lib/calendar-events";
+import { CalendarEventRow } from "@/components/calendar-event";
 import type { TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
 import { resolveOpening } from "@/lib/planner-opening";
@@ -50,6 +53,8 @@ export default function WeekScreen() {
 
   const qWeek = quarter ? quarterWeekNumber(quarter.start_date, weekStart) : null;
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
+  const calendar = useCalendarEvents(key, toISO(weekEnd));
+  const calendarOps = useCalendarOps();
 
   const byArea = useMemo(() => {
     const m: Record<string, TaskRow[]> = { personal: [], work: [], development: [] };
@@ -108,6 +113,18 @@ export default function WeekScreen() {
         </Link>
       ) : null}
 
+      {calendar.errors.length ? (
+        <Link href="/settings" asChild>
+          <Pressable>
+            <Text style={s.calendarWarning}>
+              {calendar.errors.some((e) => e.error === "reconnect")
+                ? "Google Calendar needs reconnecting — open Settings ↗"
+                : "Some calendar events couldn't load right now."}
+            </Text>
+          </Pressable>
+        </Link>
+      ) : null}
+
       <View style={s.focusCard}>
         <Text style={s.focusLabel}>Focus of the week</Text>
         <RuleInput italicGold lines={3} value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="What matters most this week…" style={{ fontSize: 18 }} />
@@ -148,6 +165,8 @@ export default function WeekScreen() {
                   iso={iso}
                   isToday={iso === todayISO}
                   tasks={byDay[iso] ?? []}
+                  events={calendar.byDay[iso] ?? []}
+                  onRemoveEvent={calendarOps.hide}
                   ops={ops}
                   weekStart={key}
                   wide={wide}
@@ -174,11 +193,13 @@ export default function WeekScreen() {
 }
 
 /** A day box: its focus line (shared with the Daily journal) and its scheduled tasks. */
-function DayBox({ label, iso, isToday, tasks, ops, weekStart, wide, onOpen }: {
+function DayBox({ label, iso, isToday, tasks, events, onRemoveEvent, ops, weekStart, wide, onOpen }: {
   label: string;
   iso: string;
   isToday: boolean;
   tasks: TaskRow[];
+  events: DayEvent[];
+  onRemoveEvent: (key: string) => void;
   ops: TaskOps;
   weekStart: string;
   wide: boolean;
@@ -199,6 +220,11 @@ function DayBox({ label, iso, isToday, tasks, ops, weekStart, wide, onOpen }: {
         <Text style={s.dayDate}>{format(fromISO(iso), "MMM d").toUpperCase()}</Text>
       </View>
       <RuleInput italicGold value={day.doc.focus} onChangeText={(v) => day.patch({ focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
+      {events.length ? (
+        <View style={{ gap: 2, marginBottom: 4 }}>
+          {events.map((e) => <CalendarEventRow key={e.key} event={e} onRemove={onRemoveEvent} />)}
+        </View>
+      ) : null}
       <View style={{ gap: 2 }}>
         {tasks.map((t) => <TaskItem key={t.id} task={t} ops={ops} compact draggable />)}
         <BlankRows count={Math.max(0, 3 - tasks.length)} size={16} onAdd={() => ops.add({ kind: "day", date: iso }, weekStart)} />
@@ -216,6 +242,7 @@ const s = StyleSheet.create({
   themeReminder: { borderLeftWidth: 2, borderLeftColor: colors.gold, paddingLeft: space.md, paddingVertical: 2, gap: 2 },
   themeReminderLabel: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   themeReminderText: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.gold },
+  calendarWarning: { fontFamily: fonts.sans, fontSize: 12, color: colors.destructive },
   focusCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: colors.card + "66", padding: space.lg },
   focusLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginBottom: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },

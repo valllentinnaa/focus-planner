@@ -2,6 +2,8 @@ import { addMonths, format, startOfMonth } from "date-fns";
 import { useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useMonthTasks, useTaskOps } from "@/data/tasks";
+import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
+import { CalendarEventRow } from "@/components/calendar-event";
 import { fromISO, inWeek, mondayOf, monthWeeks, toISO, type MonthWeek } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
 import { Column, Columns, PageTitle, Screen, useIsWide } from "@/components/screen";
@@ -16,6 +18,8 @@ export default function MonthScreen() {
   const lastMonday = toISO(mondayOf(weeks[weeks.length - 1]!.start));
   const { tasks } = useMonthTasks(firstMonday, lastMonday);
   const ops = useTaskOps();
+  const calendar = useCalendarEvents(toISO(weeks[0]!.start), toISO(weeks[weeks.length - 1]!.end));
+  const calendarOps = useCalendarOps();
   const todayISO = toISO(new Date());
   const currentWeekIndex = Math.max(0, weeks.findIndex((w) => inWeek(todayISO, w)));
 
@@ -27,6 +31,13 @@ export default function MonthScreen() {
     tasks
       .filter((t) => (t.task_date ? inWeek(t.task_date, week) : !t.area && t.week_start === toISO(mondayOf(week.start))))
       .sort((a, b) => (a.task_date ?? "9").localeCompare(b.task_date ?? "9"));
+
+  // Google Calendar events for the days of a (clipped) week, in day order.
+  const eventsForWeek = (week: MonthWeek) =>
+    Object.keys(calendar.byDay)
+      .filter((iso) => inWeek(iso, week))
+      .sort()
+      .flatMap((iso) => calendar.byDay[iso]!.map((event) => ({ iso, event })));
 
   // The left "To do" column: every scheduled or week-level task in the month, as one agenda.
   const monthRows = tasks
@@ -72,6 +83,7 @@ export default function MonthScreen() {
             {weeks.map((week, index) => {
               const current = inWeek(todayISO, week);
               const rows = tasksForWeek(week);
+              const events = eventsForWeek(week);
               return (
                 <View key={toISO(week.start)} style={[s.weekBox, wide && s.weekBoxWide, current && s.weekBoxCurrent]}>
                   <View style={s.weekHead}>
@@ -79,6 +91,13 @@ export default function MonthScreen() {
                     <Text style={s.weekDate}>{format(week.start, "MMM d").toUpperCase()} – {format(week.end, "d")}</Text>
                   </View>
                   <View style={{ gap: 2, flex: 1 }}>
+                    {events.length ? (
+                      <View style={{ gap: 2, marginBottom: 6 }}>
+                        {events.map(({ iso, event }) => (
+                          <CalendarEventRow key={`${iso}|${event.key}`} event={event} day={iso} onRemove={calendarOps.hide} />
+                        ))}
+                      </View>
+                    ) : null}
                     {rows.map((t) => (
                       <View key={t.id}>
                         {t.task_date ? <Text style={s.taskDate}>{format(fromISO(t.task_date), "EEE, MMM d").toUpperCase()}</Text> : null}
