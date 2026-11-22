@@ -11,6 +11,7 @@ import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import type { DayEvent } from "@/lib/calendar-events";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { ShoppingLine } from "@/components/shopping-line";
+import { dayBoxSlice } from "@/lib/day-box";
 import type { TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
 import { claimLaunchOpening, resolveOpening } from "@/lib/planner-opening";
@@ -210,6 +211,7 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
   onOpen: () => void;
 }) {
   const day = useDaily(iso);
+  const fit = dayBoxSlice(events.length, tasks.length);
   return (
     <DropZone
       id={`day-${iso}`}
@@ -217,6 +219,9 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
       style={[s.dayBox, s.dayBoxCol, !wide && s.dayBoxColNarrow, isToday && s.dayBoxToday]}
       highlightStyle={s.dayBoxDrop}
     >
+      {/* The whole box opens the day: this layer sits behind the content, so a tap on any empty
+          part of the box lands here, while checkboxes, text and buttons keep working. */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Open ${label}`} />
       <View style={s.dayHead}>
         <Pressable onPress={onOpen} accessibilityLabel={`Open ${label}'s journal`} hitSlop={6}>
           <Text style={s.dayName}>{label}{isToday ? <Text style={{ color: colors.gold }}> ↗</Text> : null}</Text>
@@ -226,12 +231,18 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
       <RuleInput italicGold value={day.doc.focus} onChangeText={(v) => day.patch({ focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
       {eventsLoading ? <EventsLoading /> : events.length ? (
         <View style={{ gap: 2, marginBottom: 4 }}>
-          {events.map((e) => <CalendarEventRow key={e.key} event={e} day={iso} onRemove={onRemoveEvent} />)}
+          {events.slice(0, fit.events).map((e) => <CalendarEventRow key={e.key} event={e} day={iso} onRemove={onRemoveEvent} />)}
         </View>
       ) : null}
       <View style={{ gap: 2 }}>
-        {tasks.map((t) => <TaskItem key={t.id} task={t} ops={ops} compact draggable />)}
-        <BlankRows count={Math.max(0, 3 - tasks.length)} size={16} onAdd={() => ops.add({ kind: "day", date: iso }, weekStart)} />
+        {tasks.slice(0, fit.tasks).map((t) => <TaskItem key={t.id} task={t} ops={ops} compact draggable />)}
+        {fit.hidden ? (
+          <Pressable onPress={onOpen} style={s.more} accessibilityRole="button" accessibilityLabel={`${fit.hidden} more on ${label}. Open the day`}>
+            <Text style={s.moreText}>+{fit.hidden} more →</Text>
+          </Pressable>
+        ) : (
+          <BlankRows count={Math.max(0, 3 - tasks.length)} size={16} onAdd={() => ops.add({ kind: "day", date: iso }, weekStart)} />
+        )}
       </View>
       <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, weekStart)} style={{ marginTop: 4 }}>
         + add
@@ -256,6 +267,8 @@ const s = StyleSheet.create({
   dayBoxDrop: { borderColor: colors.gold, backgroundColor: alpha("gold", "22") },
   zone: { borderRadius: 4 },
   zoneActive: { backgroundColor: alpha("gold", "18") },
+  more: { paddingVertical: 6, paddingLeft: 26 },
+  moreText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 1, color: colors.gold },
   dayHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 },
   dayName: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
   dayDate: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, color: colors.mutedForeground },

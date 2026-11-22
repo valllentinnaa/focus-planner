@@ -9,6 +9,8 @@ import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/scre
 import { DateNav } from "@/components/date-nav";
 import { GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
+import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
+import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 
 type TextKey = keyof DailyDoc;
 
@@ -23,6 +25,9 @@ export default function TodayScreen() {
   const monday = mondayOf(date);
   const { doc, patch } = useDaily(iso);
   const { tasks } = useDayTasks(iso);
+  const calendar = useCalendarEvents(iso, iso);
+  const calendarOps = useCalendarOps();
+  const dayEvents = calendar.byDay[iso] ?? [];
   const ops = useTaskOps();
 
   const field = (key: TextKey, label: string, lines = 1) => (
@@ -79,6 +84,18 @@ export default function TodayScreen() {
         <Column>
           <View style={{ gap: space.xl }}>
             {field("gratitude", "Today I'm grateful for", 4)}
+            {calendar.loading || dayEvents.length ? (
+              <View>
+                <SectionLabel>Calendar</SectionLabel>
+                {calendar.loading ? (
+                  <EventsLoading />
+                ) : (
+                  <View style={{ gap: 2 }}>
+                    {dayEvents.map((e) => <CalendarEventRow key={e.key} event={e} day={iso} onRemove={calendarOps.hide} />)}
+                  </View>
+                )}
+              </View>
+            ) : null}
             <View>
               <SectionLabel>Tasks</SectionLabel>
               <View style={{ gap: 2 }}>
