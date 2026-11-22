@@ -93,7 +93,7 @@ const s = StyleSheet.create({
   sheetTitle: { fontFamily: fonts.display, fontSize: 24, color: colors.gold, fontStyle: "italic" },
   group: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginTop: space.sm },
   dayGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  chip: { borderWidth: 1, borderColor: colors.rule, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  chip: { borderWidth: 1, borderColor: colors.rule, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 12 },
   chipActive: { borderColor: colors.gold, backgroundColor: alpha("gold", "22") },
   chipText: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.ink },
   chipTextActive: { color: colors.gold },

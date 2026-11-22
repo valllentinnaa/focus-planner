@@ -342,7 +342,7 @@ const s = StyleSheet.create({
   addSomeone: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", marginTop: space.md, paddingVertical: 4, paddingLeft: space.lg },
   addSomeoneText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: colors.gold },
   invite: { gap: space.sm, marginTop: space.sm, paddingLeft: space.lg },
-  iconBtn: { width: 30, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 15 },
+  iconBtn: { width: 30, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 6 },
   danger: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.destructive },
   // A mate's wishlist
   mateList: { paddingLeft: space.md, borderLeftWidth: 2, borderLeftColor: colors.rule, marginVertical: space.xs, alignSelf: "stretch" },

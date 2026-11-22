@@ -193,7 +193,7 @@ const s = StyleSheet.create({
   ghostText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   outline: { borderWidth: 1, borderColor: colors.rule, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 14, alignSelf: "flex-start" },
   outlineText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.ink },
-  solid: { backgroundColor: colors.ink, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 18, alignItems: "center" },
+  solid: { backgroundColor: colors.ink, borderRadius: radius.pill, paddingVertical: 10, paddingHorizontal: 18, alignItems: "center" },
   solidText: { fontFamily: fonts.sansMedium, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", color: colors.paper },
   card: { borderWidth: 1, borderColor: colors.rule, borderRadius: radius.md, padding: space.md, backgroundColor: "transparent" },
   cardHighlighted: { borderColor: colors.gold, backgroundColor: alpha("card", "80") },

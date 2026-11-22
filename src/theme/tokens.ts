@@ -26,6 +26,7 @@ export const fonts = {
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 40 } as const;
 
-export const radius = { sm: 2, md: 4, pill: 999 } as const;
+// `pill` is the corner radius for every button, chip, tab and toggle: 6px (not fully round).
+export const radius = { sm: 2, md: 4, pill: 6 } as const;
 
 export const layout = { maxWidth: 1040, gutter: 16, wideBreakpoint: 760 } as const;

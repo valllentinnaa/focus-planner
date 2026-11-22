@@ -704,7 +704,7 @@ const s = StyleSheet.create({
   soonName: { fontFamily: fonts.display, fontSize: 24, color: colors.ink },
   person: { borderBottomWidth: 1, borderBottomColor: colors.rule },
   personOpen: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.md, paddingHorizontal: space.md, marginVertical: space.sm, backgroundColor: alpha("card", "80") },
-  iconBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: 16 },
+  iconBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: 6 },
   confirm: { flexDirection: "row", alignItems: "center", gap: 2 },
   thumb: { width: 48, height: 48, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.rule },
   personHead: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: space.md },

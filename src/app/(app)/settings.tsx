@@ -159,7 +159,7 @@ function PagesSection() {
         {rows.map((p) => {
           const canHide = p.key === "food" || p.key === "presents" || p.key === "clipboard";
           // Clipboard "in the menu" is a + button in the header, not a tab.
-          const menuLabel = p.key === "clipboard" ? "+ Button" : "Menu";
+          const menuLabel = "Menu";
           return (
             <View key={p.key} style={s.pageRow}>
               <Text style={s.toggleLabel}>{p.label}</Text>
@@ -282,12 +282,12 @@ const s = StyleSheet.create({
   toggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
   error: { fontFamily: fonts.sans, fontSize: 13, color: colors.destructive },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: space.sm },
-  chip: { borderWidth: 1, borderColor: colors.rule, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  chip: { borderWidth: 1, borderColor: colors.rule, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 12 },
   chipOn: { backgroundColor: colors.gold, borderColor: colors.gold },
   pageRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 7, gap: space.md },
   fixed: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
-  seg: { flexDirection: "row", borderWidth: 1, borderColor: colors.rule, borderRadius: 999, padding: 2 },
-  segItem: { paddingVertical: 5, minWidth: 64, alignItems: "center", borderRadius: 999 },
+  seg: { flexDirection: "row", borderWidth: 1, borderColor: colors.rule, borderRadius: 6, padding: 2 },
+  segItem: { paddingVertical: 5, minWidth: 64, alignItems: "center", borderRadius: 4 },
   segItemActive: { backgroundColor: colors.gold },
   segText: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: colors.mutedForeground },
   segTextActive: { color: colors.paper },

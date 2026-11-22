@@ -240,12 +240,12 @@ const s = StyleSheet.create({
   underline: { position: "absolute", left: 10, right: 10, bottom: 5, height: 1.5, borderRadius: 1, backgroundColor: "transparent" },
   underlineActive: { backgroundColor: colors.ink },
   // Settings button: 38px circle, gold border, gear centred. Same size on phones and desktop.
-  iconBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  iconBtn: { width: 38, height: 38, borderRadius: 6, alignItems: "center", justifyContent: "center" },
   iconBtnOn: { backgroundColor: colors.gold },
   iconCenter: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center" },
   // marginLeft + the nav's 6px gap = the original 8px (space.sm) spacing.
   iconBtnOutline: { borderWidth: 1, borderColor: colors.gold, marginLeft: space.sm - 6 },
-  todayBtn: { borderRadius: 999, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.gold, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
+  todayBtn: { borderRadius: 6, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.gold, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", marginLeft: space.xs },
   // On the Today page: inverted (outline + gold text) to show where you are.
   todayBtnActive: { backgroundColor: "transparent" },
   todayTextActive: { color: colors.gold },

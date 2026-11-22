@@ -82,7 +82,7 @@ export function ShareProfileSection({ name }: { name: string }) {
 const s = StyleSheet.create({
   url: { fontFamily: fonts.sans, fontSize: 13, color: colors.ink },
   row: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  icon: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: colors.rule, alignItems: "center", justifyContent: "center" },
+  icon: { width: 34, height: 34, borderRadius: 6, borderWidth: 1, borderColor: colors.rule, alignItems: "center", justifyContent: "center" },
   iconOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   qr: { alignSelf: "flex-start", alignItems: "center", gap: space.xs, padding: space.md, backgroundColor: colors.white, borderRadius: radius.md, borderWidth: 1, borderColor: colors.rule },
   qrHint: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
