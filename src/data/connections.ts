@@ -48,7 +48,19 @@ export function useProfileLink() {
     ensure: async () => q.data ?? (await create.mutateAsync(false)),
     reset: () => create.mutate(true),
     busy: create.isPending,
+    error: create.error ?? q.error,
   };
+}
+
+/** Plain-language reason a sharing action failed (the raw message is kept for anything unexpected). */
+export function sharingErrorText(e: unknown) {
+  const err = e as { code?: string; message?: string } | null;
+  if (!err) return null;
+  const msg = err.message ?? String(e);
+  if (err.code === "42P01" || err.code === "PGRST205" || err.code === "PGRST202" || /does not exist|schema cache/i.test(msg))
+    return "The database isn't updated for sharing yet. Run: npx supabase db push --remote";
+  if (err.code === "42501" || /permission denied|row-level security/i.test(msg)) return `Not allowed: ${msg}`;
+  return `Couldn't make the link: ${msg}`;
 }
 
 export type Connection = { user_id: string; name: string };

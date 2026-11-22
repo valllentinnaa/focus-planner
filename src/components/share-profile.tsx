@@ -4,7 +4,7 @@ import { QrCode as QrIcon, RefreshCw } from "lucide-react-native";
 import { useState } from "react";
 import { Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { circlesAvailable } from "@/data/circles";
-import { profileUrl, useProfileLink } from "@/data/connections";
+import { profileUrl, sharingErrorText, useProfileLink } from "@/data/connections";
 import { colors, fonts, radius, space } from "@/theme/tokens";
 import { QrCode } from "./qr-code";
 import { Hint } from "./screen";
@@ -48,6 +48,7 @@ export function ShareProfileSection({ name }: { name: string }) {
     <View>
       <SectionLabel>Share my profile</SectionLabel>
       <Hint>Send your link or show the QR. Friends with the app connect with you; anyone else is invited to join first. Connected people see each other’s wishlists.</Hint>
+      {link.error ? <Hint>{sharingErrorText(link.error)}</Hint> : null}
       {link.loading ? null : !link.token ? (
         <OutlineButton gold disabled={link.busy} onPress={link.create} style={{ marginTop: space.sm }}>
           Create my link

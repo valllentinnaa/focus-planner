@@ -3,7 +3,7 @@ import { Check, ChevronDown, ChevronUp, Link2, LogOut, Plus, RefreshCw, Send, Tr
 import { useState } from "react";
 import { Linking, Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { circlesAvailable, inviteUrl, useCircles, useMateWishlist, type Circle } from "@/data/circles";
-import { profileUrl, useConnections, useProfileLink } from "@/data/connections";
+import { profileUrl, sharingErrorText, useConnections, useProfileLink } from "@/data/connections";
 import { useSettings } from "@/data/profile";
 import { shareInvite } from "./share-profile";
 import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
@@ -99,8 +99,8 @@ export function FriendsSection({
       const url = profileUrl(await link.ensure());
       if (!url) return setNote("Open the planner on the web to get your invite link.");
       if ((await shareInvite(url, settings.ownerName.trim())) === "copied") setNote("Invite link copied — paste it in a message.");
-    } catch {
-      setNote("Couldn't make the link. Try again.");
+    } catch (e) {
+      setNote(sharingErrorText(e) ?? "Couldn’t make the link. Try again.");
     }
   };
 

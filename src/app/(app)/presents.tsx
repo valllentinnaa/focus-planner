@@ -9,6 +9,7 @@ import { useUserId } from "@/data/auth";
 import { circlesAvailable } from "@/data/circles";
 import { CirclesSection, FriendsSection, MateWishlist } from "@/components/circles";
 import { useMates } from "@/data/connections";
+import { useIsPhone } from "@/components/app-header";
 import { canPickFiles, pickFile } from "@/lib/pick-file";
 import {
   giftFilesAvailable,
@@ -139,10 +140,10 @@ export default function PresentsScreen() {
 }
 
 type Tab = "people" | "wishlist" | "friends";
-const TABS: { key: Tab; label: string }[] = [
-  { key: "people", label: "People" },
-  { key: "wishlist", label: "My wishlist" },
-  { key: "friends", label: "Friends & circles" },
+const TABS: { key: Tab; label: string; short: string }[] = [
+  { key: "people", label: "People", short: "People" },
+  { key: "wishlist", label: "My wishlist", short: "Wishlist" },
+  { key: "friends", label: "Friends & circles", short: "Friends" },
 ];
 const isTab = (v: unknown): v is Tab => TABS.some((t) => t.key === v);
 
@@ -197,8 +198,10 @@ function OnAppSuggestions({
 }
 
 function Tabs({ value, onChange, counts }: { value: Tab; onChange: (t: Tab) => void; counts: Partial<Record<Tab, number>> }) {
+  // Phones: three equal segments across the full width, short labels, so it never wraps.
+  const phone = useIsPhone();
   return (
-    <View style={s.tabs} accessibilityRole="tablist">
+    <View style={[s.tabs, phone && s.tabsPhone]} accessibilityRole="tablist">
       {TABS.map((t) => {
         const active = t.key === value;
         return (
@@ -207,9 +210,10 @@ function Tabs({ value, onChange, counts }: { value: Tab; onChange: (t: Tab) => v
             onPress={() => onChange(t.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            style={({ pressed }) => [s.tab, active && s.tabActive, pressed && !active && { opacity: 0.6 }]}
+            accessibilityLabel={t.label}
+            style={({ pressed }) => [s.tab, phone && s.tabPhone, active && s.tabActive, pressed && !active && { opacity: 0.6 }]}
           >
-            <Text style={[s.tabText, active && s.tabTextActive]}>{t.label}</Text>
+            <Text numberOfLines={1} style={[s.tabText, phone && s.tabTextPhone, active && s.tabTextActive]}>{phone ? t.short : t.label}</Text>
             {counts[t.key] ? (
               <View style={[s.tabCount, active && s.tabCountActive]}>
                 <Text style={[s.tabCountText, active && s.tabCountTextActive]}>{counts[t.key]}</Text>
@@ -676,6 +680,9 @@ const s = StyleSheet.create({
   tabs: { flexDirection: "row", flexWrap: "wrap", alignSelf: "flex-start", gap: 4, padding: 4, borderWidth: 1, borderColor: colors.rule, borderRadius: radius.pill },
   tab: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 9, paddingHorizontal: 18, borderRadius: radius.pill },
   tabActive: { backgroundColor: colors.ink },
+  tabsPhone: { alignSelf: "stretch", flexWrap: "nowrap" },
+  tabPhone: { flex: 1, justifyContent: "center", paddingHorizontal: 6, gap: 5 },
+  tabTextPhone: { fontSize: 10, letterSpacing: 1 },
   tabText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   tabTextActive: { color: colors.paper },
   tabCount: { minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: alpha("gold", "22") },
