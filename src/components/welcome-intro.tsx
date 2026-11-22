@@ -6,6 +6,7 @@ import { AccessibilityInfo, Animated, Easing, Platform, StyleSheet, Text, useWin
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { GhostButton, GoldButton } from "./ui";
+import { WebWelcome } from "./welcome-web";
 
 const web = Platform.OS === "web";
 const glowBlur = (web ? { filter: "blur(90px)" } : null) as StyleProp<ViewStyle>;
@@ -17,9 +18,18 @@ const CARD_STAGGER = 220;
 /** Side-by-side layout (text left, planner preview right) from this width. */
 const WIDE = 900;
 
+/** From this width the web uses the CSS welcome (welcome-web.web.tsx); phones keep this one. */
+const WEB_CSS_MIN = 760;
+
 export function WelcomeIntro({ onStart, onSignIn }: { onStart: () => void; onSignIn: () => void }) {
+  const { width } = useWindowDimensions();
+  if (web && width >= WEB_CSS_MIN) return <WebWelcome onStart={onStart} onSignIn={onSignIn} />;
+  return <AppWelcome onStart={onStart} onSignIn={onSignIn} wide={width >= WIDE} />;
+}
+
+/** Phones (native app and phone-sized browsers / PWA). */
+function AppWelcome({ onStart, onSignIn, wide }: { onStart: () => void; onSignIn: () => void; wide: boolean }) {
   const insets = useSafeAreaInsets();
-  const wide = useWindowDimensions().width >= WIDE;
   const [reduce, setReduce] = useState<boolean | null>(null);
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled()
