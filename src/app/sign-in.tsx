@@ -78,7 +78,6 @@ export default function SignIn() {
       style={[s.root, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.xl }]}
     >
       <View style={s.box}>
-        <GhostButton style={s.back} onPress={() => setMode("welcome")}>‹ Back</GhostButton>
         <Eyebrow style={{ marginBottom: 6 }}>{mode === "signup" ? "Create account" : "Sign in"}</Eyebrow>
         <Display italic>Focus Planner</Display>
         <Body muted style={{ marginTop: space.md }}>
@@ -145,5 +144,4 @@ const s = StyleSheet.create({
   notice: { fontFamily: fonts.sans, fontSize: 13, color: colors.gold, marginTop: space.md },
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, marginTop: space.xl },
   switchLink: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.gold },
-  back: { alignSelf: "flex-start", marginBottom: space.lg },
 });
