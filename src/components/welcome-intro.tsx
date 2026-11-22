@@ -143,11 +143,11 @@ function Reveal({ at, blur = 0, pop, still, children }: { at: number; blur?: num
 
 /** Soft light: four glows of different sizes scattered around (one behind the content), each
  *  drifting on its own slow loop so the background never looks like two flat side gradients. */
-const GLOWS: { top: `${number}%`; left: `${number}%`; size: number; tone: "gold" | "card"; strength: "22" | "4d" | "55"; dx: number; dy: number; ms: number }[] = [
-  { top: "-12%", left: "8%", size: 560, tone: "gold", strength: "4d", dx: 80, dy: 50, ms: 11000 },
-  { top: "30%", left: "55%", size: 680, tone: "gold", strength: "55", dx: -70, dy: 40, ms: 14000 },
-  { top: "62%", left: "-8%", size: 520, tone: "gold", strength: "22", dx: 60, dy: -60, ms: 12500 },
-  { top: "5%", left: "70%", size: 420, tone: "card", strength: "55", dx: -40, dy: 70, ms: 9500 },
+const GLOWS: { top: `${number}%`; left: `${number}%`; size: number; tone: "gold" | "card"; strength: "18" | "22"; dx: number; dy: number; ms: number }[] = [
+  { top: "-12%", left: "8%", size: 560, tone: "gold", strength: "22", dx: 80, dy: 50, ms: 11000 },
+  { top: "30%", left: "55%", size: 680, tone: "gold", strength: "22", dx: -70, dy: 40, ms: 14000 },
+  { top: "62%", left: "-8%", size: 520, tone: "gold", strength: "18", dx: 60, dy: -60, ms: 12500 },
+  { top: "5%", left: "70%", size: 420, tone: "card", strength: "22", dx: -40, dy: 70, ms: 9500 },
 ];
 
 function Glows({ big }: { big: boolean }) {
