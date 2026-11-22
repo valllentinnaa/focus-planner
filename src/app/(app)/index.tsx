@@ -22,6 +22,7 @@ import { BlankRows, GhostButton, RuleInput, RuledArea, SectionLabel } from "@/co
 import { TaskItem } from "@/components/task-item";
 import { DropZone } from "@/components/drag";
 import { NewWeekDialog } from "@/components/new-week-dialog";
+import { CheckinNudge } from "@/components/checkin/nudge";
 
 const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -101,6 +102,8 @@ export default function WeekScreen() {
           </View>
         }
       />
+
+      <CheckinNudge />
 
       {quarter?.theme?.trim() ? (
         <Link href="/quarter" asChild>

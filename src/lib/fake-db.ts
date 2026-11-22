@@ -33,6 +33,7 @@ const defaultsFor: Record<string, () => Row> = {
   clipboard_items: () => ({ text: "", attention: false, position: 0 }),
   people: () => ({ birth_month: null, birth_day: null, birth_year: null, notes: "", source: "manual", external_id: null, linked_user_id: null }),
   wishlist_items: () => ({ link: null, note: "", position: 0 }),
+  month_checkins: () => ({ went_well: "", felt_heavy: "", try_next: "", went_well_audio: null, felt_heavy_audio: null, try_next_audio: null, share_fields: [], done_at: null }),
   gift_ideas: () => ({ link: null, status: "idea", given_year: null, file_path: null, file_name: null, file_type: null, position: 0 }),
 };
 

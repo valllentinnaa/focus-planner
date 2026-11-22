@@ -7,7 +7,7 @@ import type { Database } from "@/lib/database.types";
 import { useUserId } from "./auth";
 
 type Tables = Database["public"]["Tables"];
-type DocTable = "weeks" | "daily_entries" | "food_weeks" | "profiles" | "quarters";
+type DocTable = "weeks" | "daily_entries" | "food_weeks" | "profiles" | "quarters" | "month_checkins";
 
 const SAVE_DELAY_MS = 600;
 

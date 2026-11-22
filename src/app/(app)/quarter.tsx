@@ -9,6 +9,8 @@ import { PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
 import { BlankRows, Body, CheckBox, GhostButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
 import { useDocument } from "@/data/document";
+import { useCheckinsBetween } from "@/data/checkins";
+import { monthKey } from "@/lib/checkin";
 
 export default function QuarterScreen() {
   const wide = useIsWide();
@@ -95,6 +97,8 @@ export default function QuarterScreen() {
         })}
       </View>
 
+      {quarter ? <MonthlyThreads start={start} end={end} /> : null}
+
       {quarter ? <QuarterNotes id={quarter.id} /> : null}
     </Screen>
   );
@@ -123,6 +127,26 @@ function QuarterTheme({ id }: { id: string }) {
         placeholder="The one thing these 12 weeks are about…"
         style={{ fontSize: 19 }}
       />
+    </View>
+  );
+}
+
+/** The "one thing to try" from each monthly check-in in this cycle, side by side. */
+function MonthlyThreads({ start, end }: { start: Date; end: Date }) {
+  const { checkins } = useCheckinsBetween(monthKey(start), monthKey(end));
+  const things = checkins.filter((c) => c.try_next.trim());
+  if (!things.length) return null;
+  return (
+    <View style={{ maxWidth: 640, marginBottom: space.xl }}>
+      <SectionLabel>Your monthly one things</SectionLabel>
+      <View style={{ gap: 6 }}>
+        {things.map((c) => (
+          <Text key={c.month} style={s.thread}>
+            <Text style={s.threadMonth}>{format(fromISO(c.month), "MMMM")}  </Text>
+            {c.try_next.trim()}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 }
@@ -156,5 +180,7 @@ const s = StyleSheet.create({
   steps: { marginLeft: 26, gap: 6, marginBottom: 4 },
   done: { textDecorationLine: "line-through", color: colors.mutedForeground },
   icon: { fontFamily: fonts.sans, fontSize: 14, color: colors.mutedForeground, opacity: 0.5 },
+  thread: { fontFamily: fonts.displayItalic, fontSize: 19, lineHeight: 25, color: colors.ink },
+  threadMonth: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
 });
