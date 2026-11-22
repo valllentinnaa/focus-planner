@@ -180,6 +180,7 @@ function Feature({ icon: Icon, eyebrow, title, badge, points, yes, onPick }: {
         <Eyebrow>{eyebrow}</Eyebrow>
         {badge ? (
           <View style={s.badge}>
+            <Sparkles size={12} color={colors.gold} strokeWidth={2} />
             <Text style={s.badgeText}>{badge}</Text>
           </View>
         ) : null}
@@ -261,8 +262,9 @@ const s = StyleSheet.create({
   pointText: { flex: 1, fontFamily: fonts.sansMedium, fontSize: 16, color: colors.ink },
   pointTag: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: colors.gold },
   eyebrowRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
-  badge: { backgroundColor: colors.gold, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
-  badgeText: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: colors.paper },
+  // A label, not a button: no fill or border, just a sparkle and gold italic text.
+  badge: { flexDirection: "row", alignItems: "center", gap: 4 },
+  badgeText: { fontFamily: fonts.displayItalic, fontSize: 17, color: colors.gold },
   choices: { gap: space.sm, marginTop: space.xs },
   choice: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderColor: colors.rule, borderRadius: 14, paddingVertical: 16, paddingHorizontal: space.lg, backgroundColor: alpha("card", "80") },
   choiceOn: { borderColor: colors.gold, backgroundColor: colors.gold },
