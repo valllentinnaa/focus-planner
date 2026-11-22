@@ -36,7 +36,7 @@ export default function ProfileLinkPage() {
   };
   const signUp = async () => {
     await savePendingLink(`/u/${t}`);
-    router.replace("/sign-in");
+    router.replace("/sign-in?invite=1");
   };
 
   return (
@@ -62,7 +62,7 @@ export default function ProfileLinkPage() {
             <Body muted style={s.gap}>
               Focus Planner is a planner with birthdays, gift ideas and wishlists. Create a free account to connect with {name} — you’ll see each other’s wishlists, and nobody sees who’s buying what for them.
             </Body>
-            <SolidButton onPress={signUp}>Create account or sign in</SolidButton>
+            <SolidButton onPress={signUp}>Continue</SolidButton>
           </>
         ) : p.connected ? (
           <>

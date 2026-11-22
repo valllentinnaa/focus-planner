@@ -35,7 +35,7 @@ export default function JoinCirclePage() {
 
   const signIn = async () => {
     await savePendingLink(`/join/${t}`);
-    router.replace("/sign-in");
+    router.replace("/sign-in?invite=1");
   };
 
   const p = preview.data;
@@ -47,7 +47,7 @@ export default function JoinCirclePage() {
           <>
             <Display italic>Join a circle</Display>
             <Body muted style={s.gap}>Sign in or create an account, and you’ll be brought back here to join.</Body>
-            <SolidButton onPress={signIn}>Sign in to join</SolidButton>
+            <SolidButton onPress={signIn}>Continue</SolidButton>
           </>
         ) : preview.isLoading ? (
           <Body muted>Loading…</Body>

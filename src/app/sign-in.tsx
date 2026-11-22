@@ -1,4 +1,7 @@
-import { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { LAST_EMAIL_KEY } from "@/data/auth";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -9,12 +12,29 @@ import { Body, Display, Eyebrow, GhostButton, GoldButton, RuleInput } from "@/co
 type Mode = "welcome" | "signin" | "signup";
 
 
+/** Supabase's "this email is already registered" (code, or message on older servers). */
+const isExistingUser = (e: { code?: string; message?: string }) =>
+  e.code === "user_already_exists" || e.code === "email_exists" || /already (been )?registered|already exists/i.test(e.message ?? "");
+
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
 export default function SignIn() {
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<Mode>("welcome");
+  // Opened from an invite/profile link: skip the intro and go straight to the form.
+  const { invite } = useLocalSearchParams<{ invite?: string }>();
+  const fromInvite = invite === "1";
+  const [mode, setMode] = useState<Mode>(fromInvite ? "signup" : "welcome");
   const [email, setEmail] = useState("");
+  // Someone who has signed in on this device before gets "Sign in" (with their email filled in).
+  useEffect(() => {
+    AsyncStorage.getItem(LAST_EMAIL_KEY)
+      .then((last) => {
+        if (!last) return;
+        setEmail((cur) => cur || last);
+        if (fromInvite) setMode((m) => (m === "signup" ? "signin" : m));
+      })
+      .catch(() => undefined);
+  }, [fromInvite]);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +48,16 @@ export default function SignIn() {
     setNotice(null);
     if (mode === "signup") {
       const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+      // Already has an account? Sign them in with what they typed instead of making them switch.
+      // (Supabase says so with an error, or — with email confirmation on — a user with no identities.)
+      const exists = error ? isExistingUser(error) : !!data.user && data.user.identities?.length === 0;
+      if (exists) {
+        const signIn = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        setBusy(false);
+        if (!signIn.error) return; // signed in — the root layout takes over
+        setMode("signin");
+        return setError("You already have an account with this email, but that password isn’t right. Try again.");
+      }
       setBusy(false);
       if (error) return setError(error.message);
       // With email confirmation on, there's no session yet; tell them to confirm.
@@ -52,7 +82,11 @@ export default function SignIn() {
         <Eyebrow style={{ marginBottom: 6 }}>{mode === "signup" ? "Create account" : "Sign in"}</Eyebrow>
         <Display italic>Focus Planner</Display>
         <Body muted style={{ marginTop: space.md }}>
-          {mode === "signup" ? "Your plans sync across your devices." : "Welcome back."}
+          {fromInvite
+            ? "You were invited. Use your email — if you already have an account, we’ll sign you in."
+            : mode === "signup"
+              ? "Your plans sync across your devices."
+              : "Welcome back."}
         </Body>
 
         <RuleInput
