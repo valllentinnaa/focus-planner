@@ -120,10 +120,11 @@ export default function Welcome() {
                 icon={Gift}
                 eyebrow="Presents"
                 title="Be the friend who never forgets."
+                badge="Free for early members"
                 points={[
                   [CakeSlice, "Every birthday on your radar"],
                   [Lightbulb, "Save gift ideas the second they strike"],
-                  [Gift, "Share your wishlist — no more doubles"],
+                  [Gift, "Share your wishlist — no more doubles", "Always free"],
                 ]}
                 yes="Add Presents"
                 onPick={(presents) => pick({ presents })}
@@ -159,11 +160,14 @@ export default function Welcome() {
 }
 
 /** A feature pitch: big icon, catchy title, three one-liners, then Add / Not now. */
-function Feature({ icon: Icon, eyebrow, title, points, yes, onPick }: {
+function Feature({ icon: Icon, eyebrow, title, badge, points, yes, onPick }: {
   icon: LucideIcon;
   eyebrow: string;
   title: string;
-  points: [LucideIcon, string][];
+  /** Small pill next to the section label, e.g. "Free for early members". */
+  badge?: string;
+  /** Icon, line, and an optional tag shown after the line (e.g. "Always free"). */
+  points: [LucideIcon, string, string?][];
   yes: string;
   onPick: (v: boolean) => void;
 }) {
@@ -172,15 +176,25 @@ function Feature({ icon: Icon, eyebrow, title, points, yes, onPick }: {
       <View style={s.hero}>
         <Icon size={28} color={colors.gold} strokeWidth={1.5} />
       </View>
-      <Eyebrow>{eyebrow}</Eyebrow>
+      <View style={s.eyebrowRow}>
+        <Eyebrow>{eyebrow}</Eyebrow>
+        {badge ? (
+          <View style={s.badge}>
+            <Text style={s.badgeText}>{badge}</Text>
+          </View>
+        ) : null}
+      </View>
       <Display italic style={s.title}>{title}</Display>
       <View style={s.points}>
-        {points.map(([P, text]) => (
+        {points.map(([P, text, tag]) => (
           <View key={text} style={s.point}>
             <View style={s.pointIcon}>
               <P size={16} color={colors.gold} strokeWidth={1.7} />
             </View>
-            <Text style={s.pointText}>{text}</Text>
+            <Text style={s.pointText}>
+              {text}
+              {tag ? <Text style={s.pointTag}>{"  "}{tag}</Text> : null}
+            </Text>
           </View>
         ))}
       </View>
@@ -245,6 +259,10 @@ const s = StyleSheet.create({
   point: { flexDirection: "row", alignItems: "center", gap: space.md },
   pointIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.rule },
   pointText: { flex: 1, fontFamily: fonts.sansMedium, fontSize: 16, color: colors.ink },
+  pointTag: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: colors.gold },
+  eyebrowRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
+  badge: { backgroundColor: colors.gold, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
+  badgeText: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: colors.paper },
   choices: { gap: space.sm, marginTop: space.xs },
   choice: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderColor: colors.rule, borderRadius: 14, paddingVertical: 16, paddingHorizontal: space.lg, backgroundColor: alpha("card", "80") },
   choiceOn: { borderColor: colors.gold, backgroundColor: colors.gold },
