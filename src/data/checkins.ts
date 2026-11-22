@@ -31,7 +31,9 @@ const asKeys = (raw: unknown): PromptKey[] =>
   Array.isArray(raw) ? PROMPT_KEYS.filter((k) => (raw as unknown[]).includes(k)) : [];
 
 export function useCheckin(month: string) {
-  return useDocument<"month_checkins", CheckinDoc>({
+  const userId = useUserId();
+  const qc = useQueryClient();
+  const d = useDocument<"month_checkins", CheckinDoc>({
     table: "month_checkins",
     keyColumn: "month",
     keyValue: month,
@@ -52,6 +54,12 @@ export function useCheckin(month: string) {
       done_at: d.doneAt,
     }),
   });
+  // Once a save lands, refresh the lists other screens use (nudge, Month's "one thing", 12W).
+  const { saving } = d;
+  useEffect(() => {
+    if (!saving) qc.invalidateQueries({ queryKey: ["month_checkins", userId, "range"] });
+  }, [saving, qc, userId]);
+  return d;
 }
 
 /** Your check-ins between two months (inclusive) — Month shows last month's "one thing", 12W shows them all. */
@@ -60,6 +68,8 @@ export function useCheckinsBetween(firstMonth: string, lastMonth: string) {
   const q = useQuery({
     queryKey: ["month_checkins", userId, "range", firstMonth, lastMonth],
     enabled: !!userId,
+    // Small query; always fresh so a finished check-in silences the nudge right away.
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await rawDb
         .from("month_checkins")
