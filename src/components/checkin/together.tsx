@@ -1,19 +1,15 @@
-// The small "together" layer of the monthly check-in: who else is checking in, "do it together"
-// meetups (date + place or video link — the real connection happens outside the app), and
-// friends' shared cards with a 🥂. No chat, no comments, no feed beyond this month's cards.
+// The small "together" layer of the monthly check-in: who else is checking in and "do it
+// together" meetups (date + place or video link). The real connection happens outside the app.
 import { format, isToday, isTomorrow } from "date-fns";
-import { Link } from "expo-router";
 import { Check, Users, Video, X } from "lucide-react-native";
 import { useState } from "react";
 import { Linking, Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { useCircles } from "@/data/circles";
 import { useMates } from "@/data/connections";
-import { togetherAvailable, useMatesCheckins, useMeetups, useVoiceUrls, type Meetup } from "@/data/checkins";
-import { isWebLink, meetupSuggestions, PROMPT_KEYS } from "@/lib/checkin";
+import { togetherAvailable, useMeetups, type Meetup } from "@/data/checkins";
+import { isWebLink, meetupSuggestions } from "@/lib/checkin";
 import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
-import { Hint } from "../screen";
-import { GhostButton, RuleInput, SectionLabel, SolidButton } from "../ui";
-import { CheckinCard } from "./checkin-card";
+import { GhostButton, RuleInput, SolidButton } from "../ui";
 
 const when = (d: Date) => `${isToday(d) ? "Today" : isTomorrow(d) ? "Tomorrow" : format(d, "EEE d MMM")} · ${format(d, "HH:mm")}`;
 
@@ -37,31 +33,29 @@ async function shareText(message: string): Promise<"shared" | "copied"> {
 const meetupMessage = (m: { starts_at: string; place: string; link: string | null }) =>
   `Month check-in together? 🥂 ${when(new Date(m.starts_at))}${m.place ? ` · ${m.place}` : ""}${m.link ? `\n${m.link}` : ""}\nBring your month — we’ll look back and plan the next one.`;
 
-export function TogetherPanel({ month }: { month: string }) {
+/** Shown before the month card when you have people: plan it together, or go ahead alone. */
+export function TogetherStep({ onSolo, monthName }: { onSolo: () => void; monthName: string }) {
   const mates = useMates();
-  if (!togetherAvailable) return null;
+  const who =
+    mates.length === 1
+      ? `${mates[0]!.name} checks in around now too.`
+      : `${mates[0]?.name} and ${mates.length - 1} other${mates.length > 2 ? "s" : ""} check in around now too.`;
   return (
-    <View style={{ marginTop: space.xxl, gap: space.lg }}>
-      <SectionLabel>Together</SectionLabel>
-      {mates.length ? (
-        <>
-          <Text style={s.lede}>
-            {mates.length === 1 ? `${mates[0]!.name} checks in around now too.` : `${mates[0]!.name} and ${mates.length - 1} other${mates.length > 2 ? "s" : ""} check in around now too.`}{" "}
-            Do it together — a coffee, a walk, a call.
-          </Text>
-          <Meetups />
-          <FriendsCards month={month} />
-        </>
-      ) : (
-        <Text style={s.lede}>
-          Check-ins are nicer with a friend.{" "}
-          <Link href="/presents" style={s.link}>
-            Invite someone →
-          </Link>
-        </Text>
-      )}
+    <View style={{ gap: space.lg, maxWidth: 560 }}>
+      <Text style={s.title}>Before you look back…</Text>
+      <Text style={s.lede}>{who} Want to open your {monthName} together — over coffee, a walk or a call?</Text>
+      <Meetups />
+      <Pressable onPress={onSolo} style={({ pressed }) => [s.solo, pressed && { opacity: 0.7 }]} accessibilityRole="button">
+        <Text style={s.soloText}>Just me, now →</Text>
+      </Pressable>
     </View>
   );
+}
+
+/** Whether to offer the together step at all. */
+export function useHasPeople() {
+  const mates = useMates();
+  return togetherAvailable && mates.length > 0;
 }
 
 /** Compact line for the Month page during check-in season. */
@@ -197,33 +191,10 @@ function Chip({ on, onPress, children }: { on: boolean; onPress: () => void; chi
   );
 }
 
-function FriendsCards({ month }: { month: string }) {
-  const { checkins, cheer, loading } = useMatesCheckins(month);
-  const urls = useVoiceUrls(checkins.flatMap((c) => [c.went_well_audio, c.felt_heavy_audio, c.try_next_audio]));
-  if (loading) return null;
-  if (!checkins.length) return <Hint>When friends share their check-in, it shows up here.</Hint>;
-  return (
-    <View style={{ gap: space.md }}>
-      <Text style={s.group}>Shared with you</Text>
-      {checkins.map((c) => (
-        <CheckinCard
-          key={c.id}
-          month={month}
-          name={c.name}
-          cheers={c.cheers}
-          cheered={c.cheered}
-          onCheer={() => cheer(c.id)}
-          answers={PROMPT_KEYS.filter((k) => c[k] != null).map((k) => {
-            const audio = c[`${k}_audio` as const];
-            return { key: k, text: c[k] ?? "", hasAudio: !!audio, audioUrl: audio ? urls[audio] : undefined };
-          })}
-        />
-      ))}
-    </View>
-  );
-}
-
 const s = StyleSheet.create({
+  title: { fontFamily: fonts.displayItalic, fontSize: 34, lineHeight: 38, color: colors.gold },
+  solo: { alignSelf: "flex-start", paddingVertical: space.sm },
+  soloText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: colors.ink },
   lede: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.mutedForeground },
   link: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.gold },
   linkRow: { flexDirection: "row", alignItems: "center", gap: 4 },
