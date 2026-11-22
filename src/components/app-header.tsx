@@ -1,5 +1,5 @@
 import { Link, usePathname, useRouter } from "expo-router";
-import { CalendarDays, CalendarRange, Gift, MoreHorizontal, Settings as SettingsIcon, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
+import { CalendarDays, CalendarRange, ClipboardList, Gift, MoreHorizontal, Plus, Settings as SettingsIcon, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
 import { type ComponentRef, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +13,7 @@ const ICONS: Record<PageKey, LucideIcon> = {
   quarter: Target,
   food: UtensilsCrossed,
   presents: Gift,
+  clipboard: ClipboardList,
 };
 
 export const PHONE_MAX = 600;
@@ -34,6 +35,7 @@ export function AppHeader() {
   const iconSize = 38;
   const pathname = usePathname();
   const onToday = pathname === "/today";
+  const { plusButton } = useMenu(isPhone);
 
   return (
     <View style={[s.bar, { paddingTop: insets.top + space.sm }]} nativeID="fp-header">
@@ -58,6 +60,17 @@ export function AppHeader() {
           ) : null}
           {isPhone ? null : <DesktopTabs />}
 
+          {plusButton ? (
+            <Pressable
+              accessibilityLabel="Clipboard — quick dump"
+              onPress={() => router.push("/clipboard")}
+              style={({ pressed }) => [s.iconBtn, s.iconBtnOutline, pathname === "/clipboard" && s.iconBtnOn, pressed && { opacity: 0.8 }]}
+            >
+              <View style={s.iconCenter} pointerEvents="none">
+                <Plus size={19} color={pathname === "/clipboard" ? colors.paper : colors.gold} strokeWidth={1.8} />
+              </View>
+            </Pressable>
+          ) : null}
           <Pressable
             accessibilityLabel="Settings"
             onPress={() => router.push("/settings")}
@@ -228,6 +241,7 @@ const s = StyleSheet.create({
   underlineActive: { backgroundColor: colors.ink },
   // Settings button: 38px circle, gold border, gear centred. Same size on phones and desktop.
   iconBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  iconBtnOn: { backgroundColor: colors.gold },
   iconCenter: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center" },
   // marginLeft + the nav's 6px gap = the original 8px (space.sm) spacing.
   iconBtnOutline: { borderWidth: 1, borderColor: colors.gold, marginLeft: space.sm - 6 },

@@ -124,7 +124,7 @@ function PagesSection() {
   const { settings, update } = useSettings();
   const inMenu = new Set(settings.menuPages);
   const place = (key: MenuPage): Place => {
-    if ((key === "food" && !settings.showFood) || (key === "presents" && !settings.showPresents)) return "off";
+    if ((key === "food" && !settings.showFood) || (key === "presents" && !settings.showPresents) || (key === "clipboard" && !settings.showClipboard)) return "off";
     return inMenu.has(key) ? "menu" : "more";
   };
   const setPlace = (key: MenuPage, next: Place) => {
@@ -133,10 +133,11 @@ function PagesSection() {
       menuPages,
       ...(key === "food" ? { showFood: next !== "off" } : {}),
       ...(key === "presents" ? { showPresents: next !== "off" } : {}),
+      ...(key === "clipboard" ? { showClipboard: next !== "off" } : {}),
     });
   };
   const rows = PAGES.filter((p): p is (typeof PAGES)[number] & { key: MenuPage } => (MENU_PAGES as string[]).includes(p.key));
-  const menuCount = rows.filter((p) => place(p.key) === "menu").length;
+  const menuCount = rows.filter((p) => p.key !== "clipboard" && place(p.key) === "menu").length;
 
   return (
     <View>
@@ -156,12 +157,14 @@ function PagesSection() {
           />
         </View>
         {rows.map((p) => {
-          const canHide = p.key === "food" || p.key === "presents";
+          const canHide = p.key === "food" || p.key === "presents" || p.key === "clipboard";
+          // Clipboard "in the menu" is a + button in the header, not a tab.
+          const menuLabel = p.key === "clipboard" ? "+ Button" : "Menu";
           return (
             <View key={p.key} style={s.pageRow}>
               <Text style={s.toggleLabel}>{p.label}</Text>
               <Segmented
-                options={canHide ? [["menu", "Menu"], ["more", "More"], ["off", "Off"]] : [["menu", "Menu"], ["more", "More"]]}
+                options={canHide ? [["menu", menuLabel], ["more", "More"], ["off", "Off"]] : [["menu", menuLabel], ["more", "More"]]}
                 value={place(p.key)}
                 onChange={(v) => setPlace(p.key, v as Place)}
               />

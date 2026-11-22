@@ -15,14 +15,14 @@ describe("onboardingProfile", () => {
   it("always turns Today on and keeps 12W in the menu", () => {
     const p = onboardingProfile({ name: "Val", gender: null, food: false, presents: false }, now);
     expect(p.show_daily).toBe(true);
-    expect(p.menu_pages).toEqual(["quarter"]);
+    expect(p.menu_pages).toEqual(["quarter", "clipboard"]);
     expect(p.onboarded_at).toBe("2026-11-21T20:00:00.000Z");
   });
 
   it("chosen extras are switched on and put in the main menu", () => {
     const p = onboardingProfile({ name: "Val", gender: "woman", food: true, presents: true }, now);
     expect(p).toMatchObject({ show_food: true, show_presents: true, gender: "woman" });
-    expect(p.menu_pages).toEqual(["quarter", "food", "presents"]);
+    expect(p.menu_pages).toEqual(["quarter", "clipboard", "food", "presents"]);
   });
 
   it("declined extras are switched off", () => {

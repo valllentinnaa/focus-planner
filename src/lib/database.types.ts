@@ -20,6 +20,7 @@ export type ProfileRow = {
   menu_pages: string[];
   gender: string | null;
   onboarded_at: string | null;
+  show_clipboard: boolean;
 } & Timestamps;
 
 export type WeekRow = {
@@ -113,6 +114,14 @@ export type WishlistItemRow = {
   position: number;
 } & Timestamps;
 
+export type ClipboardItemRow = {
+  id: string;
+  user_id: string;
+  text: string;
+  attention: boolean;
+  position: number;
+} & Timestamps;
+
 export type WishlistShareRow = { user_id: string; token: string; created_at: string };
 
 export type QuarterRow = {
@@ -158,6 +167,7 @@ export type Database = {
       people: Table<PersonRow, "name">;
       gift_ideas: Table<GiftIdeaRow, "person_id" | "text">;
       wishlist_items: Table<WishlistItemRow, "text">;
+      clipboard_items: Table<ClipboardItemRow, never>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

@@ -7,7 +7,7 @@ import type { Database } from "@/lib/database.types";
 import { useUserId } from "./auth";
 
 type Tables = Database["public"]["Tables"];
-type ListTable = "food_items" | "goals" | "goal_steps" | "people" | "gift_ideas" | "wishlist_items";
+type ListTable = "food_items" | "goals" | "goal_steps" | "people" | "gift_ideas" | "wishlist_items" | "clipboard_items";
 type Row<T extends ListTable> = Tables[T]["Row"];
 type Insert<T extends ListTable> = Tables[T]["Insert"];
 

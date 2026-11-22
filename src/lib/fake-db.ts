@@ -11,7 +11,7 @@ export const DEMO_USER_ID = "00000000-0000-4000-8000-000000000001";
 const PREFIX = "fp.demo.";
 
 const defaultsFor: Record<string, () => Row> = {
-  profiles: () => ({ display_name: "", gender: null, onboarded_at: null, show_daily: true, show_food: true, show_presents: true, menu_pages: ["quarter"] }),
+  profiles: () => ({ display_name: "", gender: null, onboarded_at: null, show_daily: true, show_food: true, show_presents: true, menu_pages: ["quarter", "clipboard"], show_clipboard: true }),
   weeks: () => ({ focus: "", notes: "", prompt_dismissed: false }),
   daily_entries: () => ({
     gratitude: "",
@@ -30,6 +30,7 @@ const defaultsFor: Record<string, () => Row> = {
   quarters: () => ({ theme: "", notes: "" }),
   goals: () => ({ text: "", done: false, is_project: false, position: 0 }),
   goal_steps: () => ({ text: "", done: false, position: 0 }),
+  clipboard_items: () => ({ text: "", attention: false, position: 0 }),
   people: () => ({ birth_month: null, birth_day: null, birth_year: null, notes: "", source: "manual", external_id: null, linked_user_id: null }),
   wishlist_items: () => ({ link: null, note: "", position: 0 }),
   gift_ideas: () => ({ link: null, status: "idea", given_year: null, file_path: null, file_name: null, file_type: null, position: 0 }),

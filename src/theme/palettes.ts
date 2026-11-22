@@ -10,6 +10,7 @@ export const palettes = {
     muted: "#f5f0e8",
     mutedForeground: "#8b857a",
     destructive: "#c45c5c",
+    burgundy: "#7d2a3a",
     white: "#ffffff",
   },
   dark: {
@@ -21,6 +22,7 @@ export const palettes = {
     muted: "#221e19",
     mutedForeground: "#9d9587",
     destructive: "#de7b7b",
+    burgundy: "#d98a98",
     white: "#ffffff",
   },
 } as const;

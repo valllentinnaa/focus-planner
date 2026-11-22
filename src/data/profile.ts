@@ -6,7 +6,7 @@ import { rawDb } from "@/lib/supabase";
 import { useUserId } from "./auth";
 import { saveRow, useDocument } from "./document";
 
-export type Settings = { ownerName: string; showDaily: boolean; showFood: boolean; showPresents: boolean; menuPages: MenuPage[]; gender: string | null; onboarded: boolean };
+export type Settings = { ownerName: string; showDaily: boolean; showFood: boolean; showPresents: boolean; menuPages: MenuPage[]; gender: string | null; onboarded: boolean; showClipboard: boolean };
 
 export function useSettings() {
   const userId = useUserId() ?? "";
@@ -21,12 +21,13 @@ export function useSettings() {
       showDaily: r?.show_daily ?? true,
       showFood: r?.show_food ?? true,
       showPresents: r?.show_presents ?? true,
+      showClipboard: r?.show_clipboard ?? true,
       menuPages: (r?.menu_pages ?? DEFAULT_MENU).filter((p): p is MenuPage => (MENU_PAGES as string[]).includes(p)),
       gender: r?.gender ?? null,
       // No row yet (still loading) counts as onboarded, so nobody is bounced to setup by mistake.
       onboarded: r ? r.onboarded_at != null : true,
     }),
-    toRow: (s) => ({ display_name: s.ownerName, show_daily: s.showDaily, show_food: s.showFood, show_presents: s.showPresents, menu_pages: s.menuPages, gender: s.gender }),
+    toRow: (s) => ({ display_name: s.ownerName, show_daily: s.showDaily, show_food: s.showFood, show_presents: s.showPresents, show_clipboard: s.showClipboard, menu_pages: s.menuPages, gender: s.gender }),
   });
   return { settings: d.doc, update: d.patch, loading: d.loading, saveError: d.error };
 }
