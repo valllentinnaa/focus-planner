@@ -1,4 +1,4 @@
-import { buildReview, inCheckinSeason, meetupSuggestions, monthKey, nudgeFor, nudgeText, reviewIsEmpty, shareText, shareableFields } from "./checkin";
+import { buildReview, checkinEligible, inCheckinSeason, meetupSuggestions, monthKey, nudgeFor, nudgeText, reviewIsEmpty, shareText, shareableFields } from "./checkin";
 
 const never = () => false;
 
@@ -84,4 +84,18 @@ it("suggests a few upcoming times", () => {
   const times = meetupSuggestions(new Date(2026, 10, 22, 10));
   expect(times).toHaveLength(4);
   expect(times.every((d) => d > new Date(2026, 10, 22, 10))).toBe(true);
+});
+
+describe("checkinEligible", () => {
+  it("skips a month you've used the planner for less than a week", () => {
+    expect(checkinEligible("2026-11-01", { startedAt: new Date(2026, 10, 26) })).toBe(false);
+    expect(checkinEligible("2026-11-01", { startedAt: new Date(2026, 10, 20) })).toBe(true);
+    expect(nudgeFor(new Date(2026, 10, 29), never, never, { startedAt: new Date(2026, 10, 27) })).toBeNull();
+  });
+  it("skips a month that ends within ~1.5 weeks of the 12-week plan's end", () => {
+    expect(checkinEligible("2026-11-01", { quarterEnd: new Date(2026, 11, 7) })).toBe(false);
+    expect(checkinEligible("2026-11-01", { quarterEnd: new Date(2026, 10, 24) })).toBe(false);
+    expect(checkinEligible("2026-11-01", { quarterEnd: new Date(2026, 11, 20) })).toBe(true);
+  });
+  it("still checks in normally otherwise", () => expect(checkinEligible("2026-11-01")).toBe(true));
 });
