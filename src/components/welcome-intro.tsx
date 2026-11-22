@@ -11,7 +11,9 @@ const web = Platform.OS === "web";
 const glowBlur = (web ? { filter: "blur(90px)" } : null) as StyleProp<ViewStyle>;
 
 /** Start times (ms) of each piece, in order. */
-export const INTRO_TIMELINE = { brand: 0, line1: 350, line2: 750, tagline: 1250, preview: 1500, cta: 1850, secondary: 2150 } as const;
+export const INTRO_TIMELINE = { brand: 0, line1: 350, line2: 750, tagline: 1250, cta: 1850, secondary: 2150, cards: 2600 } as const;
+/** Gap between one preview card arriving and the next. */
+const CARD_STAGGER = 220;
 /** Side-by-side layout (text left, planner preview right) from this width. */
 const WIDE = 900;
 
@@ -55,58 +57,138 @@ export function WelcomeIntro({ onStart, onSignIn }: { onStart: () => void; onSig
           </GhostButton>
         </Reveal>
       </View>
-      {wide ? (
-        <Reveal at={INTRO_TIMELINE.preview} still={reduce} blur={14}>
-          <Float still={reduce}>
-            <PlannerPreview />
-          </Float>
-        </Reveal>
-      ) : null}
+      {wide ? <Collage still={reduce} /> : null}
       </View>
     </View>
   );
 }
 
-/** Gentle up-and-down bob. */
-function Float({ still, children }: { still: boolean; children: ReactNode }) {
+/** Gentle bob with its own rhythm (duration + phase), so neighbouring cards never move together. */
+function Float({ still, ms, phase, children }: { still: boolean; ms: number; phase: number; children: ReactNode }) {
   const [t] = useState(() => new Animated.Value(0));
   useEffect(() => {
     if (still) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(t, { toValue: 1, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: !web }),
-        Animated.timing(t, { toValue: 0, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: !web }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [t, still]);
-  return <Animated.View style={{ transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) }] }}>{children}</Animated.View>;
+    const half = Animated.timing(t, { toValue: 1, duration: ms, easing: Easing.inOut(Easing.sin), useNativeDriver: !web });
+    const back = Animated.timing(t, { toValue: 0, duration: ms, easing: Easing.inOut(Easing.sin), useNativeDriver: !web });
+    const loop = Animated.loop(Animated.sequence([half, back]));
+    const start = setTimeout(() => loop.start(), phase);
+    return () => {
+      clearTimeout(start);
+      loop.stop();
+    };
+  }, [t, still, ms, phase]);
+  return <Animated.View style={{ transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, -7] }) }] }}>{children}</Animated.View>;
 }
 
-/** A small, drawn (not screenshotted) glimpse of the planner's core idea — the week split into
- *  three areas of life — so it follows the theme. */
-function PlannerPreview() {
-  const areas: [string, [string, boolean][]][] = [
-    ["Personal life", [["Gym, three times", true], ["Call mum", true], ["Book the dentist", false]]],
-    ["Work life", [["Send the proposal", true], ["Plan next quarter", false]]],
-    ["Personal development", [["Read 20 pages a day", true], ["Spanish lesson", false]]],
+type CardSpec = { key: string; node: ReactNode };
+
+/**
+ * The right side on wide screens: a tilted two-column masonry of small cards (the three areas of
+ * life, the wishlist, the week). They arrive one by one after the text, then each floats gently
+ * on its own rhythm. Drawn in code (not screenshots), so they follow light/dark.
+ */
+function Collage({ still }: { still: boolean }) {
+  const left: CardSpec[] = [
+    { key: "personal", node: <AreaCard label="Personal life" rows={[["Gym, three times", true], ["Call mum", true], ["Book the dentist", false]]} /> },
+    { key: "wishlist", node: <WishlistCard /> },
+    { key: "development", node: <AreaCard label="Personal development" rows={[["Read 20 pages a day", true], ["Spanish lesson", false]]} /> },
   ];
+  const right: CardSpec[] = [
+    { key: "week", node: <WeekCard /> },
+    { key: "work", node: <AreaCard label="Work life" rows={[["Send the proposal", true], ["Plan next quarter", false], ["Team sync", false]]} /> },
+  ];
+  // Arrival order zig-zags between the columns.
+  const order = ["personal", "week", "wishlist", "work", "development"];
+  const column = (cards: CardSpec[]) =>
+    cards.map((c) => {
+      const i = order.indexOf(c.key);
+      return (
+        <Reveal key={c.key} at={INTRO_TIMELINE.cards + i * CARD_STAGGER} still={still} blur={10}>
+          <Float still={still} ms={2600 + i * 430} phase={900 + i * 650}>
+            {c.node}
+          </Float>
+        </Reveal>
+      );
+    });
   return (
-    <View style={p.wrap}>
-      <View style={p.card}>
-        <Text style={p.eyebrow}>This week</Text>
-        {areas.map(([label, rows], i) => (
-          <Section key={label} label={label} rows={rows} first={i === 0} />
-        ))}
+    <View style={p.stage} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={p.tilt}>
+        <View style={p.col}>{column(left)}</View>
+        <View style={[p.col, p.colOffset]}>{column(right)}</View>
       </View>
     </View>
   );
 }
 
-function Section({ label, rows, first }: { label: string; rows: [string, boolean][]; first?: boolean }) {
+function AreaCard({ label, rows }: { label: string; rows: [string, boolean][] }) {
   return (
-    <View style={{ marginTop: first ? space.md : space.xl }}>
+    <View style={p.card}>
+      <Section label={label} rows={rows} />
+    </View>
+  );
+}
+
+function WishlistCard() {
+  const items: [string, string | null][] = [
+    ["Linen shirt, size M", "Reserved by Ana"],
+    ["Ceramics class", null],
+    ["Noise-cancelling headphones", null],
+  ];
+  return (
+    <View style={p.card}>
+      <View style={p.cardHead}>
+        <Text style={p.section}>My wishlist</Text>
+        <Text style={p.gift}>🎁</Text>
+      </View>
+      {items.map(([text, tag]) => (
+        <View key={text} style={p.wishRow}>
+          <Text style={p.rowText}>{text}</Text>
+          {tag ? <Text style={p.tag}>{tag}</Text> : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function WeekCard() {
+  const days: [string, string, number][] = [
+    ["M", "16", 2],
+    ["T", "17", 1],
+    ["W", "18", 3],
+    ["T", "19", 0],
+    ["F", "20", 2],
+    ["S", "21", 1],
+    ["S", "22", 0],
+  ];
+  return (
+    <View style={p.card}>
+      <Text style={p.section}>The week</Text>
+      <View style={p.week}>
+        {days.map(([d, n, dots], i) => (
+          <View key={i} style={[p.day, i === 5 && p.dayToday]}>
+            <Text style={p.dayLetter}>{d}</Text>
+            <Text style={[p.dayNum, i === 5 && p.dayNumToday]}>{n}</Text>
+            <View style={p.dots}>
+              {Array.from({ length: dots }).map((_, j) => (
+                <View key={j} style={[p.dotSmall, j === 0 && p.dotGold]} />
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={p.event}>
+        <View style={p.eventDot} />
+        <Text style={p.rowText}>
+          <Text style={p.eventTime}>10:00 </Text>Team sync
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function Section({ label, rows }: { label: string; rows: [string, boolean][] }) {
+  return (
+    <View>
       <Text style={p.section}>{label}</Text>
       {rows.map(([text, done]) => (
         <View key={text} style={p.row}>
@@ -211,13 +293,16 @@ const s = StyleSheet.create({
 });
 
 const p = StyleSheet.create({
-  wrap: { width: 420 },
+  stage: { width: 560, height: 620, alignItems: "center", justifyContent: "center", marginRight: -80 },
+  tilt: { flexDirection: "row", gap: 18, transform: [{ rotate: "-9deg" }] },
+  col: { width: 250, gap: 18 },
+  colOffset: { marginTop: 90 },
   card: {
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.rule,
-    borderRadius: 14,
-    padding: 28,
+    borderRadius: 12,
+    padding: 18,
     shadowColor: "#000",
     shadowOpacity: 0.12,
     shadowRadius: 40,
@@ -231,4 +316,20 @@ const p = StyleSheet.create({
   tick: { fontSize: 10, lineHeight: 12, color: colors.gold },
   rowText: { fontFamily: fonts.sans, fontSize: 13, color: colors.ink },
   rowDone: { textDecorationLine: "line-through", color: colors.mutedForeground },
+  cardHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  gift: { fontSize: 13 },
+  wishRow: { paddingVertical: 6, borderBottomWidth: 1, borderStyle: "dashed", borderBottomColor: colors.rule, gap: 2 },
+  tag: { fontFamily: fonts.sansMedium, fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: colors.gold },
+  week: { flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
+  day: { alignItems: "center", gap: 3, paddingVertical: 6, width: 28, borderRadius: 6 },
+  dayToday: { backgroundColor: alpha("gold", "22") },
+  dayLetter: { fontFamily: fonts.sans, fontSize: 8, letterSpacing: 1, color: colors.mutedForeground },
+  dayNum: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
+  dayNumToday: { color: colors.gold },
+  dots: { flexDirection: "row", gap: 2, height: 4 },
+  dotSmall: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.rule },
+  dotGold: { backgroundColor: colors.gold },
+  event: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: space.sm, paddingTop: space.sm, borderTopWidth: 1, borderStyle: "dashed", borderTopColor: colors.rule },
+  eventDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#9b7fd6" },
+  eventTime: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1, color: colors.gold },
 });
