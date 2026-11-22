@@ -1,4 +1,3 @@
-import { CalendarDays, Sun, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,13 +7,6 @@ import { Body, Display, Eyebrow, GhostButton, GoldButton, RuleInput } from "@/co
 
 type Mode = "welcome" | "signin" | "signup";
 
-// What the planner is, in one glance, before asking for anything.
-const POINTS: [LucideIcon, string][] = [
-  [Sun, "Today — your focus and journal"],
-  [CalendarDays, "Week — plans for every part of life"],
-  [Target, "12 weeks — goals that actually happen"],
-  [UtensilsCrossed, "Food & Presents, when you want them"],
-];
 
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
@@ -55,15 +47,8 @@ export default function SignIn() {
             <Text style={s.brandName}>Focus</Text>
             <Text style={s.brandSub}> planner</Text>
           </View>
-          <Display italic style={s.hero}>Plan less.{"\n"}Focus more.</Display>
-          <View style={s.points}>
-            {POINTS.map(([Icon, text]) => (
-              <View key={text} style={s.point}>
-                <Icon size={18} color={colors.gold} strokeWidth={1.6} />
-                <Text style={s.pointText}>{text}</Text>
-              </View>
-            ))}
-          </View>
+          <Display italic style={s.hero}>Be on top{"\n"}of your life.</Display>
+          <Text style={s.tagline}>Organisation that’s actually simple.{"\n"}Don’t get overwhelmed.</Text>
           <GoldButton style={s.button} onPress={() => setMode("signup")}>Get started</GoldButton>
           <GhostButton style={s.secondary} onPress={() => setMode("signin")}>
             <Text style={s.switchLink}>I already have an account</Text>
@@ -146,9 +131,7 @@ const s = StyleSheet.create({
   brandName: { fontFamily: fonts.display, fontSize: 26, color: colors.ink },
   brandSub: { fontFamily: fonts.displayItalic, fontSize: 23, color: colors.gold },
   hero: { fontSize: 52, lineHeight: 56 },
-  points: { gap: space.md, marginTop: space.xl },
-  point: { flexDirection: "row", alignItems: "center", gap: space.md },
-  pointText: { fontFamily: fonts.sans, fontSize: 16, color: colors.ink },
+  tagline: { fontFamily: fonts.sans, fontSize: 17, lineHeight: 25, color: colors.mutedForeground, marginTop: space.lg },
   secondary: { alignSelf: "center", marginTop: space.md },
   back: { alignSelf: "flex-start", marginBottom: space.lg },
 });
