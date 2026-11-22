@@ -199,6 +199,6 @@ const s = StyleSheet.create({
   cardHighlighted: { borderColor: colors.gold, backgroundColor: alpha("card", "80") },
   rule: { borderBottomWidth: 1, borderBottomColor: colors.rule, height: 28 },
   blankRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  gold: { alignSelf: "stretch", alignItems: "center", justifyContent: "center", height: 50, borderRadius: 999, backgroundColor: colors.gold },
+  gold: { alignSelf: "stretch", alignItems: "center", justifyContent: "center", height: 50, borderRadius: 6, backgroundColor: colors.gold },
   goldText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 2.5, textTransform: "uppercase", color: colors.paper },
 });

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
+import { WelcomeIntro } from "@/components/welcome-intro";
 import { colors, fonts, space } from "@/theme/tokens";
 import { Body, Display, Eyebrow, GhostButton, GoldButton, RuleInput } from "@/components/ui";
 
@@ -39,24 +40,7 @@ export default function SignIn() {
     }
   };
 
-  if (mode === "welcome") {
-    return (
-      <View style={[s.root, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.xl }]}>
-        <View style={s.box}>
-          <View style={s.brand}>
-            <Text style={s.brandName}>Focus</Text>
-            <Text style={s.brandSub}> planner</Text>
-          </View>
-          <Display italic style={s.hero}>Be on top{"\n"}of your life.</Display>
-          <Text style={s.tagline}>Organisation that’s actually simple.{"\n"}Don’t get overwhelmed.</Text>
-          <GoldButton style={s.button} onPress={() => setMode("signup")}>Get started</GoldButton>
-          <GhostButton style={s.secondary} onPress={() => setMode("signin")}>
-            <Text style={s.switchLink}>I already have an account</Text>
-          </GhostButton>
-        </View>
-      </View>
-    );
-  }
+  if (mode === "welcome") return <WelcomeIntro onStart={() => setMode("signup")} onSignIn={() => setMode("signin")} />;
 
   return (
     <KeyboardAvoidingView
@@ -127,11 +111,5 @@ const s = StyleSheet.create({
   notice: { fontFamily: fonts.sans, fontSize: 13, color: colors.gold, marginTop: space.md },
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, marginTop: space.xl },
   switchLink: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.gold },
-  brand: { flexDirection: "row", alignItems: "baseline", marginBottom: space.xl },
-  brandName: { fontFamily: fonts.display, fontSize: 26, color: colors.ink },
-  brandSub: { fontFamily: fonts.displayItalic, fontSize: 23, color: colors.gold },
-  hero: { fontSize: 52, lineHeight: 56 },
-  tagline: { fontFamily: fonts.sans, fontSize: 17, lineHeight: 25, color: colors.mutedForeground, marginTop: space.lg },
-  secondary: { alignSelf: "center", marginTop: space.md },
   back: { alignSelf: "flex-start", marginBottom: space.lg },
 });
