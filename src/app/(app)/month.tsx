@@ -13,7 +13,7 @@ import { BlankRows, Display, GhostButton, RuleInput, SectionLabel, SolidButton }
 import { TaskItem } from "@/components/task-item";
 import { CheckinNudge } from "@/components/checkin/nudge";
 import { TogetherHint } from "@/components/checkin/together";
-import { useCheckinsBetween } from "@/data/checkins";
+import { useCheckinEligibility, useCheckinsBetween } from "@/data/checkins";
 import { inCheckinSeason, isMonthKey, monthKey } from "@/lib/checkin";
 
 export default function MonthScreen() {
@@ -33,6 +33,10 @@ export default function MonthScreen() {
   // Last month's "one thing to try" sits at the top of this month.
   const oneThing = checkins.find((c) => c.month === prevKey)?.try_next.trim() ?? "";
   const thisCheckin = checkins.find((c) => c.month === thisKey);
+  const elig = useCheckinEligibility();
+  // A past check-in always stays reachable; otherwise only months that get one (not your first week,
+  // not when the 12-week plan's review is about to happen) and never future months.
+  const showCheckin = !!thisCheckin?.done_at || (elig.ready && elig.eligible(thisKey) && thisKey <= monthKey(new Date()));
   const weeks = useMemo(() => monthWeeks(month), [month]);
   const firstMonday = toISO(mondayOf(weeks[0]!.start));
   const lastMonday = toISO(mondayOf(weeks[weeks.length - 1]!.start));
@@ -85,12 +89,12 @@ export default function MonthScreen() {
           </View>
         ) : null}
         <View style={{ gap: 2 }}>
-          {thisKey <= monthKey(new Date()) ? (
+          {showCheckin ? (
             <GhostButton onPress={() => router.push({ pathname: "/checkin", params: { month: thisKey } })}>
               <Text style={s.gold}>{thisCheckin?.done_at ? `Your ${format(month, "MMMM")} check-in ›` : `Look back on ${format(month, "MMMM")} ›`}</Text>
             </GhostButton>
           ) : null}
-          {inCheckinSeason(new Date()) && (thisKey === monthKey(new Date()) || thisKey === monthKey(addMonths(new Date(), -1))) ? <TogetherHint /> : null}
+          {showCheckin && inCheckinSeason(new Date()) && (thisKey === monthKey(new Date()) || thisKey === monthKey(addMonths(new Date(), -1))) ? <TogetherHint /> : null}
         </View>
       </View>
 

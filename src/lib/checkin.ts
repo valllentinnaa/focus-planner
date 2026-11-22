@@ -23,6 +23,30 @@ export const NUDGE_DAYS_AFTER = 7;
 
 export type Nudge = { month: string; tone: "almost" | "lookback"; daysLeft: number };
 
+/** Minimum time with the planner before a month is worth a check-in. */
+export const MIN_DAYS_USED = 7;
+/** A month ending this close to the end of the 12-week plan is covered by the quarter review instead. */
+export const QUARTER_OVERLAP_DAYS = 10;
+
+export type Eligibility = {
+  /** When the person started using the planner (account created). */
+  startedAt?: Date | null;
+  /** The day after the current 12-week plan ends (start + 84 days). */
+  quarterEnd?: Date | null;
+};
+
+/**
+ * Whether a month gets a monthly check-in at all: not if the person has used the planner for less
+ * than a week of it, and not if it ends within a week and a half of the 12-week plan's end — the
+ * quarter review is the check-in then.
+ */
+export function checkinEligible(month: string, e: Eligibility = {}) {
+  const last = endOfMonth(fromISO(month));
+  if (e.startedAt && differenceInCalendarDays(last, e.startedAt) < MIN_DAYS_USED) return false;
+  if (e.quarterEnd && Math.abs(differenceInCalendarDays(e.quarterEnd, last)) <= QUARTER_OVERLAP_DAYS) return false;
+  return true;
+}
+
 /**
  * Which month (if any) to gently nudge about today. Near month end: this month ("almost done").
  * Early in a month: last month ("want to look back?"). Never guilt — same soft offer either way.
@@ -32,15 +56,16 @@ export function nudgeFor(
   isDone: (month: string) => boolean,
   /** "Not now" hides one nudge: saying it near month end still allows one "look back?" later. */
   isSnoozed: (month: string, tone: Nudge["tone"]) => boolean,
+  eligibility: Eligibility = {},
 ): Nudge | null {
   const daysLeft = differenceInCalendarDays(endOfMonth(today), today);
   if (daysLeft < NUDGE_DAYS_BEFORE) {
     const m = monthKey(today);
-    if (!isDone(m) && !isSnoozed(m, "almost")) return { month: m, tone: "almost", daysLeft };
+    if (!isDone(m) && !isSnoozed(m, "almost") && checkinEligible(m, eligibility)) return { month: m, tone: "almost", daysLeft };
   }
   if (today.getDate() <= NUDGE_DAYS_AFTER) {
     const m = monthKey(addMonths(today, -1));
-    if (!isDone(m) && !isSnoozed(m, "lookback")) return { month: m, tone: "lookback", daysLeft: 0 };
+    if (!isDone(m) && !isSnoozed(m, "lookback") && checkinEligible(m, eligibility)) return { month: m, tone: "lookback", daysLeft: 0 };
   }
   return null;
 }

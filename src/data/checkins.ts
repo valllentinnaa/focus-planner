@@ -4,17 +4,18 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
-import { endOfMonth } from "date-fns";
+import { addDays, endOfMonth } from "date-fns";
 import { env } from "@/lib/env";
 import { fromISO, toISO } from "@/lib/dates";
 import type { MonthCheckinRow } from "@/lib/database.types";
-import { PROMPT_KEYS, type CheckinAnswers, type PromptKey } from "@/lib/checkin";
+import { PROMPT_KEYS, checkinEligible, type CheckinAnswers, type Eligibility, type PromptKey } from "@/lib/checkin";
 import { rawDb, supabase } from "@/lib/supabase";
 import type { Recording } from "@/lib/voice";
 import { useUserId } from "./auth";
 import { circlesAvailable } from "./circles";
 import { useDocument } from "./document";
 import { newId } from "./items";
+import { useCurrentQuarter } from "./quarter";
 
 export const voiceAvailable = !env.demo;
 export const togetherAvailable = circlesAvailable;
@@ -92,6 +93,30 @@ export function useDailyInMonth(month: string) {
     },
   });
   return q.data ?? [];
+}
+
+/**
+ * What decides whether a month gets a check-in: when you started with the planner, and when the
+ * current 12-week plan ends. `ready` is false until both are known, so nothing flashes up early.
+ */
+export function useCheckinEligibility() {
+  const userId = useUserId();
+  const started = useQuery({
+    queryKey: ["profiles", userId, "started"],
+    enabled: !!userId,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await rawDb.from("profiles").select("created_at").eq("id", userId).maybeSingle();
+      if (error) throw error;
+      return (data?.created_at as string | undefined) ?? null;
+    },
+  });
+  const { quarter, loading } = useCurrentQuarter();
+  const e: Eligibility = {
+    startedAt: started.data ? new Date(started.data) : null,
+    quarterEnd: quarter?.start_date ? addDays(fromISO(quarter.start_date), 84) : null,
+  };
+  return { ready: !started.isPending && !loading, eligible: (month: string) => checkinEligible(month, e), eligibility: e };
 }
 
 // ---------- "not now" ----------
