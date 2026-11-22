@@ -18,7 +18,7 @@ port = 55329
 [studio]
 port = 55323
 
-[inbucket]
+[local_smtp]
 port = 55324
 
 [analytics]
