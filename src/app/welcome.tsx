@@ -9,7 +9,7 @@ import { useFinishOnboarding } from "@/data/profile";
 import { defaultTheme, GENDERS, type Answers, type Gender } from "@/lib/onboarding";
 import { setThemePref } from "@/theme/theme";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
-import { Display, Eyebrow, GhostButton, RuleInput } from "@/components/ui";
+import { Display, Eyebrow, GhostButton, GoldButton, RuleInput } from "@/components/ui";
 
 type Step = "name" | "gender" | "food" | "presents" | "done";
 const STEPS: Step[] = ["name", "gender", "food", "presents", "done"];
@@ -72,8 +72,8 @@ export default function Welcome() {
             {step === "name" ? (
               <>
                 <Eyebrow>Welcome</Eyebrow>
-                <Display italic style={s.title}>Plan less.{"\n"}Focus more.</Display>
-                <Text style={s.lead}>First things first — what should we call you?</Text>
+                <Display italic style={s.title}>Let’s make it yours.</Display>
+                <Text style={s.lead}>What should we call you?</Text>
                 <RuleInput autoFocus value={answers.name} onChangeText={(v) => setAnswers((a) => ({ ...a, name: v }))} placeholder="Your name" onSubmitEditing={next} returnKeyType="next" style={{ fontSize: 20 }} />
                 {/* Live preview of their planner's name */}
                 <View style={s.preview}>
@@ -205,17 +205,11 @@ function Feature({ icon: Icon, eyebrow, title, badge, points, yes, onPick }: {
   );
 }
 
-/** The Today-button style: gold pill, light uppercase label. */
 function Gold({ children, onPress, disabled }: { children: ReactNode; onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [s.gold, (pressed || disabled) && { opacity: 0.75 }]}
-    >
-      <Text style={s.goldText}>{children}</Text>
-    </Pressable>
+    <GoldButton onPress={onPress} disabled={disabled} style={{ marginTop: space.md }}>
+      {children}
+    </GoldButton>
   );
 }
 
@@ -273,8 +267,6 @@ const s = StyleSheet.create({
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tag: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: colors.gold, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
   tagText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase", color: colors.ink },
-  gold: { alignSelf: "stretch", alignItems: "center", justifyContent: "center", height: 50, borderRadius: 999, backgroundColor: colors.gold, marginTop: space.md },
-  goldText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 2.5, textTransform: "uppercase", color: colors.paper },
   skip: { alignSelf: "center" },
   error: { fontFamily: fonts.sans, fontSize: 13, color: colors.destructive },
 });

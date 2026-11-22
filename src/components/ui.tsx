@@ -1,6 +1,7 @@
 // Small "paper & ink" primitives shared by every screen.
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -39,17 +40,32 @@ export function SectionLabel({ children, right }: { children: ReactNode; right?:
   );
 }
 
+// react-native-web only: drop the browser focus ring (RuleInput draws its own gold underline).
+const WEB_NO_OUTLINE = (Platform.OS === "web" ? { outlineStyle: "none" } : null) as StyleProp<TextStyle>;
+
 /** Dashed-underline input, like writing on a ruled line. */
 export function RuleInput({ style, italicGold, lines, ...props }: TextInputProps & { italicGold?: boolean; lines?: number }) {
   const multiline = (lines ?? 1) > 1 || props.multiline;
+  // Focus shows as a gold underline (instead of the browser's black outline box on web).
+  const [focused, setFocused] = useState(false);
   return (
     <TextInput
       placeholderTextColor={alpha("mutedForeground", "99")}
       {...props}
+      onFocus={(e) => {
+        setFocused(true);
+        props.onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        setFocused(false);
+        props.onBlur?.(e);
+      }}
       multiline={multiline}
       numberOfLines={lines}
       style={[
         s.ruleInput,
+        WEB_NO_OUTLINE,
+        focused && s.ruleInputFocused,
         multiline && { minHeight: 28 * (lines ?? 1), textAlignVertical: "top" },
         italicGold && { fontFamily: fonts.displayItalic, color: colors.gold, fontSize: 17 },
         style,
@@ -102,6 +118,15 @@ export function SolidButton({ children, style, disabled, ...props }: PressablePr
   );
 }
 
+/** The Today-button style, full width: gold pill with a light uppercase label. */
+export function GoldButton({ children, style, disabled, ...props }: PressableProps & { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  return (
+    <Pressable accessibilityRole="button" {...props} disabled={disabled} style={({ pressed }) => [s.gold, (pressed || disabled) && { opacity: 0.6 }, style]}>
+      <Text style={s.goldText}>{children}</Text>
+    </Pressable>
+  );
+}
+
 export function Card({ children, highlighted, style }: { children: ReactNode; highlighted?: boolean; style?: StyleProp<ViewStyle> }) {
   return <View style={[s.card, highlighted && s.cardHighlighted, style]}>{children}</View>;
 }
@@ -148,6 +173,7 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   sectionLabelText: { fontFamily: fonts.sansSemiBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
+  ruleInputFocused: { borderBottomColor: colors.gold, borderStyle: "solid" },
   ruleInput: {
     fontFamily: fonts.sans,
     fontSize: 14,
@@ -173,4 +199,6 @@ const s = StyleSheet.create({
   cardHighlighted: { borderColor: colors.gold, backgroundColor: alpha("card", "80") },
   rule: { borderBottomWidth: 1, borderBottomColor: colors.rule, height: 28 },
   blankRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  gold: { alignSelf: "stretch", alignItems: "center", justifyContent: "center", height: 50, borderRadius: 999, backgroundColor: colors.gold },
+  goldText: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 2.5, textTransform: "uppercase", color: colors.paper },
 });

@@ -1,17 +1,26 @@
+import { CalendarDays, Sun, Target, UtensilsCrossed, type LucideIcon } from "lucide-react-native";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { colors, fonts, space } from "@/theme/tokens";
-import { Body, Display, Eyebrow, GhostButton, RuleInput, SolidButton } from "@/components/ui";
+import { Body, Display, Eyebrow, GhostButton, GoldButton, RuleInput } from "@/components/ui";
 
-type Mode = "signin" | "signup";
+type Mode = "welcome" | "signin" | "signup";
+
+// What the planner is, in one glance, before asking for anything.
+const POINTS: [LucideIcon, string][] = [
+  [Sun, "Today — your focus and journal"],
+  [CalendarDays, "Week — plans for every part of life"],
+  [Target, "12 weeks — goals that actually happen"],
+  [UtensilsCrossed, "Food & Presents, when you want them"],
+];
 
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
 export default function SignIn() {
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<Mode>("signin");
+  const [mode, setMode] = useState<Mode>("welcome");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,12 +47,39 @@ export default function SignIn() {
     }
   };
 
+  if (mode === "welcome") {
+    return (
+      <View style={[s.root, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.xl }]}>
+        <View style={s.box}>
+          <View style={s.brand}>
+            <Text style={s.brandName}>Focus</Text>
+            <Text style={s.brandSub}> planner</Text>
+          </View>
+          <Display italic style={s.hero}>Plan less.{"\n"}Focus more.</Display>
+          <View style={s.points}>
+            {POINTS.map(([Icon, text]) => (
+              <View key={text} style={s.point}>
+                <Icon size={18} color={colors.gold} strokeWidth={1.6} />
+                <Text style={s.pointText}>{text}</Text>
+              </View>
+            ))}
+          </View>
+          <GoldButton style={s.button} onPress={() => setMode("signup")}>Get started</GoldButton>
+          <GhostButton style={s.secondary} onPress={() => setMode("signin")}>
+            <Text style={s.switchLink}>I already have an account</Text>
+          </GhostButton>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={[s.root, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.xl }]}
     >
       <View style={s.box}>
+        <GhostButton style={s.back} onPress={() => setMode("welcome")}>‹ Back</GhostButton>
         <Eyebrow style={{ marginBottom: 6 }}>{mode === "signup" ? "Create account" : "Sign in"}</Eyebrow>
         <Display italic>Focus Planner</Display>
         <Body muted style={{ marginTop: space.md }}>
@@ -73,9 +109,9 @@ export default function SignIn() {
           style={s.input}
         />
 
-        <SolidButton onPress={submit} disabled={busy || !ready} style={s.button}>
+        <GoldButton onPress={submit} disabled={busy || !ready} style={s.button}>
           {busy ? "…" : mode === "signup" ? "Create account" : "Sign in"}
-        </SolidButton>
+        </GoldButton>
 
         {error ? <Text style={s.error}>{error}</Text> : null}
         {notice ? <Text style={s.notice}>{notice}</Text> : null}
@@ -106,4 +142,13 @@ const s = StyleSheet.create({
   notice: { fontFamily: fonts.sans, fontSize: 13, color: colors.gold, marginTop: space.md },
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, marginTop: space.xl },
   switchLink: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.gold },
+  brand: { flexDirection: "row", alignItems: "baseline", marginBottom: space.xl },
+  brandName: { fontFamily: fonts.display, fontSize: 26, color: colors.ink },
+  brandSub: { fontFamily: fonts.displayItalic, fontSize: 23, color: colors.gold },
+  hero: { fontSize: 52, lineHeight: 56 },
+  points: { gap: space.md, marginTop: space.xl },
+  point: { flexDirection: "row", alignItems: "center", gap: space.md },
+  pointText: { fontFamily: fonts.sans, fontSize: 16, color: colors.ink },
+  secondary: { alignSelf: "center", marginTop: space.md },
+  back: { alignSelf: "flex-start", marginBottom: space.lg },
 });
