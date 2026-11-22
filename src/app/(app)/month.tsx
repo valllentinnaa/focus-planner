@@ -1,4 +1,5 @@
 import { addMonths, format, startOfMonth } from "date-fns";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useMonthTasks, useTaskOps } from "@/data/tasks";
@@ -10,10 +11,28 @@ import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Column, Columns, PageTitle, Screen, useIsWide } from "@/components/screen";
 import { BlankRows, Display, GhostButton, RuleInput, SectionLabel, SolidButton } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
+import { CheckinNudge } from "@/components/checkin/nudge";
+import { TogetherHint } from "@/components/checkin/together";
+import { useCheckinsBetween } from "@/data/checkins";
+import { inCheckinSeason, isMonthKey, monthKey } from "@/lib/checkin";
 
 export default function MonthScreen() {
   const wide = useIsWide();
-  const [month, setMonth] = useState(() => startOfMonth(new Date()));
+  const router = useRouter();
+  const params = useLocalSearchParams<{ month?: string }>();
+  const [month, setMonth] = useState(() => startOfMonth(isMonthKey(params.month) ? fromISO(params.month) : new Date()));
+  // Arriving from a check-in's "Open December" while Month is already open.
+  const [seenParam, setSeenParam] = useState(params.month);
+  if (params.month !== seenParam) {
+    setSeenParam(params.month);
+    if (isMonthKey(params.month)) setMonth(startOfMonth(fromISO(params.month)));
+  }
+  const thisKey = monthKey(month);
+  const prevKey = monthKey(addMonths(month, -1));
+  const { checkins } = useCheckinsBetween(prevKey, thisKey);
+  // Last month's "one thing to try" sits at the top of this month.
+  const oneThing = checkins.find((c) => c.month === prevKey)?.try_next.trim() ?? "";
+  const thisCheckin = checkins.find((c) => c.month === thisKey);
   const weeks = useMemo(() => monthWeeks(month), [month]);
   const firstMonday = toISO(mondayOf(weeks[0]!.start));
   const lastMonday = toISO(mondayOf(weeks[weeks.length - 1]!.start));
@@ -55,6 +74,25 @@ export default function MonthScreen() {
           </View>
         }
       />
+
+      <CheckinNudge />
+
+      <View style={s.checkinRow}>
+        {oneThing ? (
+          <View style={s.oneThing}>
+            <Text style={s.oneThingLabel}>Trying this month</Text>
+            <Text style={s.oneThingText}>{oneThing}</Text>
+          </View>
+        ) : null}
+        <View style={{ gap: 2 }}>
+          {thisKey <= monthKey(new Date()) ? (
+            <GhostButton onPress={() => router.push({ pathname: "/checkin", params: { month: thisKey } })}>
+              <Text style={s.gold}>{thisCheckin?.done_at ? `Your ${format(month, "MMMM")} check-in ›` : `Look back on ${format(month, "MMMM")} ›`}</Text>
+            </GhostButton>
+          ) : null}
+          {inCheckinSeason(new Date()) && (thisKey === monthKey(new Date()) || thisKey === monthKey(addMonths(new Date(), -1))) ? <TogetherHint /> : null}
+        </View>
+      </View>
 
       <Columns>
         <Column flex={1}>
@@ -187,6 +225,10 @@ const s = StyleSheet.create({
   arrow: { fontFamily: fonts.sans, fontSize: 18, color: colors.mutedForeground },
   year: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground, minWidth: 44, textAlign: "center" },
   gold: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.gold, letterSpacing: 1 },
+  checkinRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space.md, marginBottom: space.lg },
+  oneThing: { flexShrink: 1, borderLeftWidth: 2, borderLeftColor: colors.gold, paddingLeft: space.md },
+  oneThingLabel: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
+  oneThingText: { fontFamily: fonts.displayItalic, fontSize: 22, lineHeight: 26, color: colors.gold },
   weeksGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   weekBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.md, minHeight: 160 },
   weekBoxWide: { flexBasis: "48%", flexGrow: 1 },

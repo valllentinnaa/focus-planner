@@ -143,6 +143,22 @@ export type GoalStepRow = {
   position: number;
 } & Timestamps;
 
+export type MonthCheckinRow = {
+  id: string;
+  user_id: string;
+  /** First day of the month (yyyy-MM-01). */
+  month: string;
+  went_well: string;
+  felt_heavy: string;
+  try_next: string;
+  went_well_audio: string | null;
+  felt_heavy_audio: string | null;
+  try_next_audio: string | null;
+  /** Which answers friends may see. Empty = private (the default). */
+  share_fields: string[];
+  done_at: string | null;
+} & Timestamps;
+
 export type Database = {
   public: {
     Tables: {
@@ -158,6 +174,7 @@ export type Database = {
       people: Table<PersonRow, "name">;
       gift_ideas: Table<GiftIdeaRow, "person_id" | "text">;
       wishlist_items: Table<WishlistItemRow, "text">;
+      month_checkins: Table<MonthCheckinRow, "month">;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
