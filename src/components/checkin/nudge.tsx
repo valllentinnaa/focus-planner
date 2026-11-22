@@ -3,7 +3,7 @@
 import { addMonths } from "date-fns";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useCheckinsBetween, useSnoozed } from "@/data/checkins";
+import { useCheckinEligibility, useCheckinsBetween, useSnoozed } from "@/data/checkins";
 import { monthKey, nudgeFor, nudgeText } from "@/lib/checkin";
 import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
 
@@ -12,9 +12,10 @@ export function CheckinNudge() {
   const today = new Date();
   const { checkins, loading } = useCheckinsBetween(monthKey(addMonths(today, -1)), monthKey(today));
   const snooze = useSnoozed();
-  if (loading || !snooze.ready) return null;
+  const elig = useCheckinEligibility();
+  if (loading || !snooze.ready || !elig.ready) return null;
   const done = new Set(checkins.filter((c) => c.done_at).map((c) => c.month));
-  const n = nudgeFor(today, (m) => done.has(m), snooze.isSnoozed);
+  const n = nudgeFor(today, (m) => done.has(m), snooze.isSnoozed, elig.eligibility);
   if (!n) return null;
   const t = nudgeText(n);
   return (

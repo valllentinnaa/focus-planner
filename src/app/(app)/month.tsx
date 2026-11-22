@@ -13,7 +13,7 @@ import { BlankRows, Display, GhostButton, RuleInput, SectionLabel, SolidButton }
 import { TaskItem } from "@/components/task-item";
 import { CheckinNudge } from "@/components/checkin/nudge";
 import { TogetherHint } from "@/components/checkin/together";
-import { useCheckinsBetween } from "@/data/checkins";
+import { useCheckinEligibility, useCheckinsBetween } from "@/data/checkins";
 import { inCheckinSeason, isMonthKey, monthKey } from "@/lib/checkin";
 
 export default function MonthScreen() {
@@ -30,9 +30,11 @@ export default function MonthScreen() {
   const thisKey = monthKey(month);
   const prevKey = monthKey(addMonths(month, -1));
   const { checkins } = useCheckinsBetween(prevKey, thisKey);
-  // Last month's "one thing to try" sits at the top of this month.
-  const oneThing = checkins.find((c) => c.month === prevKey)?.try_next.trim() ?? "";
   const thisCheckin = checkins.find((c) => c.month === thisKey);
+  const elig = useCheckinEligibility();
+  // A past check-in always stays reachable; otherwise only months that get one (not your first week,
+  // not when the 12-week plan's review is about to happen) and never future months.
+  const showCheckin = !!thisCheckin?.done_at || (elig.ready && elig.eligible(thisKey) && thisKey <= monthKey(new Date()));
   const weeks = useMemo(() => monthWeeks(month), [month]);
   const firstMonday = toISO(mondayOf(weeks[0]!.start));
   const lastMonday = toISO(mondayOf(weeks[weeks.length - 1]!.start));
@@ -77,22 +79,16 @@ export default function MonthScreen() {
 
       <CheckinNudge />
 
-      <View style={s.checkinRow}>
-        {oneThing ? (
-          <View style={s.oneThing}>
-            <Text style={s.oneThingLabel}>Trying this month</Text>
-            <Text style={s.oneThingText}>{oneThing}</Text>
-          </View>
-        ) : null}
-        <View style={{ gap: 2 }}>
-          {thisKey <= monthKey(new Date()) ? (
+      {showCheckin ? (
+        <View style={s.checkinRow}>
+          <View style={{ gap: 2 }}>
             <GhostButton onPress={() => router.push({ pathname: "/checkin", params: { month: thisKey } })}>
-              <Text style={s.gold}>{thisCheckin?.done_at ? `Your ${format(month, "MMMM")} check-in ›` : `Look back on ${format(month, "MMMM")} ›`}</Text>
+              <Text style={s.gold}>{thisCheckin?.done_at ? `Your ${format(month, "MMMM")} card ✨ ›` : `Look back on ${format(month, "MMMM")} ›`}</Text>
             </GhostButton>
-          ) : null}
-          {inCheckinSeason(new Date()) && (thisKey === monthKey(new Date()) || thisKey === monthKey(addMonths(new Date(), -1))) ? <TogetherHint /> : null}
+            {inCheckinSeason(new Date()) && (thisKey === monthKey(new Date()) || thisKey === monthKey(addMonths(new Date(), -1))) ? <TogetherHint /> : null}
+          </View>
         </View>
-      </View>
+      ) : null}
 
       <Columns>
         <Column flex={1}>
@@ -226,9 +222,6 @@ const s = StyleSheet.create({
   year: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground, minWidth: 44, textAlign: "center" },
   gold: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.gold, letterSpacing: 1 },
   checkinRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space.md, marginBottom: space.lg },
-  oneThing: { flexShrink: 1, borderLeftWidth: 2, borderLeftColor: colors.gold, paddingLeft: space.md },
-  oneThingLabel: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
-  oneThingText: { fontFamily: fonts.displayItalic, fontSize: 22, lineHeight: 26, color: colors.gold },
   weeksGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   weekBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.md, minHeight: 160 },
   weekBoxWide: { flexBasis: "48%", flexGrow: 1 },

@@ -1,15 +1,7 @@
 // Monthly check-in: when to nudge, what the month looked like, and what a shared card says.
 // Pure logic (no React, no network) so it's easy to test.
 import { addMonths, differenceInCalendarDays, endOfMonth, format, startOfMonth } from "date-fns";
-import { fromISO, toISO } from "./dates";
-
-export const PROMPTS = [
-  { key: "went_well", label: "What went well?", hint: "Small wins count." },
-  { key: "felt_heavy", label: "What felt heavy?", hint: "No fixing needed — just name it." },
-  { key: "try_next", label: "One thing to try next month", hint: "Just one." },
-] as const;
-export type PromptKey = (typeof PROMPTS)[number]["key"];
-export const PROMPT_KEYS = PROMPTS.map((p) => p.key) as PromptKey[];
+import { fromISO, mondayOf, monthWeeks, toISO } from "./dates";
 
 /** Month key: the ISO date of its 1st (matches month_checkins.month). */
 export const monthKey = (d: Date) => toISO(startOfMonth(d));
@@ -23,6 +15,30 @@ export const NUDGE_DAYS_AFTER = 7;
 
 export type Nudge = { month: string; tone: "almost" | "lookback"; daysLeft: number };
 
+/** Minimum time with the planner before a month is worth a check-in. */
+export const MIN_DAYS_USED = 7;
+/** A month ending this close to the end of the 12-week plan is covered by the quarter review instead. */
+export const QUARTER_OVERLAP_DAYS = 10;
+
+export type Eligibility = {
+  /** When the person started using the planner (account created). */
+  startedAt?: Date | null;
+  /** The day after the current 12-week plan ends (start + 84 days). */
+  quarterEnd?: Date | null;
+};
+
+/**
+ * Whether a month gets a monthly check-in at all: not if the person has used the planner for less
+ * than a week of it, and not if it ends within a week and a half of the 12-week plan's end — the
+ * quarter review is the check-in then.
+ */
+export function checkinEligible(month: string, e: Eligibility = {}) {
+  const last = endOfMonth(fromISO(month));
+  if (e.startedAt && differenceInCalendarDays(last, e.startedAt) < MIN_DAYS_USED) return false;
+  if (e.quarterEnd && Math.abs(differenceInCalendarDays(e.quarterEnd, last)) <= QUARTER_OVERLAP_DAYS) return false;
+  return true;
+}
+
 /**
  * Which month (if any) to gently nudge about today. Near month end: this month ("almost done").
  * Early in a month: last month ("want to look back?"). Never guilt — same soft offer either way.
@@ -32,15 +48,16 @@ export function nudgeFor(
   isDone: (month: string) => boolean,
   /** "Not now" hides one nudge: saying it near month end still allows one "look back?" later. */
   isSnoozed: (month: string, tone: Nudge["tone"]) => boolean,
+  eligibility: Eligibility = {},
 ): Nudge | null {
   const daysLeft = differenceInCalendarDays(endOfMonth(today), today);
   if (daysLeft < NUDGE_DAYS_BEFORE) {
     const m = monthKey(today);
-    if (!isDone(m) && !isSnoozed(m, "almost")) return { month: m, tone: "almost", daysLeft };
+    if (!isDone(m) && !isSnoozed(m, "almost") && checkinEligible(m, eligibility)) return { month: m, tone: "almost", daysLeft };
   }
   if (today.getDate() <= NUDGE_DAYS_AFTER) {
     const m = monthKey(addMonths(today, -1));
-    if (!isDone(m) && !isSnoozed(m, "lookback")) return { month: m, tone: "lookback", daysLeft: 0 };
+    if (!isDone(m) && !isSnoozed(m, "lookback") && checkinEligible(m, eligibility)) return { month: m, tone: "lookback", daysLeft: 0 };
   }
   return null;
 }
@@ -56,85 +73,112 @@ export function nudgeText(n: Nudge) {
 export const inCheckinSeason = (today: Date) =>
   differenceInCalendarDays(endOfMonth(today), today) < NUDGE_DAYS_BEFORE + 4 || today.getDate() <= NUDGE_DAYS_AFTER;
 
-// ---------- the month in review ----------
-export type ReviewTask = { text: string; done: boolean; area: string | null; task_date: string | null; week_start: string };
-export type MonthReview = {
-  done: string[];
+/**
+ * "Check-in time": the window the nudge uses (last days of the month, first week of the next).
+ * Opening a check-in then ends with "I'm ready for <next month>"; later it's just a look back.
+ */
+export function isCheckinTime(month: string, today: Date) {
+  if (month === monthKey(today)) return differenceInCalendarDays(endOfMonth(today), today) < NUDGE_DAYS_BEFORE;
+  return month === monthKey(addMonths(today, -1)) && today.getDate() <= NUDGE_DAYS_AFTER;
+}
+
+// ---------- the month card ----------
+export type RecapTask = { text: string; done: boolean; area: string | null; task_date: string | null; week_start: string };
+export type RecapGoal = { text: string; area: string; done: boolean; is_project: boolean; steps: { done: boolean; text: string }[] };
+export type Star = { x: number; y: number; r: number; delay: number; area: string | null };
+export type Recap = {
   doneCount: number;
-  openCount: number;
-  busiestWeek: { start: string; count: number } | null;
-  byArea: { area: string; done: number; total: number }[];
-  journalDays: number;
-  gratitude: string[];
-  birthdays: string[];
-  events: number;
+  planned: number;
+  weeks: { label: string; start: string; done: number; planned: number }[];
+  /** Done per day so far (or over the whole month once it's over), one decimal. */
+  perDay: number;
+  /** Same, per week — friendlier when it's under one a day. */
+  perWeek: number;
+  focus: { area: string; share: number }[];
+  topArea: string | null;
+  goals: { text: string; area: string; done: boolean; steps: { done: number; total: number } | null }[];
+  /** One star per thing done, laid out by day (x) and life area (y). Different every month. */
+  stars: Star[];
 };
 
-/**
- * Build the quiet "month in review" from data the planner already has. Tasks are counted for the
- * month when dated inside it, or (undated) when their week starts inside it.
- */
-export function buildReview(
-  monthISO: string,
-  input: {
-    tasks: ReviewTask[];
-    daily?: { entry_date: string; gratitude: string; focus: string; notes: string }[];
-    birthdays?: { name: string; month: number | null }[];
-    eventCount?: number;
-  },
-): MonthReview {
-  const first = monthISO;
-  const last = toISO(endOfMonth(fromISO(monthISO)));
-  const inMonth = (iso: string) => iso >= first && iso <= last;
-  const tasks = input.tasks.filter((t) => t.text.trim() && (t.task_date ? inMonth(t.task_date) : inMonth(t.week_start)));
-  const done = tasks.filter((t) => t.done);
-
-  const perWeek = new Map<string, number>();
-  for (const t of tasks) perWeek.set(t.week_start, (perWeek.get(t.week_start) ?? 0) + 1);
-  let busiestWeek: MonthReview["busiestWeek"] = null;
-  for (const [start, count] of [...perWeek].sort((a, b) => a[0].localeCompare(b[0])))
-    if (count >= 3 && (!busiestWeek || count > busiestWeek.count)) busiestWeek = { start, count };
-
-  const areas = new Map<string, { done: number; total: number }>();
-  for (const t of tasks) {
-    if (!t.area) continue;
-    const a = areas.get(t.area) ?? { done: 0, total: 0 };
-    a.total += 1;
-    if (t.done) a.done += 1;
-    areas.set(t.area, a);
-  }
-
-  const daily = (input.daily ?? []).filter((d) => inMonth(d.entry_date));
-  const monthNo = fromISO(monthISO).getMonth() + 1;
-  return {
-    done: done.map((t) => t.text.trim()).slice(0, 12),
-    doneCount: done.length,
-    openCount: tasks.length - done.length,
-    busiestWeek,
-    byArea: [...areas].map(([area, v]) => ({ area, ...v })),
-    journalDays: daily.filter((d) => [d.gratitude, d.focus, d.notes].some((v) => v.trim())).length,
-    gratitude: daily.map((d) => d.gratitude.trim()).filter(Boolean).slice(-5),
-    birthdays: (input.birthdays ?? []).filter((p) => p.month === monthNo).map((p) => p.name),
-    events: input.eventCount ?? 0,
+/** Small deterministic PRNG so a month's sky looks the same every time you open it. */
+function seeded(seed: string) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
   };
 }
 
-/** True when there's nothing to show yet (a brand-new user) — the screen says so kindly. */
-export const reviewIsEmpty = (r: MonthReview) =>
-  r.doneCount + r.openCount === 0 && r.journalDays === 0 && r.birthdays.length === 0 && r.events === 0;
+const BAND: Record<string, number> = { work: 0.22, development: 0.5, personal: 0.78 };
 
-// ---------- sharing ----------
-export type CheckinAnswers = Record<PromptKey, string>;
+export function buildRecap(monthISO: string, input: { tasks: RecapTask[]; goals?: RecapGoal[]; today?: Date }): Recap {
+  const monthStart = fromISO(monthISO);
+  const last = toISO(endOfMonth(monthStart));
+  const inMonth = (iso: string) => iso >= monthISO && iso <= last;
+  const tasks = input.tasks.filter((t) => t.text.trim() && (t.task_date ? inMonth(t.task_date) : inMonth(t.week_start)));
+  const done = tasks.filter((t) => t.done);
 
-/** Only fields the person ticked AND that have something in them (text or a voice note). */
-export function shareableFields(share: readonly string[], answers: CheckinAnswers, audio: Partial<Record<PromptKey, string | null>> = {}) {
-  return PROMPT_KEYS.filter((k) => share.includes(k) && (answers[k].trim() || audio[k]));
+  const weeks = monthWeeks(monthStart).map((w, i) => {
+    const start = toISO(mondayOf(w.start));
+    const mine = tasks.filter((t) => t.week_start === start);
+    return { label: `Week ${i + 1}`, start, done: mine.filter((t) => t.done).length, planned: mine.length };
+  });
+
+  const today = input.today ?? new Date();
+  const days = Math.max(1, Math.min(differenceInCalendarDays(endOfMonth(monthStart), monthStart), differenceInCalendarDays(today, monthStart)) + 1);
+
+  const areaCount = new Map<string, number>();
+  for (const t of tasks) if (t.area) areaCount.set(t.area, (areaCount.get(t.area) ?? 0) + 1);
+  const withArea = [...areaCount.values()].reduce((a, b) => a + b, 0);
+  const focus = [...areaCount]
+    .map(([area, n]) => ({ area, share: Math.round((n / withArea) * 100) }))
+    .sort((a, b) => b.share - a.share);
+
+  const rand = seeded(monthISO + done.length);
+  const monthDays = differenceInCalendarDays(endOfMonth(monthStart), monthStart) + 1;
+  const stars = done.map((t, i) => {
+    const day = t.task_date ? fromISO(t.task_date).getDate() : Math.min(monthDays, Math.max(1, differenceInCalendarDays(fromISO(t.week_start), monthStart) + 1 + Math.floor(rand() * 6)));
+    const band = BAND[t.area ?? ""] ?? 0.2 + rand() * 0.6;
+    return {
+      x: Math.min(0.96, Math.max(0.04, (day - 0.5) / monthDays + (rand() - 0.5) * 0.05)),
+      y: Math.min(0.92, Math.max(0.08, band + (rand() - 0.5) * 0.28)),
+      r: 1.4 + rand() * 2.2,
+      delay: Math.round(i * 90 + rand() * 1500),
+      area: t.area,
+    };
+  });
+
+  return {
+    doneCount: done.length,
+    planned: tasks.length,
+    weeks,
+    perDay: Math.round((done.length / days) * 10) / 10,
+    perWeek: Math.round((done.length / days) * 7),
+    focus,
+    topArea: focus.length && focus[0]!.share >= 40 ? focus[0]!.area : null,
+    goals: (input.goals ?? [])
+      .filter((g) => g.text.trim())
+      .map((g) => ({
+        text: g.text.trim(),
+        area: g.area,
+        done: g.done,
+        steps: g.is_project && g.steps.length ? { done: g.steps.filter((s) => s.done).length, total: g.steps.length } : null,
+      })),
+    stars,
+  };
 }
 
 /** Plain-text version of the card, for the share sheet / clipboard. */
-export function shareText(monthISO: string, name: string, share: readonly string[], answers: CheckinAnswers) {
-  const lines = [`${name ? `${name}’s` : "My"} ${format(fromISO(monthISO), "MMMM")} check-in ✨`];
-  for (const p of PROMPTS) if (share.includes(p.key) && answers[p.key].trim()) lines.push(`\n${p.label}\n${answers[p.key].trim()}`);
+export function recapShareText(monthISO: string, r: Recap, skyLine: string, areaLabel: (a: string) => string) {
+  const name = format(fromISO(monthISO), "MMMM");
+  const lines = [`My ${name} ✨`, `${r.doneCount} things done${r.perDay >= 1 ? ` · about ${r.perDay} a day` : r.perWeek >= 1 ? ` · about ${r.perWeek} a week` : ""}`];
+  if (r.topArea) lines.push(`Most of my focus: ${areaLabel(r.topArea)}`);
+  const goalsDone = r.goals.filter((g) => g.done).length;
+  if (r.goals.length) lines.push(`12-week goals: ${goalsDone}/${r.goals.length} done`);
+  lines.push("", skyLine);
   return lines.join("\n");
 }
 

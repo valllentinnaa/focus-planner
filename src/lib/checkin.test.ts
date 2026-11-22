@@ -1,4 +1,4 @@
-import { buildReview, inCheckinSeason, meetupSuggestions, monthKey, nudgeFor, nudgeText, reviewIsEmpty, shareText, shareableFields } from "./checkin";
+import { buildRecap, checkinEligible, inCheckinSeason, isCheckinTime, meetupSuggestions, monthKey, nudgeFor, nudgeText, recapShareText } from "./checkin";
 
 const never = () => false;
 
@@ -36,47 +36,61 @@ describe("season", () => {
   it("monthKey is the 1st", () => expect(monthKey(new Date(2026, 10, 22))).toBe("2026-11-01"));
 });
 
-describe("buildReview", () => {
+describe("buildRecap", () => {
   const t = (text: string, done: boolean, week_start: string, task_date: string | null = null, area: string | null = null) => ({ text, done, week_start, task_date, area });
-  it("counts the month's tasks, wins and busiest week", () => {
-    const r = buildReview("2026-11-01", {
-      tasks: [
-        t("Ship beta", true, "2026-11-02", "2026-11-03"),
-        t("Call mum", true, "2026-11-02", null, "personal"),
-        t("Taxes", false, "2026-11-02", null, "personal"),
-        t("Gym", false, "2026-11-02"),
-        t("October thing", true, "2026-10-26", "2026-10-30"),
-        t("", true, "2026-11-09"),
-      ],
-      daily: [{ entry_date: "2026-11-04", gratitude: "Sun", focus: "", notes: "" }, { entry_date: "2026-11-05", gratitude: "", focus: "", notes: "" }],
-      birthdays: [{ name: "Ana", month: 11 }, { name: "Bo", month: 3 }],
-      eventCount: 4,
-    });
-    expect(r.doneCount).toBe(2);
-    expect(r.openCount).toBe(2);
-    expect(r.done).toEqual(["Ship beta", "Call mum"]);
-    expect(r.busiestWeek).toEqual({ start: "2026-11-02", count: 4 });
-    expect(r.byArea).toEqual([{ area: "personal", done: 1, total: 2 }]);
-    expect(r.journalDays).toBe(1);
-    expect(r.gratitude).toEqual(["Sun"]);
-    expect(r.birthdays).toEqual(["Ana"]);
-    expect(reviewIsEmpty(r)).toBe(false);
+  const tasks = [
+    t("Ship beta", true, "2026-11-02", "2026-11-03", "work"),
+    t("Pitch", true, "2026-11-09", null, "work"),
+    t("Investors", false, "2026-11-09", null, "work"),
+    t("Call mum", true, "2026-11-09", null, "personal"),
+    t("October thing", true, "2026-10-26", "2026-10-30"),
+    t("", true, "2026-11-16"),
+  ];
+  const r = buildRecap("2026-11-01", {
+    tasks,
+    today: new Date(2026, 10, 30),
+    goals: [
+      { text: "Launch", area: "work", done: false, is_project: true, steps: [{ text: "a", done: true }, { text: "b", done: false }] },
+      { text: "Run 10k", area: "personal", done: true, is_project: false, steps: [] },
+      { text: " ", area: "habits", done: false, is_project: false, steps: [] },
+    ],
   });
-  it("is empty for a brand-new month", () => expect(reviewIsEmpty(buildReview("2026-11-01", { tasks: [] }))).toBe(true));
+  it("counts the month per week", () => {
+    expect(r.doneCount).toBe(3);
+    expect(r.planned).toBe(4);
+    expect(r.weeks.find((w) => w.start === "2026-11-09")).toMatchObject({ done: 2, planned: 3 });
+    expect(r.perDay).toBe(0.1);
+  });
+  it("finds where the focus went", () => {
+    expect(r.focus[0]).toEqual({ area: "work", share: 75 });
+    expect(r.topArea).toBe("work");
+  });
+  it("shows each 12-week goal with step progress", () => {
+    expect(r.goals).toEqual([
+      { text: "Launch", area: "work", done: false, steps: { done: 1, total: 2 } },
+      { text: "Run 10k", area: "personal", done: true, steps: null },
+    ]);
+  });
+  it("draws one star per thing done, the same every time", () => {
+    expect(r.stars).toHaveLength(3);
+    expect(buildRecap("2026-11-01", { tasks, today: new Date(2026, 10, 30) }).stars).toEqual(r.stars);
+    for (const s of r.stars) expect(s.x > 0 && s.x < 1 && s.y > 0 && s.y < 1).toBe(true);
+  });
+  it("shares as text", () => {
+    const text = recapShareText("2026-11-01", r, "Clear skies.", (a) => a.toUpperCase());
+    expect(text).toContain("My November");
+    expect(text).toContain("3 things done");
+    expect(text).toContain("Most of my focus: WORK");
+    expect(text).toContain("12-week goals: 1/2 done");
+  });
 });
 
-describe("sharing", () => {
-  const answers = { went_well: "Shipped", felt_heavy: "", try_next: "Walk" };
-  it("shares only ticked answers that have something in them", () => {
-    expect(shareableFields(["went_well", "felt_heavy"], answers)).toEqual(["went_well"]);
-    expect(shareableFields(["felt_heavy"], answers, { felt_heavy: "a/b.webm" })).toEqual(["felt_heavy"]);
-    expect(shareableFields([], answers)).toEqual([]);
-  });
-  it("writes the card as text", () => {
-    const text = shareText("2026-11-01", "Val", ["went_well"], answers);
-    expect(text).toContain("Val’s November check-in");
-    expect(text).toContain("Shipped");
-    expect(text).not.toContain("Walk");
+describe("isCheckinTime", () => {
+  it("is the nudge window", () => {
+    expect(isCheckinTime("2026-11-01", new Date(2026, 10, 29))).toBe(true);
+    expect(isCheckinTime("2026-11-01", new Date(2026, 11, 5))).toBe(true);
+    expect(isCheckinTime("2026-11-01", new Date(2026, 10, 15))).toBe(false);
+    expect(isCheckinTime("2026-10-01", new Date(2026, 11, 5))).toBe(false);
   });
 });
 
@@ -84,4 +98,18 @@ it("suggests a few upcoming times", () => {
   const times = meetupSuggestions(new Date(2026, 10, 22, 10));
   expect(times).toHaveLength(4);
   expect(times.every((d) => d > new Date(2026, 10, 22, 10))).toBe(true);
+});
+
+describe("checkinEligible", () => {
+  it("skips a month you've used the planner for less than a week", () => {
+    expect(checkinEligible("2026-11-01", { startedAt: new Date(2026, 10, 26) })).toBe(false);
+    expect(checkinEligible("2026-11-01", { startedAt: new Date(2026, 10, 20) })).toBe(true);
+    expect(nudgeFor(new Date(2026, 10, 29), never, never, { startedAt: new Date(2026, 10, 27) })).toBeNull();
+  });
+  it("skips a month that ends within ~1.5 weeks of the 12-week plan's end", () => {
+    expect(checkinEligible("2026-11-01", { quarterEnd: new Date(2026, 11, 7) })).toBe(false);
+    expect(checkinEligible("2026-11-01", { quarterEnd: new Date(2026, 10, 24) })).toBe(false);
+    expect(checkinEligible("2026-11-01", { quarterEnd: new Date(2026, 11, 20) })).toBe(true);
+  });
+  it("still checks in normally otherwise", () => expect(checkinEligible("2026-11-01")).toBe(true));
 });
