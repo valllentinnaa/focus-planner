@@ -31,6 +31,7 @@ const defaultsFor: Record<string, () => Row> = {
   quarters: () => ({ theme: "", notes: "" }),
   goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false, carry_next: false, carried_from: null }),
   goal_steps: () => ({ text: "", done: false, position: 0 }),
+  vision_items: () => ({ file_path: null, text: "", position: 0 }),
   clipboard_items: () => ({ text: "", attention: false, position: 0 }),
   people: () => ({ birth_month: null, birth_day: null, birth_year: null, notes: "", source: "manual", external_id: null, linked_user_id: null }),
   wishlist_items: () => ({ link: null, note: "", position: 0 }),

@@ -10,6 +10,28 @@ export type PickedFile = { name: string; type: AcceptedType; size: number; body:
 
 export const canPickFiles = Platform.OS === "web" && typeof document !== "undefined";
 
+export const IMAGE_TYPES = ACCEPTED_TYPES.filter((t) => t.startsWith("image/"));
+
+/** Pick one or more images (web). Files of the wrong type or over 10 MB are skipped and counted. */
+export function pickImages(): Promise<{ files: PickedFile[]; skipped: number } | null> {
+  if (!canPickFiles) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.multiple = true;
+    input.accept = IMAGE_TYPES.join(",");
+    input.onchange = () => {
+      const all = Array.from(input.files ?? []);
+      if (!all.length) return resolve(null);
+      const files = all
+        .filter((f) => (IMAGE_TYPES as readonly string[]).includes(f.type) && f.size <= MAX_FILE_BYTES)
+        .map((f) => ({ name: f.name.slice(0, 200), type: f.type as AcceptedType, size: f.size, body: f as Blob }));
+      resolve({ files, skipped: all.length - files.length });
+    };
+    input.click();
+  });
+}
+
 export function pickFile(): Promise<PickedFile | "too_big" | "wrong_type" | null> {
   if (!canPickFiles) return Promise.resolve(null);
   return new Promise((resolve) => {

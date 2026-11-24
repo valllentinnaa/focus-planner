@@ -122,6 +122,17 @@ export type ClipboardItemRow = {
   position: number;
 } & Timestamps;
 
+export type VisionItemRow = {
+  id: string;
+  user_id: string;
+  quarter_id: string;
+  kind: "image" | "text";
+  /** Image in the private vision-board bucket: "<user id>/<uuid>.<ext>". */
+  file_path: string | null;
+  text: string;
+  position: number;
+} & Timestamps;
+
 export type WishlistShareRow = { user_id: string; token: string; created_at: string };
 
 export type QuarterRow = {
@@ -190,6 +201,7 @@ export type Database = {
       gift_ideas: Table<GiftIdeaRow, "person_id" | "text">;
       wishlist_items: Table<WishlistItemRow, "text">;
       clipboard_items: Table<ClipboardItemRow, never>;
+      vision_items: Table<VisionItemRow, "quarter_id" | "kind">;
       month_checkins: Table<MonthCheckinRow, "month">;
     };
     Views: Record<string, never>;

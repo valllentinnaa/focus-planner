@@ -8,6 +8,7 @@ import { canCompleteCycle, leftoverGoals, openSteps } from "@/lib/quarter-cycle"
 import { ArrowRight, ChevronRight } from "lucide-react-native";
 import { useDisclosure } from "@/components/use-disclosure";
 import { QuarterComplete } from "@/components/quarter-complete";
+import { VisionBoard } from "@/components/vision-board";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
@@ -102,6 +103,8 @@ export default function QuarterScreen() {
       </View>
 
       {quarter ? <MonthlyThreads start={start} end={end} /> : null}
+
+      {quarter ? <VisionBoard quarterId={quarter.id} /> : null}
 
       {quarter ? <QuarterNotes id={quarter.id} /> : null}
     </Screen>
