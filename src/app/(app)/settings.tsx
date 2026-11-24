@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { useAuth } from "@/data/auth";
@@ -54,6 +54,15 @@ export default function SettingsScreen() {
         <AppearanceSection />
 
         <PagesSection />
+        <Link href="/daily-settings" asChild>
+          <Pressable style={s.navRow} accessibilityRole="link">
+            <View style={{ flex: 1 }}>
+              <SectionLabel>Daily journal</SectionLabel>
+              <Text style={s.navHint}>Choose the sections and add your own fields</Text>
+            </View>
+            <Text style={s.navArrow}>›</Text>
+          </Pressable>
+        </Link>
 
         <GoogleCalendarSection />
 
@@ -273,12 +282,15 @@ function Toggle({ label, value, onChange, color }: { label: string; value: boole
         {color ? <View style={[s.dot, { backgroundColor: color }]} /> : null}
         <Text style={s.toggleLabel} numberOfLines={1}>{label}</Text>
       </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.gold, false: colors.rule }} thumbColor={colors.paper} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.gold, false: colors.rule }} thumbColor={colors.paper} {...({ activeThumbColor: colors.paper } as object)} />
     </Pressable>
   );
 }
 
 const s = StyleSheet.create({
+  navRow: { flexDirection: "row", alignItems: "center", gap: space.md },
+  navHint: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground, marginTop: -2 },
+  navArrow: { fontFamily: fonts.sans, fontSize: 22, color: colors.gold },
   toggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
   error: { fontFamily: fonts.sans, fontSize: 13, color: colors.destructive },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: space.sm },

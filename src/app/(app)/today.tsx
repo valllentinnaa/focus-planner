@@ -2,6 +2,8 @@ import { addDays, format } from "date-fns";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useDaily, type DailyDoc } from "@/data/daily";
+import { useSettings } from "@/data/profile";
+import { BUILTIN_FIELDS, isShown, pairRows, type BuiltinKey, type CustomField } from "@/lib/daily-layout";
 import { useDayTasks, useTaskOps } from "@/data/tasks";
 import { fromISO, isISODate, mondayOf, toISO } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
@@ -13,7 +15,7 @@ import { TaskItem } from "@/components/task-item";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 
-type TextKey = keyof DailyDoc;
+type TextKey = Exclude<keyof DailyDoc, "custom">;
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -31,12 +33,32 @@ export default function TodayScreen() {
   const dayEvents = calendar.byDay[iso] ?? [];
   const ops = useTaskOps();
 
+  const { settings } = useSettings();
+  const layout = settings.dailyLayout;
+  const show = (key: BuiltinKey) => isShown(layout, key);
   const field = (key: TextKey, label: string, lines = 1) => (
-    <View style={{ flex: 1, minWidth: 0 }}>
+    <View key={key} style={{ flex: 1, minWidth: 0 }}>
       <SectionLabel>{label}</SectionLabel>
       <RuledArea lines={lines} value={doc[key]} onChangeText={(v) => patch({ [key]: v } as Partial<DailyDoc>)} />
     </View>
   );
+  const customField = (f: CustomField) => (
+    <View key={f.id} style={{ flex: 1, minWidth: 0 }}>
+      <SectionLabel>{f.label}</SectionLabel>
+      <RuledArea
+        lines={f.size === "long" ? 4 : 1}
+        value={doc.custom[f.id] ?? ""}
+        onChangeText={(v) => patch({ custom: { ...doc.custom, [f.id]: v } })}
+      />
+    </View>
+  );
+  // Right column: the small built-in fields that are on, then your own fields; two per row.
+  const sideFields = [
+    ...(["start", "sleep", "practices", "vitamins", "screenTime", "steps"] as const)
+      .filter(show)
+      .map((k) => ({ key: k, long: false, node: field(k, BUILTIN_FIELDS.find((b) => b.key === k)!.label, k === "practices" || k === "vitamins" ? 6 : 1) })),
+    ...layout.custom.map((f) => ({ key: f.id, long: f.size === "long", node: customField(f) })),
+  ];
 
   return (
     <Screen>
@@ -80,8 +102,8 @@ export default function TodayScreen() {
       <Columns>
         <Column>
           <View style={{ gap: space.xl }}>
-            {field("gratitude", "Today I'm grateful for", 4)}
-            {calendar.loading || dayEvents.length ? (
+            {show("gratitude") ? field("gratitude", "Today I'm grateful for", 4) : null}
+            {show("calendar") && (calendar.loading || dayEvents.length) ? (
               <View>
                 <SectionLabel>Calendar</SectionLabel>
                 {calendar.loading ? (
@@ -93,6 +115,7 @@ export default function TodayScreen() {
                 )}
               </View>
             ) : null}
+            {show("tasks") ? (
             <View>
               <SectionLabel>Tasks</SectionLabel>
               <View style={{ gap: 2 }}>
@@ -102,18 +125,23 @@ export default function TodayScreen() {
                 + Add item
               </GhostButton>
             </View>
+            ) : null}
           </View>
         </Column>
         <Column>
           <View style={{ gap: space.xl }}>
-            <View style={[s.pair, !wide && { flexDirection: "column" }]}>{field("start", "Start of the day")}{field("sleep", "Sleep")}</View>
-            <View style={[s.pair, !wide && { flexDirection: "column" }]}>{field("practices", "Practices", 6)}{field("vitamins", "Vitamins", 6)}</View>
-            <View style={[s.pair, !wide && { flexDirection: "column" }]}>{field("screenTime", "Screen time")}{field("steps", "Steps")}</View>
+            {pairRows(sideFields).map((row) => (
+              <View key={row.map((f) => f.key).join("+")} style={[s.pair, !wide && { flexDirection: "column" }]}>
+                {row.map((f) => f.node)}
+                {/* keep a lone short field half-width, like its neighbours */}
+                {wide && row.length === 1 && !row[0]!.long ? <View style={{ flex: 1 }} /> : null}
+              </View>
+            ))}
           </View>
         </Column>
       </Columns>
 
-      {field("notes", "Diary", 6)}
+      {show("notes") ? field("notes", "Diary", 6) : null}
     </Screen>
   );
 }

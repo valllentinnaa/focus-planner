@@ -5,7 +5,7 @@ import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/data/profile";
 import { splitMenu, type PageKey } from "@/lib/menu";
-import { alpha, colors, fonts, layout, space } from "@/theme/tokens";
+import { alpha, colors, fonts, gutterFor, layout, space } from "@/theme/tokens";
 
 const ICONS: Record<PageKey, LucideIcon> = {
   week: CalendarDays,
@@ -36,10 +36,11 @@ export function AppHeader() {
   const pathname = usePathname();
   const onToday = pathname === "/today";
   const { plusButton } = useMenu(isPhone);
+  const gutter = gutterFor(useWindowDimensions().width);
 
   return (
     <View style={[s.bar, { paddingTop: insets.top + space.sm }]} nativeID="fp-header">
-      <View style={s.inner}>
+      <View style={[s.inner, { paddingHorizontal: gutter }]}>
         <Link href="/" asChild>
           <Pressable style={s.brand}>
             <Text style={[s.brandName, isPhone && { fontSize: 20 }]}>{ownerLabel}</Text>

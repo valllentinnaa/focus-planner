@@ -21,6 +21,7 @@ export type ProfileRow = {
   gender: string | null;
   onboarded_at: string | null;
   show_clipboard: boolean;
+  daily_layout?: unknown;
 } & Timestamps;
 
 export type WeekRow = {
@@ -47,6 +48,8 @@ export type DailyEntryRow = {
   vitamins: string;
   screen_time: string;
   steps: string;
+  /** Answers to your own Daily journal fields: { [fieldId]: text }. */
+  custom?: unknown;
 } & Timestamps;
 
 export type TaskArea = "personal" | "work" | "development";

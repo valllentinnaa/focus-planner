@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform
 import { usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { noteLaunchPath } from "@/lib/planner-opening";
-import { colors, fonts, layout, space } from "@/theme/tokens";
+import { colors, fonts, gutterFor, layout, space } from "@/theme/tokens";
 import { Display, Eyebrow } from "./ui";
 import { AppHeader, BOTTOM_NAV_HEIGHT, BottomNav, useIsPhone } from "./app-header";
 
@@ -17,6 +17,7 @@ if (Platform.OS === "web" && typeof document !== "undefined" && !document.getEle
 }
 
 export function Screen({ children }: { children: ReactNode }) {
+  const gutter = useGutter();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   noteLaunchPath(pathname); // remembers only the very first screen after launch
@@ -30,7 +31,7 @@ export function Screen({ children }: { children: ReactNode }) {
         contentInsetAdjustmentBehavior="automatic"
       >
         <AppHeader />
-        <View style={s.inner}>{children}</View>
+        <View style={[s.inner, { paddingHorizontal: gutter }]}>{children}</View>
       </ScrollView>
       <BottomNav />
     </KeyboardAvoidingView>
@@ -51,6 +52,12 @@ export function PageTitle({ eyebrow, title, plain, right }: { eyebrow: string; t
       {right ? <View style={[s.titleRight, wide && { marginTop: 0 }]}>{right}</View> : null}
     </View>
   );
+}
+
+/** Side padding for the current window (see gutterFor). */
+export function useGutter() {
+  const { width } = useWindowDimensions();
+  return gutterFor(width);
 }
 
 export function useIsWide() {

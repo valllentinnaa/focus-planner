@@ -12,7 +12,7 @@ export const DEMO_USER_ID = "00000000-0000-4000-8000-000000000001";
 const PREFIX = "fp.demo.";
 
 const defaultsFor: Record<string, () => Row> = {
-  profiles: () => ({ display_name: "", gender: null, onboarded_at: null, show_daily: true, show_food: true, show_presents: true, menu_pages: ["quarter", "clipboard"], show_clipboard: true }),
+  profiles: () => ({ display_name: "", gender: null, onboarded_at: null, show_daily: true, show_food: true, show_presents: true, menu_pages: ["quarter", "clipboard"], show_clipboard: true, daily_layout: {} }),
   weeks: () => ({ focus: "", notes: "", prompt_dismissed: false, focus_task_id: null, focus_done: false }),
   daily_entries: () => ({
     gratitude: "",
@@ -24,6 +24,7 @@ const defaultsFor: Record<string, () => Row> = {
     vitamins: "",
     screen_time: "",
     steps: "",
+    custom: {},
   }),
   tasks: () => ({ text: "", done: false, area: null, task_date: null, position: 0 }),
   food_weeks: () => ({ notes: "", schedule: ["", "", "", "", "", "", ""] }),

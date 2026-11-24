@@ -29,4 +29,14 @@ export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 40 } as const;
 // `pill` is the corner radius for every button, chip, tab and toggle: 6px (not fully round).
 export const radius = { sm: 2, md: 4, pill: 6 } as const;
 
-export const layout = { maxWidth: 1040, gutter: 16, wideBreakpoint: 760 } as const;
+// The app uses the full width of the screen. Side padding grows with the screen; only very large
+// displays get a cap, so lines and columns don't stretch absurdly wide.
+export const layout = { maxWidth: 1920, gutter: 16, wideBreakpoint: 760 } as const;
+
+/** Side padding for a window width: phones 16, tablets/laptops 32, desktops 48, large 64. */
+export function gutterFor(width: number) {
+  if (width < layout.wideBreakpoint) return 16;
+  if (width < 1200) return 32;
+  if (width < 1600) return 48;
+  return 64;
+}
