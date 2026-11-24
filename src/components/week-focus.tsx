@@ -11,7 +11,7 @@ import type { TaskOps } from "@/data/tasks";
 import type { WeekDoc } from "@/data/week";
 import { colors, fonts, space } from "@/theme/tokens";
 import { FocusCard, FocusInput } from "./focus-card";
-import { CheckBox, GhostButton } from "./ui";
+import { GhostButton } from "./ui";
 
 /** Lets task rows on the Week screen show ★ and offer "Make this the week's focus". */
 export const FocusLink = createContext<{ focusTaskId: string | null; canChange: boolean; makeFocus: (t: TaskRow) => void } | null>(null);
@@ -62,21 +62,15 @@ export function WeekFocus({
 
   return (
     <FocusCard label="Focus of the week" right={focus.task ? where(focus.task) : undefined}>
-      <View style={s.row}>
-        {focus.text.trim() ? (
-          <View style={s.tick}>
-            <CheckBox size={20} checked={focus.done} onChange={tick} />
-          </View>
-        ) : null}
-        <FocusInput
+      <FocusInput
           done={focus.done}
+          onDone={tick}
           autoFocus={writeNew}
           value={focus.task ? focus.task.text : doc.focus}
           onChangeText={setText}
           onBlur={() => setWriteNew(false)}
           placeholder="What matters most this week…"
         />
-      </View>
 
       {asking ? (
         <View style={s.ask}>
@@ -126,8 +120,6 @@ function Choices({ tasks, onPick }: { tasks: TaskRow[]; onPick: (t: TaskRow) => 
 }
 
 const s = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "flex-start", gap: space.md },
-  tick: { paddingTop: 8 },
   ask: { marginTop: space.md, gap: space.sm, borderTopWidth: 1, borderTopColor: colors.rule, paddingTop: space.md },
   askTitle: { fontFamily: fonts.displayItalic, fontSize: 19, color: colors.gold },
   askActions: { flexDirection: "row", gap: space.md, alignItems: "center" },

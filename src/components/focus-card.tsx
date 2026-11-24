@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View, type StyleProp, type TextInputProps, type TextStyle } from "react-native";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
-import { RuleInput } from "./ui";
+import { CheckBox, RuleInput } from "./ui";
 
 export function FocusCard({ label, right, children }: { label: string; right?: ReactNode; children: ReactNode }) {
   return (
@@ -17,8 +17,28 @@ export function FocusCard({ label, right, children }: { label: string; right?: R
   );
 }
 
-export function FocusInput({ done, style, ...props }: TextInputProps & { done?: boolean; style?: StyleProp<TextStyle> }) {
-  return <RuleInput autoGrow {...props} style={[s.text, done && s.done, style]} />;
+/**
+ * The focus text. With onDone it gets a tick box (shown once something is written); ticking it
+ * strikes the text through.
+ */
+export function FocusInput({
+  done,
+  onDone,
+  style,
+  ...props
+}: TextInputProps & { done?: boolean; onDone?: (done: boolean) => void; style?: StyleProp<TextStyle> }) {
+  const input = <RuleInput autoGrow {...props} style={[s.text, done && s.done, style]} />;
+  if (!onDone) return input;
+  return (
+    <View style={s.row}>
+      {String(props.value ?? "").trim() ? (
+        <View style={s.tick}>
+          <CheckBox size={20} checked={!!done} onChange={onDone} />
+        </View>
+      ) : null}
+      {input}
+    </View>
+  );
 }
 
 export const focusCardStyles = StyleSheet.create({
@@ -32,5 +52,7 @@ const s = StyleSheet.create({
   label: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   right: focusCardStyles.right,
   text: { flex: 1, fontFamily: fonts.displayItalic, fontSize: 24, lineHeight: 32, color: colors.ink, paddingVertical: 2 },
+  row: { flexDirection: "row", alignItems: "flex-start", gap: space.md },
+  tick: { paddingTop: 8 },
   done: { textDecorationLine: "line-through", color: colors.mutedForeground },
 });

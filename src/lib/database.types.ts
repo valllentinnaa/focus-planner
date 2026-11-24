@@ -48,6 +48,7 @@ export type DailyEntryRow = {
   vitamins: string;
   screen_time: string;
   steps: string;
+  focus_done?: boolean;
   /** Answers to your own Daily journal fields: { [fieldId]: text }. */
   custom?: unknown;
 } & Timestamps;

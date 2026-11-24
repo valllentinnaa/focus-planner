@@ -18,7 +18,7 @@ import { TaskItem } from "@/components/task-item";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 
-type TextKey = Exclude<keyof DailyDoc, "custom">;
+type TextKey = Exclude<keyof DailyDoc, "custom" | "focusDone">;
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -100,25 +100,18 @@ export default function TodayScreen() {
       />
 
       <FocusCard label="Focus of the day" right={format(date, "MMM d")}>
-        <FocusInput value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="The one thing for today…" />
+        <FocusInput
+          value={doc.focus}
+          done={doc.focusDone}
+          onDone={(focusDone) => patch({ focusDone })}
+          onChangeText={(v) => patch(v.trim() ? { focus: v } : { focus: v, focusDone: false })}
+          placeholder="The one thing for today…"
+        />
       </FocusCard>
 
       <Columns>
         <Column>
           <View style={{ gap: space.xl }}>
-            {show("gratitude") ? field("gratitude", "Today I'm grateful for", 4) : null}
-            {show("calendar") && (calendar.loading || dayEvents.length) ? (
-              <View>
-                <SectionLabel>Calendar</SectionLabel>
-                {calendar.loading ? (
-                  <EventsLoading />
-                ) : (
-                  <View style={{ gap: 2 }}>
-                    {dayEvents.map((e) => <CalendarEventRow key={e.key} event={e} day={iso} onRemove={calendarOps.hide} />)}
-                  </View>
-                )}
-              </View>
-            ) : null}
             {show("tasks") ? (
             <View>
               <SectionLabel>Tasks</SectionLabel>
@@ -133,10 +126,23 @@ export default function TodayScreen() {
               </GhostButton>
             </View>
             ) : null}
+            {show("calendar") && (calendar.loading || dayEvents.length) ? (
+              <View>
+                <SectionLabel>Calendar</SectionLabel>
+                {calendar.loading ? (
+                  <EventsLoading />
+                ) : (
+                  <View style={{ gap: 2 }}>
+                    {dayEvents.map((e) => <CalendarEventRow key={e.key} event={e} day={iso} onRemove={calendarOps.hide} />)}
+                  </View>
+                )}
+              </View>
+            ) : null}
           </View>
         </Column>
         <Column>
           <View style={{ gap: space.xl }}>
+            {show("gratitude") ? field("gratitude", "Today I'm grateful for", 4) : null}
             {pairRows(sideFields).map((row) => (
               <View key={row.map((f) => f.key).join("+")} style={[s.pair, !wide && { flexDirection: "column" }]}>
                 {row.map((f) => f.node)}

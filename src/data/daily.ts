@@ -11,6 +11,7 @@ export type DailyDoc = {
   vitamins: string;
   screenTime: string;
   steps: string;
+  focusDone: boolean;
   /** Answers to your own fields (Settings → Daily journal). */
   custom: Record<string, string>;
 };
@@ -25,6 +26,7 @@ export const emptyDaily = (): DailyDoc => ({
   vitamins: "",
   screenTime: "",
   steps: "",
+  focusDone: false,
   custom: {},
 });
 
@@ -53,6 +55,7 @@ export function useDaily(date: string) {
             vitamins: r.vitamins,
             screenTime: r.screen_time,
             steps: r.steps,
+            focusDone: r.focus_done ?? false,
             custom: parseCustomValues(r.custom),
           }
         : emptyDaily(),
@@ -66,6 +69,7 @@ export function useDaily(date: string) {
       vitamins: d.vitamins,
       screen_time: d.screenTime,
       steps: d.steps,
+      focus_done: d.focusDone,
       custom: d.custom,
     }),
   });

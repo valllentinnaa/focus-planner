@@ -116,6 +116,17 @@ export function RuleInput({
       }}
       onFocus={(e) => {
         setFocused(true);
+        // iOS Safari often puts the cursor in front of the text when you tap into a field. If it
+        // lands at the very start of something already written, move it to the end so you can
+        // keep typing.
+        if (Platform.OS === "web") {
+          requestAnimationFrame(() => {
+            const el = box.current as unknown as HTMLInputElement | null;
+            if (!el || typeof el.setSelectionRange !== "function") return;
+            const len = el.value.length;
+            if (len > 0 && el.selectionStart === 0 && el.selectionEnd === 0) el.setSelectionRange(len, len);
+          });
+        }
         if (controlled) setDraft(startDraft(incoming));
         props.onFocus?.(e);
       }}

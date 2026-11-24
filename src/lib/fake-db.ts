@@ -25,6 +25,7 @@ const defaultsFor: Record<string, () => Row> = {
     screen_time: "",
     steps: "",
     custom: {},
+    focus_done: false,
   }),
   tasks: () => ({ text: "", done: false, area: null, task_date: null, task_time: null, position: 0 }),
   food_weeks: () => ({ notes: "", schedule: ["", "", "", "", "", "", ""] }),
