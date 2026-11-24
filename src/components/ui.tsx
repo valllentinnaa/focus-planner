@@ -1,4 +1,5 @@
 // Small "paper & ink" primitives shared by every screen.
+import { isOutsideChange, shown, startDraft, typed, type Draft } from "@/lib/draft-input";
 import { type ReactNode, useState } from "react";
 import {
   Platform,
@@ -48,16 +49,29 @@ export function RuleInput({ style, italicGold, lines, ...props }: TextInputProps
   const multiline = (lines ?? 1) > 1 || props.multiline;
   // Focus shows as a gold underline (instead of the browser's black outline box on web).
   const [focused, setFocused] = useState(false);
+  // While typing, the input keeps its own text so a saved value arriving a tick late can't
+  // overwrite letters or move the cursor (see lib/draft-input).
+  const controlled = props.value !== undefined;
+  const incoming = props.value ?? "";
+  const [draft, setDraft] = useState<Draft>(null);
+  if (controlled && isOutsideChange(draft, incoming)) setDraft(startDraft(incoming));
   return (
     <TextInput
       placeholderTextColor={alpha("mutedForeground", "99")}
       {...props}
+      value={controlled ? shown(draft, incoming) : undefined}
+      onChangeText={(t) => {
+        if (controlled) setDraft(typed(draft, incoming, t));
+        props.onChangeText?.(t);
+      }}
       onFocus={(e) => {
         setFocused(true);
+        if (controlled) setDraft(startDraft(incoming));
         props.onFocus?.(e);
       }}
       onBlur={(e) => {
         setFocused(false);
+        setDraft(null);
         props.onBlur?.(e);
       }}
       multiline={multiline}
