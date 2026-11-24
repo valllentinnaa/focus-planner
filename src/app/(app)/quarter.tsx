@@ -320,7 +320,7 @@ function QuarterNotes({ id }: { id: string }) {
     toRow: (n) => ({ notes: n.notes }),
   });
   return (
-    <View style={{ maxWidth: 640 }}>
+    <View>
       <SectionLabel>Next Q notes</SectionLabel>
       <RuledArea lines={2} value={d.doc.notes} onChangeText={(notes) => d.patch({ notes })} />
     </View>
