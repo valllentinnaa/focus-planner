@@ -4,6 +4,7 @@ import {
   cycleHeadline,
   cycleStats,
   defaultNextStart,
+  habitsForNext,
   isValidNextStart,
   leftoverGoals,
   openSteps,
@@ -101,5 +102,14 @@ describe("leftoverGoals", () => {
 
   it("carries only open project actions", () => {
     expect(openSteps([step({ text: "x" }), step({ done: true }), step({ text: " " })]).length).toBe(1);
+  });
+});
+
+describe("habitsForNext", () => {
+  it("takes written habits marked → (done or not), in order", () => {
+    const a = goal({ area: "habits", text: "Walk", carry_next: true, position: 2, done: true });
+    const b = goal({ area: "habits", text: "Read", carry_next: true, position: 1 });
+    const out = habitsForNext([a, b, goal({ area: "habits", text: "x" }), goal({ area: "habits", text: " ", carry_next: true }), goal({ area: "work", carry_next: true })]);
+    expect(out.map((g) => g.id)).toEqual([b.id, a.id]);
   });
 });

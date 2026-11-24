@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Animated, Easing, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { fromISO } from "@/lib/dates";
 import { AREAS, AREA_LABELS, type GoalWithSteps } from "@/lib/quarter-goals";
-import { CYCLE_DAYS, cycleHeadline, cycleStats, defaultNextStart, isValidNextStart } from "@/lib/quarter-cycle";
+import { CYCLE_DAYS, cycleHeadline, cycleStats, defaultNextStart, habitsForNext, isValidNextStart } from "@/lib/quarter-cycle";
 import type { QuarterRow } from "@/lib/database.types";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { DateNav } from "./date-nav";
@@ -34,6 +34,7 @@ export function QuarterComplete({
   onStartNext: (startISO: string) => Promise<unknown>;
 }) {
   const st = cycleStats(goals);
+  const carried = habitsForNext(goals).length;
   const [next, setNext] = useState(() => defaultNextStart(quarter.start_date, new Date()));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -119,6 +120,11 @@ export function QuarterComplete({
                 isoValue={next}
                 onPick={pick}
               />
+              {carried ? (
+                <Body muted style={s.hint}>
+                  {carried} habit{carried === 1 ? "" : "s"} marked → come{carried === 1 ? "s" : ""} with you.
+                </Body>
+              ) : null}
               {st.goals > st.goalsDone ? (
                 <Body muted style={s.hint}>Anything unfinished waits for you there — bring it in or let it go.</Body>
               ) : null}

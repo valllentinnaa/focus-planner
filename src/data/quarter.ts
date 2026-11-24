@@ -7,7 +7,7 @@ import { toISO, mondayOf } from "@/lib/dates";
 import type { GoalWithSteps } from "@/lib/quarter-goals";
 import { useUserId } from "./auth";
 import { newId, useItems } from "./items";
-import { openSteps, sameGoalIds } from "@/lib/quarter-cycle";
+import { habitsForNext, openSteps, sameGoalIds } from "@/lib/quarter-cycle";
 
 export function useCurrentQuarter() {
   const userId = useUserId();
@@ -49,11 +49,28 @@ export function useCurrentQuarter() {
   });
 
   // A new cycle is a new row; the latest start date is always the current cycle.
+  // Habits marked → come along: fresh (not done) copies, still marked, and the old ones stop
+  // showing as "unfinished from before".
   const startNext = useMutation({
-    mutationFn: async (start_date: string) => {
+    mutationFn: async ({ start_date, goals }: { start_date: string; goals: GoalWithSteps[] }) => {
       const { data, error } = await rawDb.from("quarters").insert({ start_date, notes: "" }).select("*").single();
       if (error) throw error;
-      return data as QuarterRow;
+      const row = data as QuarterRow;
+      for (const [i, h] of habitsForNext(goals).entries()) {
+        const r = await rawDb.from("goals").insert({
+          id: newId(),
+          quarter_id: row.id,
+          area: "habits",
+          text: h.text.trim(),
+          is_project: h.is_project,
+          carry_next: true,
+          position: i,
+        });
+        if (r.error) throw r.error;
+        const a = await rawDb.from("goals").update({ archived: true }).eq("id", h.id);
+        if (a.error) throw a.error;
+      }
+      return row;
     },
     onSuccess: (row) => {
       qc.setQueryData(queryKey, row);
@@ -66,7 +83,7 @@ export function useCurrentQuarter() {
     loading: query.isPending,
     error: query.error,
     save: upsert.mutate,
-    startNext: startNext.mutateAsync,
+    startNext: (start_date: string, goals: GoalWithSteps[]) => startNext.mutateAsync({ start_date, goals }),
     starting: startNext.isPending,
   };
 }

@@ -28,7 +28,7 @@ const defaultsFor: Record<string, () => Row> = {
   food_weeks: () => ({ notes: "", schedule: ["", "", "", "", "", "", ""] }),
   food_items: () => ({ done: false, position: 0 }),
   quarters: () => ({ theme: "", notes: "" }),
-  goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false }),
+  goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false, carry_next: false }),
   goal_steps: () => ({ text: "", done: false, position: 0 }),
   clipboard_items: () => ({ text: "", attention: false, position: 0 }),
   people: () => ({ birth_month: null, birth_day: null, birth_year: null, notes: "", source: "manual", external_id: null, linked_user_id: null }),

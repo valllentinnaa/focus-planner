@@ -143,6 +143,8 @@ export type GoalRow = {
   position: number;
   /** Unfinished goal that was brought into a later cycle or let go — no longer offered. */
   archived?: boolean;
+  /** Copy into the next 12W cycle when it starts (used for habits). */
+  carry_next?: boolean;
 } & Timestamps;
 
 export type GoalStepRow = {

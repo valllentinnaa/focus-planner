@@ -5,6 +5,7 @@ import { useCurrentQuarter, useGoals, useOpenGoals } from "@/data/quarter";
 import { fromISO, mondayOf, toISO } from "@/lib/dates";
 import { AREAS, AREA_LABELS, type GoalWithSteps } from "@/lib/quarter-goals";
 import { canCompleteCycle, leftoverGoals, openSteps } from "@/lib/quarter-cycle";
+import { ArrowRight } from "lucide-react-native";
 import { QuarterComplete } from "@/components/quarter-complete";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, useIsWide } from "@/components/screen";
@@ -65,7 +66,7 @@ export default function QuarterScreen() {
           quarter={quarter}
           goals={goals}
           onClose={() => setCompleting(false)}
-          onStartNext={startNext}
+          onStartNext={(iso) => startNext(iso, goals)}
         />
       ) : null}
 
@@ -91,6 +92,19 @@ export default function QuarterScreen() {
                       >
                         <Text style={[s.icon, g.is_project && { color: colors.gold, opacity: 1 }]}>▣</Text>
                       </GhostButton>
+                      {area === "habits" ? (
+                        <GhostButton
+                          accessibilityLabel={g.carry_next ? "Don't take into the next 12W" : "Also take into the next 12W"}
+                          onPress={() => goalOps.update(g.id, { carry_next: !g.carry_next })}
+                        >
+                          <ArrowRight
+                            size={14}
+                            strokeWidth={g.carry_next ? 2.25 : 1.75}
+                            color={g.carry_next ? colors.gold : colors.mutedForeground}
+                            style={{ opacity: g.carry_next ? 1 : 0.5 }}
+                          />
+                        </GhostButton>
+                      ) : null}
                       <GhostButton accessibilityLabel="Remove" onPress={() => goalOps.remove(g.id)}><Text style={s.x}>✕</Text></GhostButton>
                     </View>
                     {g.is_project ? (

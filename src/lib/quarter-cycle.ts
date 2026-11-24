@@ -91,5 +91,11 @@ export function sameGoalIds(goals: Archivable[], g: Archivable, currentQuarterId
     .map((x) => x.id);
 }
 
+/** Habits marked → that go into the next cycle by themselves (written ones only, in their order). */
+export const habitsForNext = (goals: GoalWithSteps[]) =>
+  goals
+    .filter((g) => g.area === "habits" && g.carry_next && g.text.trim())
+    .sort((a, b) => a.position - b.position);
+
 /** The project actions worth carrying with a goal: written and not done. */
 export const openSteps = (steps: GoalStepRow[]) => steps.filter((s) => s.text.trim() && !s.done);
