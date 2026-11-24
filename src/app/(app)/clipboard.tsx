@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useClipboard } from "@/data/clipboard";
 import { dateChoices } from "@/lib/clipboard";
-import { fromISO, isISODate } from "@/lib/dates";
+import { fromISO, maskDMY, parseDMY } from "@/lib/dates";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Hint, PageTitle, Screen } from "@/components/screen";
 import { Display, GhostButton, RuleInput } from "@/components/ui";
@@ -96,15 +96,20 @@ function DatePicker({ onPick, onClose }: { onPick: (iso: string) => void; onClos
           </View>
           <RuleInput
             value={typed}
-            onChangeText={setTyped}
-            placeholder="Or type a date: yyyy-mm-dd"
+            onChangeText={(v) => setTyped(maskDMY(v, typed))}
+            placeholder="Or type a date: dd/mm/yyyy"
+            keyboardType="numbers-and-punctuation"
             autoCapitalize="none"
-            onSubmitEditing={() => isISODate(typed) && onPick(typed)}
+            maxLength={10}
+            onSubmitEditing={() => {
+              const iso = parseDMY(typed);
+              if (iso) onPick(iso);
+            }}
             style={{ marginTop: space.lg }}
           />
           <View style={s.actions}>
             <GhostButton onPress={onClose}>Cancel</GhostButton>
-            {isISODate(typed) ? <GhostButton onPress={() => onPick(typed)}>Move</GhostButton> : null}
+            {parseDMY(typed) ? <GhostButton onPress={() => onPick(parseDMY(typed)!)}>Move</GhostButton> : null}
           </View>
         </Pressable>
       </Pressable>

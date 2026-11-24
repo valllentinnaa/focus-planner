@@ -2,11 +2,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { rawDb } from "@/lib/supabase";
-import type { QuarterRow } from "@/lib/database.types";
+import type { GoalRow, QuarterRow } from "@/lib/database.types";
 import { toISO, mondayOf } from "@/lib/dates";
 import type { GoalWithSteps } from "@/lib/quarter-goals";
 import { useUserId } from "./auth";
-import { useItems } from "./items";
+import { newId, useItems } from "./items";
+import { openSteps, sameGoalIds } from "@/lib/quarter-cycle";
 
 export function useCurrentQuarter() {
   const userId = useUserId();
@@ -47,7 +48,27 @@ export function useCurrentQuarter() {
     onSuccess: (row) => qc.setQueryData(queryKey, row),
   });
 
-  return { quarter: query.data ?? null, loading: query.isPending, error: query.error, save: upsert.mutate };
+  // A new cycle is a new row; the latest start date is always the current cycle.
+  const startNext = useMutation({
+    mutationFn: async (start_date: string) => {
+      const { data, error } = await rawDb.from("quarters").insert({ start_date, notes: "" }).select("*").single();
+      if (error) throw error;
+      return data as QuarterRow;
+    },
+    onSuccess: (row) => {
+      qc.setQueryData(queryKey, row);
+      qc.invalidateQueries({ queryKey: ["goals"] });
+    },
+  });
+
+  return {
+    quarter: query.data ?? null,
+    loading: query.isPending,
+    error: query.error,
+    save: upsert.mutate,
+    startNext: startNext.mutateAsync,
+    starting: startNext.isPending,
+  };
 }
 
 export function useGoals(quarterId: string | null) {
@@ -58,4 +79,64 @@ export function useGoals(quarterId: string | null) {
     [goals.items, steps.items],
   );
   return { goals: withSteps, loading: goals.loading || steps.loading, goalOps: goals, stepOps: steps };
+}
+
+type OpenGoal = GoalWithSteps & { archived?: boolean | null };
+
+/**
+ * Every unfinished goal across all cycles (the 12W page filters out the current one), plus
+ * bringing one into the current cycle (with its open actions) or letting it go.
+ */
+export function useOpenGoals(enabled: boolean) {
+  const userId = useUserId();
+  const qc = useQueryClient();
+  const queryKey = useMemo(() => ["goals", userId, "open-all"] as const, [userId]);
+  const goals = useQuery({
+    queryKey,
+    enabled: !!userId && enabled,
+    queryFn: async () => {
+      const { data, error } = await rawDb.from("goals").select("*").eq("done", false);
+      if (error) throw error;
+      return (data ?? []) as (GoalRow & { archived?: boolean | null })[];
+    },
+  });
+  const steps = useItems({ table: "goal_steps", filters: {}, orderBy: ["position", "created_at"], enabled });
+  const withSteps = useMemo<OpenGoal[]>(
+    () => (goals.data ?? []).map((g) => ({ ...g, steps: steps.items.filter((s) => s.goal_id === g.id) })),
+    [goals.data, steps.items],
+  );
+
+  const archive = async (ids: string[]) => {
+    qc.setQueryData<GoalRow[]>(queryKey, (cur) => (cur ?? []).map((g) => (ids.includes(g.id) ? { ...g, archived: true } : g)));
+    for (const id of ids) {
+      const { error } = await rawDb.from("goals").update({ archived: true }).eq("id", id);
+      if (error) {
+        qc.invalidateQueries({ queryKey });
+        throw error;
+      }
+    }
+  };
+
+  /** Let go: it stops being offered, and stays as it was in its old cycle. */
+  const letGo = (g: OpenGoal, currentQuarterId: string) => archive(sameGoalIds(withSteps, g, currentQuarterId));
+
+  /** Bring in: a fresh copy in the current cycle (same area; open actions for a project). */
+  const bringIn = async (g: OpenGoal, currentQuarterId: string, position: number) => {
+    const id = newId();
+    const { error } = await rawDb
+      .from("goals")
+      .insert({ id, quarter_id: currentQuarterId, area: g.area, text: g.text.trim(), is_project: g.is_project, position });
+    if (error) throw error;
+    // Sequential on purpose: each action needs the goal row to exist first.
+    const carry = g.is_project ? openSteps(g.steps) : [];
+    for (const [i, st] of carry.entries()) {
+      const r = await rawDb.from("goal_steps").insert({ id: newId(), goal_id: id, text: st.text, position: i });
+      if (r.error) throw r.error;
+    }
+    await archive(sameGoalIds(withSteps, g, currentQuarterId));
+    await qc.invalidateQueries({ queryKey: ["goals"] });
+    await qc.invalidateQueries({ queryKey: ["goal_steps"] });
+  };
+
+  return { goals: withSteps, loading: goals.isPending, letGo, bringIn };
 }

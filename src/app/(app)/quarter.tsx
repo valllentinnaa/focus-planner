@@ -1,20 +1,23 @@
 import { addDays, format } from "date-fns";
 import { Fragment, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useCurrentQuarter, useGoals } from "@/data/quarter";
+import { useCurrentQuarter, useGoals, useOpenGoals } from "@/data/quarter";
 import { fromISO, mondayOf, toISO } from "@/lib/dates";
-import { AREAS, AREA_LABELS } from "@/lib/quarter-goals";
+import { AREAS, AREA_LABELS, type GoalWithSteps } from "@/lib/quarter-goals";
+import { canCompleteCycle, leftoverGoals, openSteps } from "@/lib/quarter-cycle";
+import { QuarterComplete } from "@/components/quarter-complete";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
-import { BlankRows, Body, CheckBox, GhostButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
+import { BlankRows, Body, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
 import { useDocument } from "@/data/document";
 import { useCheckinsBetween } from "@/data/checkins";
 import { monthKey } from "@/lib/checkin";
 
 export default function QuarterScreen() {
   const wide = useIsWide();
-  const { quarter, loading, save } = useCurrentQuarter();
+  const { quarter, loading, save, startNext } = useCurrentQuarter();
+  const [completing, setCompleting] = useState(false);
   const { goals, goalOps, stepOps } = useGoals(quarter?.id ?? null);
   const [focusGoal, setFocusGoal] = useState<string | null>(null);
   const addGoal = (area: (typeof AREAS)[number], position: number) => {
@@ -42,16 +45,33 @@ export default function QuarterScreen() {
         eyebrow="12 Weeks"
         title="Q Plan"
         right={
-          <DateNav
+          <View style={s.titleRight}>
+            <DateNav
               printable
-            label={`${format(start, "MMM d")}  →  ${format(end, "MMM d, yyyy")}`}
-            isoValue={quarter?.start_date ?? toISO(start)}
-            onPick={(iso) => save({ start_date: iso })}
-          />
+              label={`${format(start, "MMM d")}  →  ${format(end, "MMM d, yyyy")}`}
+              isoValue={quarter?.start_date ?? toISO(start)}
+              onPick={(iso) => save({ start_date: iso })}
+            />
+            {quarter && canCompleteCycle(quarter.start_date, new Date()) ? (
+              <OutlineButton gold onPress={() => setCompleting(true)}>Complete 12W</OutlineButton>
+            ) : null}
+          </View>
         }
       />
 
+      {quarter && completing ? (
+        <QuarterComplete
+          visible
+          quarter={quarter}
+          goals={goals}
+          onClose={() => setCompleting(false)}
+          onStartNext={startNext}
+        />
+      ) : null}
+
       {quarter ? <QuarterTheme id={quarter.id} /> : null}
+
+      {quarter ? <Leftovers quarterId={quarter.id} current={goals} /> : null}
 
       <View style={[s.cols, !wide && { flexDirection: "column" }]}>
         {AREAS.map((area) => {
@@ -101,6 +121,76 @@ export default function QuarterScreen() {
 
       {quarter ? <QuarterNotes id={quarter.id} /> : null}
     </Screen>
+  );
+}
+
+/**
+ * Unfinished goals from earlier 12W cycles. Bring one in (it joins this cycle, with its open
+ * actions) or let it go (it stays in its old cycle and stops being offered).
+ */
+function Leftovers({ quarterId, current }: { quarterId: string; current: GoalWithSteps[] }) {
+  const open = useOpenGoals(true);
+  const [hidden, setHidden] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const list = leftoverGoals(open.goals, quarterId);
+  if (!list.length) return null;
+
+  const run = async (id: string, fn: () => Promise<unknown>) => {
+    setBusy(id);
+    setError("");
+    try {
+      await fn();
+    } catch {
+      setError("Couldn't save that. Check your connection and try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <View style={s.leftovers}>
+      <SectionLabel
+        right={
+          <GhostButton onPress={() => setHidden(!hidden)}>{hidden ? `Show ${list.length}` : "Hide"}</GhostButton>
+        }
+      >
+        Unfinished from before
+      </SectionLabel>
+      {hidden ? null : (
+        <View style={{ gap: space.sm }}>
+          <Body muted style={{ fontSize: 13 }}>Still matters? Bring it into these 12 weeks. If not, let it go.</Body>
+          {list.map((g) => {
+            const steps = g.is_project ? openSteps(g.steps).length : 0;
+            return (
+              <View key={g.id} style={[s.leftRow, busy === g.id && { opacity: 0.5 }]}>
+                <Text style={s.leftArea}>{AREA_LABELS[g.area]}</Text>
+                <Text style={s.leftText} numberOfLines={2}>
+                  {g.is_project ? <Text style={{ color: colors.gold }}>▣ </Text> : null}
+                  {g.text.trim()}
+                  {steps ? <Text style={s.leftMeta}>  · {steps} open action{steps === 1 ? "" : "s"}</Text> : null}
+                </Text>
+                <View style={s.leftActions}>
+                  <OutlineButton
+                    gold
+                    disabled={!!busy}
+                    onPress={() =>
+                      run(g.id, () => open.bringIn(g, quarterId, current.filter((c) => c.area === g.area).length))
+                    }
+                  >
+                    Bring in
+                  </OutlineButton>
+                  <GhostButton disabled={!!busy} onPress={() => run(g.id, () => open.letGo(g, quarterId))}>
+                    Let go
+                  </GhostButton>
+                </View>
+              </View>
+            );
+          })}
+          {error ? <Text style={s.error}>{error}</Text> : null}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -170,6 +260,14 @@ function QuarterNotes({ id }: { id: string }) {
 }
 
 const s = StyleSheet.create({
+  titleRight: { flexDirection: "row", alignItems: "center", gap: space.md, flexWrap: "wrap", justifyContent: "flex-end" },
+  leftovers: { borderWidth: 1, borderStyle: "dashed", borderColor: colors.gold, borderRadius: 4, padding: space.lg, marginBottom: space.xl },
+  leftRow: { flexDirection: "row", alignItems: "center", gap: space.md, flexWrap: "wrap", paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: colors.rule },
+  leftArea: { width: 150, fontFamily: fonts.sans, fontSize: 10, letterSpacing: 1.6, textTransform: "uppercase", color: colors.mutedForeground },
+  leftText: { flex: 1, minWidth: 160, fontFamily: fonts.sans, fontSize: 15, color: colors.ink },
+  leftMeta: { fontSize: 12, color: colors.mutedForeground },
+  leftActions: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  error: { fontFamily: fonts.sans, fontSize: 12, color: colors.destructive },
   themeCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg },
   themeHead: { marginBottom: 4 },
   themeLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },

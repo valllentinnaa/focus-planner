@@ -141,6 +141,8 @@ export type GoalRow = {
   done: boolean;
   is_project: boolean;
   position: number;
+  /** Unfinished goal that was brought into a later cycle or let go — no longer offered. */
+  archived?: boolean;
 } & Timestamps;
 
 export type GoalStepRow = {

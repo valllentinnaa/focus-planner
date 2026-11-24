@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Printer } from "lucide-react-native";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import { isISODate } from "@/lib/dates";
+import { maskDMY, parseDMY, toDMY } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
 import { GhostButton, RuleInput } from "./ui";
 
@@ -27,9 +27,11 @@ export function DateNav({
   printable?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [text, setText] = useState(isoValue);
+  const [text, setText] = useState(() => toDMY(isoValue));
+  const parsed = parseDMY(text);
+  const invalid = !!text.trim() && !parsed;
   const commit = () => {
-    if (isISODate(text)) onPick(text);
+    if (parsed) onPick(parsed);
     setEditing(false);
   };
   return (
@@ -40,12 +42,14 @@ export function DateNav({
         <RuleInput
           autoFocus
           value={text}
-          onChangeText={setText}
+          onChangeText={(v) => setText(maskDMY(v, text))}
           onBlur={commit}
           onSubmitEditing={commit}
-          placeholder="yyyy-mm-dd"
+          placeholder="dd/mm/yyyy"
+          keyboardType="numbers-and-punctuation"
           autoCapitalize="none"
-          style={{ width: 120, fontSize: 13 }}
+          maxLength={10}
+          style={[{ width: 120, fontSize: 13 }, invalid && { color: colors.destructive }]}
         />
       ) : (
         <Text style={s.label}>{label}</Text>
@@ -53,7 +57,7 @@ export function DateNav({
       <GhostButton
         accessibilityLabel="Edit date"
         onPress={() => {
-          setText(isoValue);
+          setText(toDMY(isoValue));
           setEditing((v) => !v);
         }}
       >

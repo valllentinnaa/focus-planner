@@ -1,4 +1,4 @@
-import { monthWeeks, quarterWeekNumber, toISO, weekKey, inWeek } from "./dates";
+import { maskDMY, monthWeeks, parseDMY, quarterWeekNumber, toDMY, toISO, weekKey, inWeek } from "./dates";
 
 describe("quarterWeekNumber", () => {
   const start = "2026-01-05"; // a Monday
@@ -37,5 +37,28 @@ describe("monthWeeks", () => {
     expect(inWeek("2026-10-03", weeks[0]!)).toBe(true);
     expect(inWeek("2026-10-05", weeks[0]!)).toBe(false);
     expect(inWeek("2026-10-05", weeks[1]!)).toBe(true);
+  });
+});
+
+describe("day-first dates", () => {
+  it("shows dd/mm/yyyy", () => {
+    expect(toDMY("2026-09-15")).toBe("15/09/2026");
+    expect(toDMY("nope")).toBe("");
+  });
+  it("reads the ways people type it", () => {
+    for (const t of ["15/09/2026", "15.9.2026", "15-09-26", "15 9 2026", "15092026", " 15/09/2026 ", "2026-09-15"])
+      expect(parseDMY(t)).toBe("2026-09-15");
+  });
+  it("rejects dates that don't exist or aren't dates", () => {
+    for (const t of ["31/02/2026", "00/01/2026", "15/13/2026", "", "15/09", "abc", "2026/09/15"]) expect(parseDMY(t)).toBeNull();
+    expect(parseDMY("29/02/2028")).toBe("2028-02-29");
+  });
+  it("adds slashes while typing digits, not while deleting", () => {
+    expect(maskDMY("15", "1")).toBe("15/");
+    expect(maskDMY("15/09", "15/0")).toBe("15/09/");
+    expect(maskDMY("15/09/2026", "15/09/202")).toBe("15/09/2026");
+    expect(maskDMY("15092026", "1509202")).toBe("15/09/2026");
+    expect(maskDMY("15/0", "15/09")).toBe("15/0");
+    expect(maskDMY("15.9", "15.")).toBe("15.9");
   });
 });
