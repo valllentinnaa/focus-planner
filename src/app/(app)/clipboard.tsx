@@ -27,7 +27,7 @@ export default function ClipboardScreen() {
   return (
     <Screen>
       <PageTitle eyebrow="Quick dump" title="Clipboard" />
-      <View style={{ maxWidth: 640, width: "100%" }}>
+      <View style={{ width: "100%" }}>
         <RuleInput
           value={draft}
           onChangeText={setDraft}

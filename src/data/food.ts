@@ -2,6 +2,7 @@ import { parseSchedule } from "@/lib/shapes";
 import { useDocument } from "./document";
 import { shoppingChanges, shoppingSummary } from "@/lib/shopping";
 import { useItems } from "./items";
+import type { FoodItemRow } from "@/lib/database.types";
 
 export type FoodDoc = { notes: string; schedule: string[] };
 
@@ -21,6 +22,19 @@ export function useFoodItems(weekStart: string) {
     filters: { week_start: weekStart },
     orderBy: ["position", "created_at"],
   });
+}
+
+/** Cooking items planned for a day (day boxes, Daily journal). Shares the Food tab's cache. */
+export function useMeals(weekStart: string, enabled = true) {
+  const { items, update } = useItems({
+    table: "food_items",
+    filters: { week_start: weekStart },
+    orderBy: ["position", "created_at"],
+    enabled,
+  });
+  const byDay: Record<string, FoodItemRow[]> = {};
+  for (const it of items) if (it.list === "cooking" && it.cook_date) (byDay[it.cook_date] ??= []).push(it);
+  return { byDay, setDone: (id: string, done: boolean) => update(id, { done }) };
 }
 
 /** The week's shopping list as a single line (Week → Personal life). Shares the Food tab's cache. */

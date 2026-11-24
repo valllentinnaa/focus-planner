@@ -1,5 +1,5 @@
 // Small "paper & ink" primitives shared by every screen.
-import { isOutsideChange, shown, startDraft, typed, type Draft } from "@/lib/draft-input";
+import { isOutsideChange, seenEcho, shown, startDraft, typed, type Draft } from "@/lib/draft-input";
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import {
   Platform,
@@ -81,7 +81,10 @@ export function RuleInput({
   const controlled = props.value !== undefined;
   const incoming = props.value ?? "";
   const [draft, setDraft] = useState<Draft>(null);
-  if (controlled && isOutsideChange(draft, incoming)) setDraft(startDraft(incoming));
+  if (controlled && draft) {
+    if (isOutsideChange(draft, incoming)) setDraft(startDraft(incoming));
+    else if (seenEcho(draft, incoming) !== draft) setDraft(seenEcho(draft, incoming));
+  }
   const text = controlled ? shown(draft, incoming) : undefined;
   useEffect(() => {
     if (!autoGrow || Platform.OS !== "web") return;

@@ -3,6 +3,8 @@ import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useDaily, type DailyDoc } from "@/data/daily";
 import { useSettings } from "@/data/profile";
+import { useMeals } from "@/data/food";
+import { MealRow } from "@/components/meal-row";
 import { BUILTIN_FIELDS, isShown, pairRows, type BuiltinKey, type CustomField } from "@/lib/daily-layout";
 import { useDayTasks, useTaskOps } from "@/data/tasks";
 import { fromISO, isISODate, mondayOf, toISO } from "@/lib/dates";
@@ -34,6 +36,7 @@ export default function TodayScreen() {
   const ops = useTaskOps();
 
   const { settings } = useSettings();
+  const meals = useMeals(toISO(monday), settings.showFood);
   const layout = settings.dailyLayout;
   const show = (key: BuiltinKey) => isShown(layout, key);
   const field = (key: TextKey, label: string, lines = 1) => (
@@ -120,6 +123,9 @@ export default function TodayScreen() {
               <SectionLabel>Tasks</SectionLabel>
               <View style={{ gap: 2 }}>
                 {tasks.map((t) => <TaskItem key={t.id} task={t} ops={ops} />)}
+                {(settings.showFood ? (meals.byDay[iso] ?? []) : []).map((m) => (
+                  <MealRow key={m.id} meal={m} onDone={(done) => meals.setDone(m.id, done)} />
+                ))}
               </View>
               <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, toISO(monday))} style={{ marginTop: 6 }}>
                 + Add item

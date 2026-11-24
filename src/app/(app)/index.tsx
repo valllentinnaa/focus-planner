@@ -13,7 +13,7 @@ import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { ShoppingLine } from "@/components/shopping-line";
 import { dayBoxTake } from "@/lib/day-box";
 import { dayAgenda } from "@/lib/task-time";
-import type { TaskRow } from "@/lib/database.types";
+import type { FoodItemRow, TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
 import { claimLaunchOpening, resolveOpening } from "@/lib/planner-opening";
 import { AREAS, AREA_LABELS } from "@/lib/tasks";
@@ -22,6 +22,8 @@ import { PageTitle, Screen, SwipePager, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
 import { BlankRows, GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
+import { MealRow } from "@/components/meal-row";
+import { useMeals } from "@/data/food";
 import { FocusLink, WeekFocus } from "@/components/week-focus";
 import { canChangeFocus, resolveFocus } from "@/lib/week-focus";
 import { DropZone } from "@/components/drag";
@@ -62,6 +64,7 @@ export default function WeekScreen() {
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
   const calendar = useCalendarEvents(key, toISO(weekEnd));
   const calendarOps = useCalendarOps();
+  const meals = useMeals(key, settings.showFood);
 
   const byArea = useMemo(() => {
     const m: Record<string, TaskRow[]> = { personal: [], work: [], development: [] };
@@ -180,6 +183,8 @@ export default function WeekScreen() {
                   events={calendar.byDay[iso] ?? []}
                   eventsLoading={calendar.loading}
                   onRemoveEvent={calendarOps.hide}
+                  meals={settings.showFood ? (meals.byDay[iso] ?? []) : []}
+                  onMealDone={meals.setDone}
                   ops={ops}
                   weekStart={key}
                   wide={wide}
@@ -207,7 +212,7 @@ export default function WeekScreen() {
 }
 
 /** A day box: its focus line (shared with the Daily journal) and its scheduled tasks. */
-function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEvent, ops, weekStart, wide, onOpen }: {
+function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEvent, meals, onMealDone, ops, weekStart, wide, onOpen }: {
   label: string;
   iso: string;
   isToday: boolean;
@@ -215,6 +220,9 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
   events: DayEvent[];
   eventsLoading: boolean;
   onRemoveEvent: (key: string) => void;
+  /** Cooking-list items planned for this day (Food). */
+  meals: FoodItemRow[];
+  onMealDone: (id: string, done: boolean) => void;
   ops: TaskOps;
   weekStart: string;
   wide: boolean;
@@ -222,7 +230,7 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
 }) {
   const day = useDaily(iso);
   // Events and timed tasks in time order ("14:00 …"), then the rest.
-  const fit = dayBoxTake(dayAgenda(events, tasks));
+  const fit = dayBoxTake([...dayAgenda(events, tasks), ...meals.map((meal) => ({ kind: "meal" as const, meal }))]);
   return (
     <DropZone
       id={`day-${iso}`}
@@ -239,7 +247,9 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
       {eventsLoading ? <EventsLoading /> : null}
       <View style={{ gap: 2 }}>
         {fit.shown.map((item) =>
-          item.kind === "event" ? (
+          item.kind === "meal" ? (
+            <MealRow key={item.meal.id} meal={item.meal} compact onDone={(done) => onMealDone(item.meal.id, done)} />
+          ) : item.kind === "event" ? (
             <CalendarEventRow key={item.event.key} event={item.event} day={iso} onRemove={onRemoveEvent} />
           ) : (
             <TaskItem key={item.task.id} task={item.task} ops={ops} compact draggable inDay />

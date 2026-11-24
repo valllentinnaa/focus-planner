@@ -81,6 +81,8 @@ export type FoodItemRow = {
   text: string;
   done: boolean;
   position: number;
+  /** Cooking list only: the day of the week it's planned for. */
+  cook_date?: string | null;
 } & Timestamps;
 
 export type PersonRow = {

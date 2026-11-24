@@ -1,12 +1,14 @@
 import { addDays, addWeeks, format } from "date-fns";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { CalendarDays, X } from "lucide-react-native";
+import { MealRow } from "@/components/meal-row";
 import { useFoodItems, useFoodWeek } from "@/data/food";
-import { fromISO, mondayOf, weekKey } from "@/lib/dates";
-import { colors, fonts, space } from "@/theme/tokens";
+import { fromISO, mondayOf, toISO, weekKey } from "@/lib/dates";
+import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Columns, Column, PageTitle, Screen } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
-import { Body, CheckBox, GhostButton, OutlineButton, Rule, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
+import { Body, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 
 const LISTS = [
   { key: "shopping", label: "Shopping list" },
@@ -24,12 +26,19 @@ export default function FoodScreen() {
   const { items, add, update, remove } = useFoodItems(key);
   const [drafts, setDrafts] = useState<Record<string, string>>({ shopping: "", cooking: "" });
 
-  const addItem = (list: "shopping" | "cooking") => {
-    const text = (drafts[list] ?? "").trim();
+  const addText = (list: "shopping" | "cooking", raw: string) => {
+    const text = raw.trim().slice(0, 300);
     if (!text) return;
     add({ week_start: key, list, text, position: items.filter((i) => i.list === list).length });
+  };
+  const addItem = (list: "shopping" | "cooking") => {
+    addText(list, drafts[list] ?? "");
     setDrafts({ ...drafts, [list]: "" });
   };
+  // Cooking item whose day is being chosen.
+  const [picking, setPicking] = useState<string | null>(null);
+  const pickingItem = items.find((i) => i.id === picking) ?? null;
+  const mealsByDay = (iso: string) => items.filter((i) => i.list === "cooking" && i.cook_date === iso);
 
   return (
     <Screen>
@@ -70,14 +79,26 @@ export default function FoodScreen() {
                 <View key={it.id} style={s.row}>
                   <CheckBox size={18} checked={it.done} onChange={(done) => update(it.id, { done })} />
                   <Body style={[{ flex: 1 }, it.done && s.done]}>{it.text}</Body>
+                  {list.key === "cooking" ? (
+                    <Pressable
+                      accessibilityLabel={it.cook_date ? `Cooking on ${format(fromISO(it.cook_date), "EEEE")}. Change day` : "Choose a day"}
+                      onPress={() => setPicking(it.id)}
+                      hitSlop={6}
+                      style={({ pressed }) => [it.cook_date ? s.dayTag : s.dayBtn, pressed && { opacity: 0.6 }]}
+                    >
+                      {it.cook_date ? (
+                        <Text style={s.dayTagText}>{format(fromISO(it.cook_date), "EEE")}</Text>
+                      ) : (
+                        <CalendarDays size={15} color={colors.gold} strokeWidth={1.75} />
+                      )}
+                    </Pressable>
+                  ) : null}
                   <GhostButton accessibilityLabel="Remove" onPress={() => remove(it.id)}><Text style={s.x}>✕</Text></GhostButton>
                 </View>
               ))}
-              {Array.from({ length: Math.max(0, 4 - rows.length) }).map((_, i) => (
-                <View key={`blank-${i}`} style={s.row}>
-                  <CheckBox size={18} checked={false} faint />
-                  <View style={{ flex: 1 }}><Rule dashed /></View>
-                </View>
+              {/* Empty rows you can write in: type and press Enter (or click away) to add. */}
+              {Array.from({ length: Math.max(1, 4 - rows.length) }).map((_, i) => (
+                <BlankItem key={`blank-${list.key}-${i}`} onAdd={(text) => addText(list.key, text)} />
               ))}
             </Column>
           );
@@ -86,21 +107,72 @@ export default function FoodScreen() {
 
       <View>
         <SectionLabel>Cooking schedule</SectionLabel>
-        {DAYS.map((d, i) => (
-          <View key={d} style={s.schedRow}>
-            <Text style={s.dayShort}>{d}</Text>
-            <Text style={s.dayLong}>{DAY_NAMES[i]}</Text>
-            <RuleInput
-              value={doc.schedule[i] ?? ""}
-              onChangeText={(v) => patch((cur) => ({ ...cur, schedule: cur.schedule.map((x, j) => (j === i ? v : x)) }))}
-              placeholder="What's cooking…"
-              style={{ flex: 1 }}
-            />
-          </View>
-        ))}
+        {DAYS.map((d, i) => {
+          const meals = mealsByDay(toISO(addDays(weekStart, i)));
+          return (
+            <View key={d} style={s.schedRow}>
+              <Text style={s.dayShort}>{d}</Text>
+              <Text style={s.dayLong}>{DAY_NAMES[i]}</Text>
+              <View style={{ flex: 1 }}>
+                {meals.map((m) => (
+                  <MealRow key={m.id} meal={m} onDone={(done) => update(m.id, { done })} />
+                ))}
+                <RuleInput
+                  value={doc.schedule[i] ?? ""}
+                  onChangeText={(v) => patch((cur) => ({ ...cur, schedule: cur.schedule.map((x, j) => (j === i ? v : x)) }))}
+                  placeholder={meals.length ? "Anything else…" : "What's cooking…"}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            </View>
+          );
+        })}
+
+      <Modal visible={!!pickingItem} transparent animationType="fade" onRequestClose={() => setPicking(null)}>
+        <Pressable style={s.backdrop} onPress={() => setPicking(null)}>
+          <Pressable style={s.sheet}>
+            <View style={s.sheetHead}>
+              <Text style={s.sheetTitle} numberOfLines={1}>{pickingItem ? `Cook “${pickingItem.text}”` : ""}</Text>
+              <Pressable accessibilityLabel="Close" hitSlop={10} onPress={() => setPicking(null)}>
+                <X size={18} color={colors.mutedForeground} strokeWidth={1.75} />
+              </Pressable>
+            </View>
+            <Text style={s.sheetHint}>It stays on your cooking list and also shows on that day.</Text>
+            <View style={s.dayGrid}>
+              {DAY_NAMES.map((name, i) => {
+                const iso = toISO(addDays(weekStart, i));
+                const on = pickingItem?.cook_date === iso;
+                return (
+                  <Pressable
+                    key={iso}
+                    style={[s.chip, on && s.chipOn]}
+                    onPress={() => {
+                      if (pickingItem) update(pickingItem.id, { cook_date: iso });
+                      setPicking(null);
+                    }}
+                  >
+                    <Text style={[s.chipText, on && s.chipTextOn]}>{format(addDays(weekStart, i), "EEE d")}</Text>
+                  </Pressable>
+                );
+              })}
+              {pickingItem?.cook_date ? (
+                <Pressable
+                  style={s.chip}
+                  onPress={() => {
+                    update(pickingItem.id, { cook_date: null });
+                    setPicking(null);
+                  }}
+                >
+                  <Text style={s.chipText}>No day</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
       </View>
 
-      <View style={{ maxWidth: 640 }}>
+      <View>
         <SectionLabel>Notes for next week</SectionLabel>
         {prev.doc.notes.trim() ? (
           <View style={s.lastWeek}>
@@ -114,7 +186,43 @@ export default function FoodScreen() {
   );
 }
 
+/** An empty list row you can write in: Enter or clicking away adds it, then the row is empty again. */
+function BlankItem({ onAdd }: { onAdd: (text: string) => void }) {
+  const [text, setText] = useState("");
+  const commit = () => {
+    if (text.trim()) onAdd(text);
+    setText("");
+  };
+  return (
+    <View style={s.row}>
+      <CheckBox size={18} checked={false} faint />
+      <RuleInput
+        value={text}
+        onChangeText={setText}
+        onSubmitEditing={commit}
+        onBlur={commit}
+        blurOnSubmit={false}
+        style={[{ flex: 1 }, s.blankInput]}
+      />
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
+  blankInput: { borderBottomWidth: 0 },
+  dayBtn: { width: 28, height: 28, borderRadius: 6, alignItems: "center", justifyContent: "center" },
+  dayTag: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  dayTagText: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 1.4, textTransform: "uppercase", color: colors.gold },
+  backdrop: { flex: 1, backgroundColor: alpha("ink", "55"), alignItems: "center", justifyContent: "center", padding: space.lg },
+  sheet: { width: "100%", maxWidth: 420, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.rule, borderRadius: 6, padding: space.lg, gap: space.sm },
+  sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.md },
+  sheetTitle: { flex: 1, fontFamily: fonts.displayItalic, fontSize: 22, color: colors.gold },
+  sheetHint: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
+  dayGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: space.sm },
+  chip: { borderWidth: 1, borderColor: colors.rule, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 12 },
+  chipOn: { backgroundColor: colors.gold, borderColor: colors.gold },
+  chipText: { fontFamily: fonts.sans, fontSize: 13, color: colors.ink },
+  chipTextOn: { color: colors.paper },
   count: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 1.5, color: colors.mutedForeground },
   addRow: { flexDirection: "row", alignItems: "center", gap: space.sm, marginVertical: space.md },
   row: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: 8, borderBottomWidth: 1, borderStyle: "dashed", borderBottomColor: colors.rule },
