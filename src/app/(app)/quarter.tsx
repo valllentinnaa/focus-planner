@@ -9,7 +9,8 @@ import { ArrowRight, ChevronRight } from "lucide-react-native";
 import { useDisclosure } from "@/components/use-disclosure";
 import { QuarterComplete } from "@/components/quarter-complete";
 import { VisionBoard } from "@/components/vision-board";
-import { alpha, colors, fonts, space } from "@/theme/tokens";
+import { FocusCard, FocusInput } from "@/components/focus-card";
+import { colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
 import { BlankRows, Body, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
@@ -276,18 +277,13 @@ function QuarterTheme({ id }: { id: string }) {
     toRow: (t) => ({ theme: t.theme }),
   });
   return (
-    <View style={s.themeCard}>
-      <View style={s.themeHead}>
-        <Text style={s.themeLabel}>Focus this quarter</Text>
-      </View>
-      <RuleInput
-        autoGrow
+    <FocusCard label="Focus this quarter">
+      <FocusInput
         value={d.doc.theme}
         onChangeText={(theme) => d.patch({ theme })}
         placeholder="The one thing these 12 weeks are about…"
-        style={s.themeText}
       />
-    </View>
+    </FocusCard>
   );
 }
 
@@ -340,10 +336,6 @@ const s = StyleSheet.create({
   leftMeta: { fontSize: 12, color: colors.mutedForeground },
   leftActions: { flexDirection: "row", alignItems: "center", gap: space.sm },
   error: { fontFamily: fonts.sans, fontSize: 12, color: colors.destructive },
-  themeCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg },
-  themeHead: { marginBottom: 4 },
-  themeText: { fontFamily: fonts.displayItalic, fontSize: 24, lineHeight: 32, color: colors.ink, paddingVertical: 2 },
-  themeLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   cols: { flexDirection: "row", gap: space.lg },
   col: { minWidth: 0 },
   colWide: { flex: 1, flexBasis: 0, minWidth: 0 },

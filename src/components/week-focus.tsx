@@ -9,8 +9,9 @@ import { AREA_LABELS } from "@/lib/tasks";
 import { canChangeFocus, focusCandidates, resolveFocus } from "@/lib/week-focus";
 import type { TaskOps } from "@/data/tasks";
 import type { WeekDoc } from "@/data/week";
-import { alpha, colors, fonts, space } from "@/theme/tokens";
-import { CheckBox, GhostButton, RuleInput } from "./ui";
+import { colors, fonts, space } from "@/theme/tokens";
+import { FocusCard, FocusInput } from "./focus-card";
+import { CheckBox, GhostButton } from "./ui";
 
 /** Lets task rows on the Week screen show ★ and offer "Make this the week's focus". */
 export const FocusLink = createContext<{ focusTaskId: string | null; canChange: boolean; makeFocus: (t: TaskRow) => void } | null>(null);
@@ -60,25 +61,20 @@ export function WeekFocus({
   };
 
   return (
-    <View style={s.card}>
-      <View style={s.head}>
-        <Text style={s.label}>Focus of the week</Text>
-        {focus.task ? <Text style={s.where}>{where(focus.task)}</Text> : null}
-      </View>
+    <FocusCard label="Focus of the week" right={focus.task ? where(focus.task) : undefined}>
       <View style={s.row}>
         {focus.text.trim() ? (
           <View style={s.tick}>
             <CheckBox size={20} checked={focus.done} onChange={tick} />
           </View>
         ) : null}
-        <RuleInput
-          autoGrow
+        <FocusInput
+          done={focus.done}
           autoFocus={writeNew}
           value={focus.task ? focus.task.text : doc.focus}
           onChangeText={setText}
           onBlur={() => setWriteNew(false)}
           placeholder="What matters most this week…"
-          style={[s.text, focus.done && s.done]}
         />
       </View>
 
@@ -111,7 +107,7 @@ export function WeekFocus({
           </GhostButton>
         )
       ) : null}
-    </View>
+    </FocusCard>
   );
 }
 
@@ -130,14 +126,8 @@ function Choices({ tasks, onPick }: { tasks: TaskRow[]; onPick: (t: TaskRow) => 
 }
 
 const s = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg, gap: 4 },
-  head: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: space.md },
-  label: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
-  where: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 1.6, textTransform: "uppercase", color: colors.gold },
   row: { flexDirection: "row", alignItems: "flex-start", gap: space.md },
   tick: { paddingTop: 8 },
-  text: { flex: 1, fontFamily: fonts.displayItalic, fontSize: 24, lineHeight: 32, color: colors.ink, paddingVertical: 2 },
-  done: { textDecorationLine: "line-through", color: colors.mutedForeground },
   ask: { marginTop: space.md, gap: space.sm, borderTopWidth: 1, borderTopColor: colors.rule, paddingTop: space.md },
   askTitle: { fontFamily: fonts.displayItalic, fontSize: 19, color: colors.gold },
   askActions: { flexDirection: "row", gap: space.md, alignItems: "center" },

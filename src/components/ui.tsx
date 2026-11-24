@@ -41,6 +41,9 @@ export function SectionLabel({ children, right }: { children: ReactNode; right?:
   );
 }
 
+/** Height of one ruled line in RuledArea. */
+const RULE_ROW = 28;
+
 // react-native-web only: drop the browser focus ring (RuleInput draws its own gold underline).
 const WEB_NO_OUTLINE = (Platform.OS === "web" ? { outlineStyle: "none" } : null) as StyleProp<TextStyle>;
 
@@ -123,13 +126,13 @@ export function RuleInput({
         props.onContentSizeChange?.(e);
       }}
       multiline={multiline}
-      numberOfLines={autoGrow ? undefined : lines}
+      numberOfLines={autoGrow ? 1 : lines} // autoGrow: start at one row (browsers default to two), then grow
       style={[
         s.ruleInput,
         WEB_NO_OUTLINE,
         focused && s.ruleInputFocused,
         multiline && !autoGrow && { minHeight: 28 * (lines ?? 1), textAlignVertical: "top" },
-        autoGrow && { textAlignVertical: "top" },
+        autoGrow && { textAlignVertical: "top", minHeight: lines ? 28 * lines : undefined },
         italicGold && { fontFamily: fonts.displayItalic, color: colors.gold, fontSize: 17 },
         style,
         autoGrow && contentHeight ? { height: contentHeight } : null,
@@ -138,9 +141,21 @@ export function RuleInput({
   );
 }
 
-/** A block of ruled lines (multi-line writing area). */
+/**
+ * A block of ruled lines (multi-line writing area): one dashed line per row, like a notebook page,
+ * and it grows with the text instead of scrolling.
+ */
 export function RuledArea({ lines = 3, ...props }: TextInputProps & { lines?: number }) {
-  return <RuleInput lines={lines} {...props} style={[s.ruled, props.style]} />;
+  const [height, setHeight] = useState(0);
+  const rows = Math.max(lines, Math.round(height / RULE_ROW));
+  return (
+    <View style={s.ruledWrap} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
+      {Array.from({ length: rows }, (_, i) => (
+        <View key={i} pointerEvents="none" style={[s.ruledLine, { top: (i + 1) * RULE_ROW - 1 }]} />
+      ))}
+      <RuleInput autoGrow lines={lines} {...props} style={[s.ruled, props.style]} />
+    </View>
+  );
 }
 
 export function CheckBox({ checked, onChange, size = 18, faint }: { checked: boolean; onChange?: (v: boolean) => void; size?: number; faint?: boolean }) {
@@ -250,7 +265,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 2,
     width: "100%",
   },
-  ruled: { lineHeight: 28, paddingVertical: 0 },
+  ruled: { lineHeight: RULE_ROW, paddingVertical: 0, paddingTop: 2, borderBottomWidth: 0 },
+  ruledWrap: { position: "relative" },
+  ruledLine: { position: "absolute", left: 0, right: 0, height: 0, borderBottomWidth: 1, borderBottomColor: colors.rule, borderStyle: "dashed" },
   check: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.sm, alignItems: "center", justifyContent: "center", backgroundColor: "transparent" },
   checkMark: { color: colors.ink, fontFamily: fonts.sansSemiBold, lineHeight: undefined },
   ghost: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: space.xs, paddingHorizontal: space.xs },

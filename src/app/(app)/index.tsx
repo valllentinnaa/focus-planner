@@ -148,7 +148,7 @@ export default function WeekScreen() {
               <SectionLabel>{AREA_LABELS[area]}</SectionLabel>
               <View style={{ gap: 4 }}>
                 {area === "personal" && settings.showFood ? <ShoppingLine weekStart={key} /> : null}
-                {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} draggable />)}
+                {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} draggable showDay />)}
                 <BlankRows count={Math.max(0, 5 - byArea[area]!.length)} onAdd={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} />
               </View>
               <GhostButton onPress={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} style={{ marginTop: 4 }}>

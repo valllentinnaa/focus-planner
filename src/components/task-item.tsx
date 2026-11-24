@@ -23,6 +23,7 @@ export function TaskItem({
   compact,
   draggable,
   inDay,
+  showDay,
 }: {
   task: TaskRow;
   ops: TaskOps;
@@ -30,6 +31,8 @@ export function TaskItem({
   draggable?: boolean;
   /** Shown inside a day box: ✕ takes a life-area task off the day instead of deleting it. */
   inDay?: boolean;
+  /** In the Week's life-area lists: tag a task that's also on a day (THU). */
+  showDay?: boolean;
 }) {
   const [menu, setMenu] = useState(false);
   // ↪ ⋯ ✕ show only while you're working on the task (clicked into it / typing). Hiding waits a
@@ -64,7 +67,7 @@ export function TaskItem({
         }}
         style={[{ flex: 1, fontSize: compact ? 13 : 14 }, task.done && s.done]}
       />
-      {!inDay && task.task_date ? (
+      {showDay && task.task_date ? (
         <Text style={s.when} accessibilityLabel={`Scheduled ${format(fromISO(task.task_date), "EEEE")}`}>
           {format(fromISO(task.task_date), "EEE")}
         </Text>

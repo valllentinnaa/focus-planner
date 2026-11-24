@@ -4,10 +4,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useDaily, type DailyDoc } from "@/data/daily";
 import { useDayTasks, useTaskOps } from "@/data/tasks";
 import { fromISO, isISODate, mondayOf, toISO } from "@/lib/dates";
-import { alpha, colors, fonts, space } from "@/theme/tokens";
+import { colors, fonts, space } from "@/theme/tokens";
 import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/screen";
+import { FocusCard, FocusInput } from "@/components/focus-card";
 import { DateNav } from "@/components/date-nav";
-import { GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
+import { GhostButton, OutlineButton, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
@@ -72,13 +73,9 @@ export default function TodayScreen() {
         }
       />
 
-      <View style={s.focusCard}>
-        <View style={s.focusHead}>
-          <Text style={s.small}>FOCUS OF THE DAY</Text>
-          <Text style={s.small}>{format(date, "MMM d").toUpperCase()}</Text>
-        </View>
-        <RuleInput italicGold lines={2} value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="focus…" />
-      </View>
+      <FocusCard label="Focus of the day" right={format(date, "MMM d")}>
+        <FocusInput value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="The one thing for today…" />
+      </FocusCard>
 
       <Columns>
         <Column>
@@ -116,7 +113,7 @@ export default function TodayScreen() {
         </Column>
       </Columns>
 
-      {field("notes", "Diary / detailed daily plan", 6)}
+      {field("notes", "Diary", 6)}
     </Screen>
   );
 }
@@ -127,9 +124,6 @@ const s = StyleSheet.create({
   dotCircle: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.rule },
   dotSelected: { backgroundColor: colors.gold, borderWidth: 2, borderColor: colors.paper, outlineWidth: 1, outlineColor: colors.gold },
   dotLabel: { fontFamily: fonts.sans, fontSize: 10, color: colors.mutedForeground },
-  focusCard: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg },
-  focusHead: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-  small: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, color: colors.mutedForeground },
   itemRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
   done: { textDecorationLine: "line-through", color: colors.mutedForeground },
   x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
