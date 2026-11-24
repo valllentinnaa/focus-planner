@@ -1,4 +1,4 @@
-import { dayBoxSlice } from "./day-box";
+import { dayBoxTake, dayBoxSlice } from "./day-box";
 
 describe("dayBoxSlice", () => {
   it("shows everything when it fits", () => {
@@ -12,5 +12,12 @@ describe("dayBoxSlice", () => {
   });
   it("never says '+1 more' — one over the limit just hides two", () => {
     expect(dayBoxSlice(0, 7).hidden).toBe(2);
+  });
+});
+
+describe("dayBoxTake", () => {
+  it("shows all up to the limit, then max-1 plus '+N more'", () => {
+    expect(dayBoxTake([1, 2, 3], 6)).toEqual({ shown: [1, 2, 3], hidden: 0 });
+    expect(dayBoxTake([1, 2, 3, 4, 5, 6, 7, 8], 6)).toEqual({ shown: [1, 2, 3, 4, 5], hidden: 3 });
   });
 });

@@ -11,7 +11,8 @@ import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import type { DayEvent } from "@/lib/calendar-events";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { ShoppingLine } from "@/components/shopping-line";
-import { dayBoxSlice } from "@/lib/day-box";
+import { dayBoxTake } from "@/lib/day-box";
+import { dayAgenda } from "@/lib/task-time";
 import type { TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
 import { claimLaunchOpening, resolveOpening } from "@/lib/planner-opening";
@@ -220,7 +221,8 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
   onOpen: () => void;
 }) {
   const day = useDaily(iso);
-  const fit = dayBoxSlice(events.length, tasks.length);
+  // Events and timed tasks in time order ("14:00 …"), then the rest.
+  const fit = dayBoxTake(dayAgenda(events, tasks));
   return (
     <DropZone
       id={`day-${iso}`}
@@ -234,13 +236,15 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
         <Text style={s.dayDate}>{format(fromISO(iso), "MMM d").toUpperCase()}</Text>
       </Pressable>
       <RuleInput italicGold value={day.doc.focus} onChangeText={(v) => day.patch({ focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
-      {eventsLoading ? <EventsLoading /> : events.length ? (
-        <View style={{ gap: 2, marginBottom: 4 }}>
-          {events.slice(0, fit.events).map((e) => <CalendarEventRow key={e.key} event={e} day={iso} onRemove={onRemoveEvent} />)}
-        </View>
-      ) : null}
+      {eventsLoading ? <EventsLoading /> : null}
       <View style={{ gap: 2 }}>
-        {tasks.slice(0, fit.tasks).map((t) => <TaskItem key={t.id} task={t} ops={ops} compact draggable inDay />)}
+        {fit.shown.map((item) =>
+          item.kind === "event" ? (
+            <CalendarEventRow key={item.event.key} event={item.event} day={iso} onRemove={onRemoveEvent} />
+          ) : (
+            <TaskItem key={item.task.id} task={item.task} ops={ops} compact draggable inDay />
+          ),
+        )}
         {fit.hidden ? (
           <Pressable onPress={onOpen} style={s.more} accessibilityRole="button" accessibilityLabel={`${fit.hidden} more on ${label}. Open the day`}>
             <Text style={s.moreText}>+{fit.hidden} more →</Text>

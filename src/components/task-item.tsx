@@ -1,5 +1,5 @@
 import { addDays, format } from "date-fns";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import type { TaskRow } from "@/lib/database.types";
 import { fromISO } from "@/lib/dates";
@@ -7,6 +7,8 @@ import { AREAS, AREA_LABELS } from "@/lib/tasks";
 import type { TaskOps } from "@/data/tasks";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { CheckBox, GhostButton, RuleInput } from "./ui";
+import { Clock, X } from "lucide-react-native";
+import { taskTime } from "@/lib/task-time";
 import { DragHandle } from "./drag";
 import { useFocusLink } from "./week-focus";
 
@@ -30,6 +32,14 @@ export function TaskItem({
   inDay?: boolean;
 }) {
   const [menu, setMenu] = useState(false);
+  // ↪ ⋯ ✕ show only while you're working on the task (clicked into it / typing). Hiding waits a
+  // moment after the text loses focus, so a click on one of the buttons still lands.
+  const [active, setActive] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+  }, []);
+  const showActions = active || menu;
   const focus = useFocusLink();
   const isFocus = !!focus && focus.focusTaskId === task.id;
   const days = Array.from({ length: 7 }, (_, i) => addDays(fromISO(task.week_start), i));
@@ -39,11 +49,19 @@ export function TaskItem({
       {draggable ? <DragHandle task={task} label={task.text} /> : null}
       <CheckBox size={compact ? 16 : 18} checked={task.done} onChange={(done) => ops.setDone(task.id, done)} />
       {isFocus ? <Text style={s.star} accessibilityLabel="Week's focus">★</Text> : null}
+      {inDay && taskTime(task.text) !== null ? <Clock size={12} color={colors.gold} strokeWidth={2} accessibilityLabel="Has a time" /> : null}
       <RuleInput
         value={task.text}
         onChangeText={(text) => ops.setText(task.id, text)}
         placeholder="task…"
         autoFocus={ops.focusId === task.id}
+        onFocus={() => {
+          if (hideTimer.current) clearTimeout(hideTimer.current);
+          setActive(true);
+        }}
+        onBlur={() => {
+          hideTimer.current = setTimeout(() => setActive(false), 250);
+        }}
         style={[{ flex: 1, fontSize: compact ? 13 : 14 }, task.done && s.done]}
       />
       {!inDay && task.task_date ? (
@@ -51,23 +69,32 @@ export function TaskItem({
           {format(fromISO(task.task_date), "EEE")}
         </Text>
       ) : null}
-      <GhostButton accessibilityLabel="Postpone to next week" onPress={() => ops.postpone(task)}>
-        <Text style={s.act}>↪</Text>
-      </GhostButton>
-      <GhostButton accessibilityLabel="Move" onPress={() => setMenu(true)}>
-        <Text style={s.act}>⋯</Text>
-      </GhostButton>
-      <GhostButton
-        accessibilityLabel={inDay && task.area ? "Remove from this day" : "Remove"}
-        onPress={() => (inDay && task.area ? ops.unschedule(task) : ops.remove(task.id))}
-      >
-        <Text style={s.x}>✕</Text>
-      </GhostButton>
+      {showActions ? (
+        <>
+          <GhostButton accessibilityLabel="Postpone to next week" onPress={() => ops.postpone(task)}>
+            <Text style={s.act}>↪</Text>
+          </GhostButton>
+          <GhostButton accessibilityLabel="Move" onPress={() => setMenu(true)}>
+            <Text style={s.act}>⋯</Text>
+          </GhostButton>
+          <GhostButton
+            accessibilityLabel={inDay && task.area ? "Remove from this day" : "Remove"}
+            onPress={() => (inDay && task.area ? ops.unschedule(task) : ops.remove(task.id))}
+          >
+            <Text style={s.x}>✕</Text>
+          </GhostButton>
+        </>
+      ) : null}
 
       <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
         <Pressable style={s.backdrop} onPress={() => setMenu(false)}>
           <Pressable style={s.sheet}>
-            <Text style={s.sheetTitle}>Move task</Text>
+            <View style={s.sheetHead}>
+              <Text style={s.sheetTitle}>Move task</Text>
+              <Pressable accessibilityLabel="Close" hitSlop={10} style={({ pressed }) => [s.close, pressed && { opacity: 0.6 }]} onPress={() => setMenu(false)}>
+                <X size={18} color={colors.mutedForeground} strokeWidth={1.75} />
+              </Pressable>
+            </View>
 
             {focus ? (
               <Pressable
@@ -139,6 +166,8 @@ const s = StyleSheet.create({
   x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
   backdrop: { flex: 1, backgroundColor: alpha("ink", "55"), alignItems: "center", justifyContent: "center", padding: space.lg },
   sheet: { width: "100%", maxWidth: 420, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.rule, borderRadius: 6, padding: space.lg, gap: space.sm },
+  sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  close: { width: 32, height: 32, borderRadius: 6, alignItems: "center", justifyContent: "center", marginRight: -6 },
   sheetTitle: { fontFamily: fonts.display, fontSize: 24, color: colors.gold, fontStyle: "italic" },
   group: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginTop: space.sm },
   dayGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
