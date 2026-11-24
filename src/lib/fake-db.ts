@@ -26,7 +26,7 @@ const defaultsFor: Record<string, () => Row> = {
     steps: "",
     custom: {},
   }),
-  tasks: () => ({ text: "", done: false, area: null, task_date: null, position: 0 }),
+  tasks: () => ({ text: "", done: false, area: null, task_date: null, task_time: null, position: 0 }),
   food_weeks: () => ({ notes: "", schedule: ["", "", "", "", "", "", ""] }),
   food_items: () => ({ done: false, position: 0, cook_date: null }),
   quarters: () => ({ theme: "", notes: "" }),

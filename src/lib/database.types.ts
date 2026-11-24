@@ -62,6 +62,8 @@ export type TaskRow = {
   week_start: string;
   area: TaskArea | null;
   task_date: string | null;
+  /** "HH:MM[:SS]" — only on a task that's on a day. */
+  task_time?: string | null;
   position: number;
 } & Timestamps;
 

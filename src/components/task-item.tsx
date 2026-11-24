@@ -6,9 +6,9 @@ import { fromISO } from "@/lib/dates";
 import { AREAS, AREA_LABELS } from "@/lib/tasks";
 import type { TaskOps } from "@/data/tasks";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
-import { CheckBox, GhostButton, RuleInput } from "./ui";
+import { CheckBox, GhostButton, OutlineButton, RuleInput } from "./ui";
 import { Clock, X } from "lucide-react-native";
-import { taskTime } from "@/lib/task-time";
+import { extractTime, parseHM, shortTime } from "@/lib/task-time";
 import { DragHandle } from "./drag";
 import { useFocusLink } from "./week-focus";
 
@@ -42,7 +42,14 @@ export function TaskItem({
   useEffect(() => () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
   }, []);
-  const showActions = active || menu;
+  const [timeSheet, setTimeSheet] = useState(false);
+  const showActions = active || menu || timeSheet;
+  // "reach 13:00" on a task that's on a day: the time moves out of the text into the task's time.
+  const moveTimeOut = () => {
+    if (!task.task_date) return;
+    const found = extractTime(task.text);
+    if (found && found.rest) ops.setTime(task.id, found.time, found.rest);
+  };
   const focus = useFocusLink();
   const isFocus = !!focus && focus.focusTaskId === task.id;
   const days = Array.from({ length: 7 }, (_, i) => addDays(fromISO(task.week_start), i));
@@ -52,7 +59,11 @@ export function TaskItem({
       {draggable ? <DragHandle task={task} label={task.text} /> : null}
       <CheckBox size={compact ? 16 : 18} checked={task.done} onChange={(done) => ops.setDone(task.id, done)} />
       {isFocus ? <Text style={s.star} accessibilityLabel="Week's focus">★</Text> : null}
-      {inDay && taskTime(task.text) !== null ? <Clock size={12} color={colors.gold} strokeWidth={2} accessibilityLabel="Has a time" /> : null}
+      {task.task_time ? (
+        <Pressable onPress={() => setTimeSheet(true)} hitSlop={6} accessibilityLabel={`At ${shortTime(task.task_time)}. Change time`}>
+          <Text style={[s.time, compact && { fontSize: 11 }, task.done && s.done]}>{shortTime(task.task_time)}</Text>
+        </Pressable>
+      ) : null}
       <RuleInput
         value={task.text}
         onChangeText={(text) => ops.setText(task.id, text)}
@@ -63,8 +74,10 @@ export function TaskItem({
           setActive(true);
         }}
         onBlur={() => {
+          moveTimeOut();
           hideTimer.current = setTimeout(() => setActive(false), 250);
         }}
+        onSubmitEditing={moveTimeOut}
         style={[{ flex: 1, fontSize: compact ? 13 : 14 }, task.done && s.done]}
       />
       {showDay && task.task_date ? (
@@ -74,6 +87,11 @@ export function TaskItem({
       ) : null}
       {showActions ? (
         <>
+          {task.task_date ? (
+            <GhostButton accessibilityLabel={task.task_time ? "Change time" : "Add a time"} onPress={() => setTimeSheet(true)}>
+              <Clock size={14} color={colors.gold} strokeWidth={1.75} />
+            </GhostButton>
+          ) : null}
           <GhostButton accessibilityLabel="Postpone to next week" onPress={() => ops.postpone(task)}>
             <Text style={s.act}>↪</Text>
           </GhostButton>
@@ -87,6 +105,18 @@ export function TaskItem({
             <Text style={s.x}>✕</Text>
           </GhostButton>
         </>
+      ) : null}
+
+      {timeSheet ? (
+        <TimeSheet
+          initial={shortTime(task.task_time)}
+          title={task.text}
+          onClose={() => setTimeSheet(false)}
+          onSave={(t) => {
+            ops.setTime(task.id, t);
+            setTimeSheet(false);
+          }}
+        />
       ) : null}
 
       <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
@@ -159,7 +189,55 @@ export function TaskItem({
   );
 }
 
+const QUICK_TIMES = ["08:00", "09:00", "12:00", "14:00", "17:00", "19:00"];
+
+/** Pick a time for a task on a day (or remove it). */
+function TimeSheet({ initial, title, onClose, onSave }: { initial: string; title: string; onClose: () => void; onSave: (t: string | null) => void }) {
+  const [text, setText] = useState(initial);
+  const parsed = parseHM(text);
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={s.backdrop} onPress={onClose}>
+        <Pressable style={[s.sheet, { maxWidth: 360 }]}>
+          <View style={s.sheetHead}>
+            <Text style={s.sheetTitle}>Time</Text>
+            <Pressable accessibilityLabel="Close" hitSlop={10} style={({ pressed }) => [s.close, pressed && { opacity: 0.6 }]} onPress={onClose}>
+              <X size={18} color={colors.mutedForeground} strokeWidth={1.75} />
+            </Pressable>
+          </View>
+          {title.trim() ? <Text style={s.timeFor} numberOfLines={1}>{title.trim()}</Text> : null}
+          <RuleInput
+            autoFocus
+            value={text}
+            onChangeText={setText}
+            onSubmitEditing={() => parsed && onSave(parsed)}
+            placeholder="13:00"
+            keyboardType="numbers-and-punctuation"
+            maxLength={5}
+            style={[s.timeInput, !!text && !parsed && { color: colors.destructive }]}
+          />
+          <View style={s.dayGrid}>
+            {QUICK_TIMES.map((t) => (
+              <Pressable key={t} style={[s.chip, parsed === t && s.chipActive]} onPress={() => onSave(t)}>
+                <Text style={[s.chipText, parsed === t && s.chipTextActive]}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={s.timeActions}>
+            {initial ? <GhostButton onPress={() => onSave(null)}>Remove time</GhostButton> : <View />}
+            <OutlineButton gold disabled={!parsed} onPress={() => parsed && onSave(parsed)}>Save</OutlineButton>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 const s = StyleSheet.create({
+  time: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 0.5, color: colors.gold, fontVariant: ["tabular-nums"] },
+  timeFor: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
+  timeInput: { fontSize: 22, fontVariant: ["tabular-nums"], marginTop: space.sm },
+  timeActions: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: space.md },
   row: { flexDirection: "row", alignItems: "center", gap: 6 },
   done: { textDecorationLine: "line-through", color: colors.mutedForeground },
   when: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 1.4, textTransform: "uppercase", color: colors.gold, borderWidth: 1, borderColor: colors.gold, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },

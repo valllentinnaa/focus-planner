@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useDaily, type DailyDoc } from "@/data/daily";
 import { useSettings } from "@/data/profile";
 import { useMeals } from "@/data/food";
+import { dayAgenda } from "@/lib/task-time";
 import { MealRow } from "@/components/meal-row";
 import { BUILTIN_FIELDS, isShown, pairRows, type BuiltinKey, type CustomField } from "@/lib/daily-layout";
 import { useDayTasks, useTaskOps } from "@/data/tasks";
@@ -122,7 +123,7 @@ export default function TodayScreen() {
             <View>
               <SectionLabel>Tasks</SectionLabel>
               <View style={{ gap: 2 }}>
-                {tasks.map((t) => <TaskItem key={t.id} task={t} ops={ops} />)}
+                {dayAgenda([], tasks).map((it) => (it.kind === "task" ? <TaskItem key={it.task.id} task={it.task} ops={ops} /> : null))}
                 {(settings.showFood ? (meals.byDay[iso] ?? []) : []).map((m) => (
                   <MealRow key={m.id} meal={m} onDone={(done) => meals.setDone(m.id, done)} />
                 ))}

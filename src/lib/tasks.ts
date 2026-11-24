@@ -40,7 +40,7 @@ export function placementColumns(
 }
 
 /** Take a task off its day; it stays in its life area (or the week) it belongs to. */
-export const unscheduleColumns = (): Pick<TaskRow, "task_date"> => ({ task_date: null });
+export const unscheduleColumns = (): Pick<TaskRow, "task_date" | "task_time"> => ({ task_date: null, task_time: null });
 
 /** Postpone by one week: a dated task moves +7 days; an area/loose task moves to the next week. */
 export function postponeColumns(t: Pick<TaskRow, "area" | "task_date" | "week_start">): Pick<TaskRow, "task_date" | "week_start"> {

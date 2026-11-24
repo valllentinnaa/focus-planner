@@ -104,6 +104,15 @@ export function useTaskOps() {
           }, TEXT_SAVE_MS),
         );
       },
+      /** Set (or clear) a day task's time; optionally replace its text (time moved out of it). */
+      setTime(id: string, time: string | null, text?: string) {
+        const existing = timers.current.get(id);
+        if (existing) clearTimeout(existing);
+        timers.current.delete(id);
+        const change = { task_time: time, ...(text !== undefined ? { text } : {}) };
+        eachSlice((rows) => rows.map((r) => (r.id === id ? { ...r, ...change } : r)));
+        persist.mutate({ id, ...change }, { onSettled: invalidate });
+      },
       setDone(id: string, done: boolean) {
         eachSlice((rows) => rows.map((r) => (r.id === id ? { ...r, done } : r)));
         persist.mutate({ id, done }, { onSettled: invalidate });

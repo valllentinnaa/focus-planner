@@ -43,7 +43,7 @@ describe("placementColumns", () => {
       week_start: "2026-11-02",
     });
   });
-  it("unscheduling only clears the day", () => expect(unscheduleColumns()).toEqual({ task_date: null }));
+  it("unscheduling clears the day (and its time)", () => expect(unscheduleColumns()).toEqual({ task_date: null, task_time: null }));
 });
 
 describe("postponeColumns", () => {
