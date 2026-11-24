@@ -219,15 +219,11 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
       style={[s.dayBox, s.dayBoxCol, !wide && s.dayBoxColNarrow, isToday && s.dayBoxToday]}
       highlightStyle={s.dayBoxDrop}
     >
-      {/* The whole box opens the day: this layer sits behind the content, so a tap on any empty
-          part of the box lands here, while checkboxes, text and buttons keep working. */}
-      <Pressable style={StyleSheet.absoluteFill} onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Open ${label}`} />
-      <View style={s.dayHead}>
-        <Pressable onPress={onOpen} accessibilityLabel={`Open ${label}'s journal`} hitSlop={6}>
-          <Text style={s.dayName}>{label}{isToday ? <Text style={{ color: colors.gold }}> ↗</Text> : null}</Text>
-        </Pressable>
+      {/* Only the day's name and date open the day; the rest of the box is for writing. */}
+      <Pressable style={s.dayHead} onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Open ${label}`} hitSlop={6}>
+        <Text style={s.dayName}>{label}{isToday ? <Text style={{ color: colors.gold }}> ↗</Text> : null}</Text>
         <Text style={s.dayDate}>{format(fromISO(iso), "MMM d").toUpperCase()}</Text>
-      </View>
+      </Pressable>
       <RuleInput italicGold value={day.doc.focus} onChangeText={(v) => day.patch({ focus: v })} placeholder="focus…" style={{ fontSize: 14, marginBottom: 6 }} />
       {eventsLoading ? <EventsLoading /> : events.length ? (
         <View style={{ gap: 2, marginBottom: 4 }}>
