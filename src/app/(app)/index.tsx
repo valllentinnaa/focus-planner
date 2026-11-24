@@ -22,7 +22,7 @@ import { DateNav } from "@/components/date-nav";
 import { BlankRows, GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
 import { FocusLink, WeekFocus } from "@/components/week-focus";
-import { resolveFocus } from "@/lib/week-focus";
+import { canChangeFocus, resolveFocus } from "@/lib/week-focus";
 import { DropZone } from "@/components/drag";
 import { NewWeekDialog } from "@/components/new-week-dialog";
 import { CheckinNudge } from "@/components/checkin/nudge";
@@ -76,8 +76,12 @@ export default function WeekScreen() {
 
   const prevNotes = prev.doc.notes.trim();
 
-  const focusTaskId = resolveFocus({ focus: doc.focus, focusTaskId: doc.focusTaskId }, tasks).task?.id ?? null;
-  const focusLink = { focusTaskId, makeFocus: (t: TaskRow) => patch({ focusTaskId: t.id, focus: t.text }) };
+  const weekFocus = resolveFocus({ focus: doc.focus, focusTaskId: doc.focusTaskId, focusDone: doc.focusDone }, tasks);
+  const focusLink = {
+    focusTaskId: weekFocus.task?.id ?? null,
+    canChange: canChangeFocus(weekFocus),
+    makeFocus: (t: TaskRow) => patch({ focusTaskId: t.id, focus: t.text, focusDone: false }),
+  };
 
   return (
     // Task rows read this to show ★ and offer "Make this the week's focus".

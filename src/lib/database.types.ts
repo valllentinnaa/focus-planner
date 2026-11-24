@@ -31,6 +31,7 @@ export type WeekRow = {
   notes: string;
   prompt_dismissed: boolean;
   focus_task_id?: string | null;
+  focus_done?: boolean;
 } & Timestamps;
 
 export type DailyEntryRow = {

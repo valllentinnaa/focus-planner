@@ -2,7 +2,7 @@
 // for a focus typed by hand — when exactly one open-or-done task has the same text.
 import type { TaskRow } from "./database.types";
 
-export type WeekFocusInput = { focus: string; focusTaskId: string | null };
+export type WeekFocusInput = { focus: string; focusTaskId: string | null; focusDone?: boolean };
 export type ResolvedFocus = { task: TaskRow | null; text: string; done: boolean };
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -14,8 +14,11 @@ export function resolveFocus(week: WeekFocusInput, tasks: TaskRow[]): ResolvedFo
     const matches = tasks.filter((t) => same(t.text, week.focus));
     if (matches.length === 1) return { task: matches[0]!, text: matches[0]!.text, done: matches[0]!.done };
   }
-  return { task: null, text: week.focus, done: false };
+  return { task: null, text: week.focus, done: !!week.focus.trim() && !!week.focusDone };
 }
+
+/** A new focus can be picked only when there's none yet, or the current one is done. */
+export const canChangeFocus = (f: ResolvedFocus) => !f.text.trim() || f.done;
 
 const AREA_ORDER = ["work", "personal", "development"];
 

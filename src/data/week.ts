@@ -6,9 +6,11 @@ export type WeekDoc = {
   promptDismissed: boolean;
   /** The task this week's focus is (tick either, both are done). */
   focusTaskId: string | null;
+  /** Done state of a typed focus that isn't linked to a task. */
+  focusDone: boolean;
 };
 
-export const emptyWeek = (): WeekDoc => ({ focus: "", notes: "", promptDismissed: false, focusTaskId: null });
+export const emptyWeek = (): WeekDoc => ({ focus: "", notes: "", promptDismissed: false, focusTaskId: null, focusDone: false });
 
 export function useWeek(weekStart: string) {
   return useDocument<"weeks", WeekDoc>({
@@ -17,8 +19,8 @@ export function useWeek(weekStart: string) {
     keyValue: weekStart,
     fromRow: (r) =>
       r
-        ? { focus: r.focus, notes: r.notes, promptDismissed: r.prompt_dismissed, focusTaskId: r.focus_task_id ?? null }
+        ? { focus: r.focus, notes: r.notes, promptDismissed: r.prompt_dismissed, focusTaskId: r.focus_task_id ?? null, focusDone: r.focus_done ?? false }
         : emptyWeek(),
-    toRow: (w) => ({ focus: w.focus, notes: w.notes, prompt_dismissed: w.promptDismissed, focus_task_id: w.focusTaskId }),
+    toRow: (w) => ({ focus: w.focus, notes: w.notes, prompt_dismissed: w.promptDismissed, focus_task_id: w.focusTaskId, focus_done: w.focusDone }),
   });
 }

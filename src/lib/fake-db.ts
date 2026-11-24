@@ -13,7 +13,7 @@ const PREFIX = "fp.demo.";
 
 const defaultsFor: Record<string, () => Row> = {
   profiles: () => ({ display_name: "", gender: null, onboarded_at: null, show_daily: true, show_food: true, show_presents: true, menu_pages: ["quarter", "clipboard"], show_clipboard: true }),
-  weeks: () => ({ focus: "", notes: "", prompt_dismissed: false, focus_task_id: null }),
+  weeks: () => ({ focus: "", notes: "", prompt_dismissed: false, focus_task_id: null, focus_done: false }),
   daily_entries: () => ({
     gratitude: "",
     focus: "",

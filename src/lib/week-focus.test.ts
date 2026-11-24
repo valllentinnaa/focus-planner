@@ -1,5 +1,5 @@
 import type { TaskRow } from "./database.types";
-import { focusCandidates, resolveFocus } from "./week-focus";
+import { canChangeFocus, focusCandidates, resolveFocus } from "./week-focus";
 
 let n = 0;
 const task = (p: Partial<TaskRow>): TaskRow =>
@@ -41,5 +41,24 @@ describe("focusCandidates", () => {
     const a = task({ text: "a" });
     expect(focusCandidates([a, task({ text: "b" })], a.id).map((t) => t.text)).toEqual(["b"]);
     expect(focusCandidates(Array.from({ length: 12 }, (_, i) => task({ text: `t${i}` })), null).length).toBe(8);
+  });
+});
+
+describe("typed focus (not a task)", () => {
+  it("has its own done state", () => {
+    expect(resolveFocus({ focus: "Gym 3x", focusTaskId: null, focusDone: true }, []).done).toBe(true);
+    expect(resolveFocus({ focus: "", focusTaskId: null, focusDone: true }, []).done).toBe(false);
+  });
+  it("a linked focus follows its task, not the typed flag", () => {
+    const t = task({ text: "Ship", done: false });
+    expect(resolveFocus({ focus: "Ship", focusTaskId: t.id, focusDone: true }, [t]).done).toBe(false);
+  });
+});
+
+describe("canChangeFocus", () => {
+  it("only when there's no focus or it's done", () => {
+    expect(canChangeFocus({ task: null, text: "", done: false })).toBe(true);
+    expect(canChangeFocus({ task: null, text: "Gym", done: false })).toBe(false);
+    expect(canChangeFocus({ task: null, text: "Gym", done: true })).toBe(true);
   });
 });

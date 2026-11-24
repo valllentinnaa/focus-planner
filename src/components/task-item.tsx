@@ -71,12 +71,16 @@ export function TaskItem({
 
             {focus ? (
               <Pressable
-                style={[s.makeFocus, isFocus && s.chipActive]}
-                disabled={isFocus}
+                style={[s.makeFocus, isFocus && s.chipActive, !isFocus && !focus.canChange && { opacity: 0.5 }]}
+                disabled={isFocus || !focus.canChange}
                 onPress={() => { focus.makeFocus(task); setMenu(false); }}
               >
                 <Text style={[s.postponeText, isFocus && s.chipTextActive]}>
-                  {isFocus ? "★  This is the week’s focus" : "★  Make this the week’s focus"}
+                  {isFocus
+                    ? "★  This is the week’s focus"
+                    : focus.canChange
+                      ? "★  Make this the week’s focus"
+                      : "★  Finish this week’s focus first"}
                 </Text>
               </Pressable>
             ) : null}

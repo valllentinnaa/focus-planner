@@ -1,6 +1,6 @@
 // Small "paper & ink" primitives shared by every screen.
 import { isOutsideChange, shown, startDraft, typed, type Draft } from "@/lib/draft-input";
-import { type ReactNode, useState } from "react";
+import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -59,6 +59,18 @@ export function RuleInput({
 }) {
   const multiline = autoGrow || (lines ?? 1) > 1 || props.multiline;
   const [contentHeight, setContentHeight] = useState<number | null>(null);
+  // Web: measure the real text height (on text, width and font changes), so the box fits its
+  // text exactly and shrinks back too. Native uses onContentSizeChange.
+  const box = useRef<ComponentRef<typeof TextInput>>(null);
+  const measure = () => {
+    const el = box.current as unknown as HTMLTextAreaElement | null;
+    if (!autoGrow || Platform.OS !== "web" || !el || typeof el.scrollHeight !== "number") return;
+    const prev = el.style.height;
+    el.style.height = "0px";
+    const h = el.scrollHeight + (el.offsetHeight - el.clientHeight);
+    el.style.height = prev;
+    setContentHeight((c) => (c === h ? c : h));
+  };
   // Focus shows as a gold underline (instead of the browser's black outline box on web).
   const [focused, setFocused] = useState(false);
   // While typing, the input keeps its own text so a saved value arriving a tick late can't
@@ -67,11 +79,31 @@ export function RuleInput({
   const incoming = props.value ?? "";
   const [draft, setDraft] = useState<Draft>(null);
   if (controlled && isOutsideChange(draft, incoming)) setDraft(startDraft(incoming));
+  const text = controlled ? shown(draft, incoming) : undefined;
+  useEffect(() => {
+    if (!autoGrow || Platform.OS !== "web") return;
+    const id = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(id);
+  });
+  useEffect(() => {
+    if (!autoGrow || Platform.OS !== "web" || typeof document === "undefined" || !document.fonts) return;
+    let live = true;
+    void document.fonts.ready.then(() => live && measure());
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGrow]);
   return (
     <TextInput
+      ref={box}
+      onLayout={(e) => {
+        if (autoGrow) requestAnimationFrame(measure);
+        props.onLayout?.(e);
+      }}
       placeholderTextColor={alpha("mutedForeground", "99")}
       {...props}
-      value={controlled ? shown(draft, incoming) : undefined}
+      value={text}
       onChangeText={(t) => {
         if (controlled) setDraft(typed(draft, incoming, t));
         props.onChangeText?.(t);
@@ -87,7 +119,7 @@ export function RuleInput({
         props.onBlur?.(e);
       }}
       onContentSizeChange={(e) => {
-        if (autoGrow) setContentHeight(e.nativeEvent.contentSize.height);
+        if (autoGrow && Platform.OS !== "web") setContentHeight(e.nativeEvent.contentSize.height);
         props.onContentSizeChange?.(e);
       }}
       multiline={multiline}

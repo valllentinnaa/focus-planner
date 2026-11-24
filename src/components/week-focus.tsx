@@ -6,14 +6,14 @@ import { format } from "date-fns";
 import type { TaskRow } from "@/lib/database.types";
 import { fromISO } from "@/lib/dates";
 import { AREA_LABELS } from "@/lib/tasks";
-import { focusCandidates, resolveFocus } from "@/lib/week-focus";
+import { canChangeFocus, focusCandidates, resolveFocus } from "@/lib/week-focus";
 import type { TaskOps } from "@/data/tasks";
 import type { WeekDoc } from "@/data/week";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { CheckBox, GhostButton, RuleInput } from "./ui";
 
 /** Lets task rows on the Week screen show ★ and offer "Make this the week's focus". */
-export const FocusLink = createContext<{ focusTaskId: string | null; makeFocus: (t: TaskRow) => void } | null>(null);
+export const FocusLink = createContext<{ focusTaskId: string | null; canChange: boolean; makeFocus: (t: TaskRow) => void } | null>(null);
 export const useFocusLink = () => useContext(FocusLink);
 
 const where = (t: TaskRow) =>
@@ -30,7 +30,7 @@ export function WeekFocus({
   tasks: TaskRow[];
   ops: TaskOps;
 }) {
-  const focus = resolveFocus({ focus: doc.focus, focusTaskId: doc.focusTaskId }, tasks);
+  const focus = resolveFocus({ focus: doc.focus, focusTaskId: doc.focusTaskId, focusDone: doc.focusDone }, tasks);
   const [asking, setAsking] = useState(false);
   const [picking, setPicking] = useState(false);
   const [writeNew, setWriteNew] = useState(false);
@@ -43,7 +43,7 @@ export function WeekFocus({
 
   const candidates = focusCandidates(tasks, focus.task?.id ?? null);
   const link = (t: TaskRow) => {
-    patch({ focusTaskId: t.id, focus: t.text });
+    patch({ focusTaskId: t.id, focus: t.text, focusDone: false });
     setAsking(false);
     setPicking(false);
   };
@@ -54,7 +54,7 @@ export function WeekFocus({
     } else patch({ focus: text });
   };
   const tick = (done: boolean) => {
-    if (!focus.task) return;
+    if (!focus.task) return patch({ focusDone: done });
     if (!doc.focusTaskId) patch({ focusTaskId: focus.task.id });
     ops.setDone(focus.task.id, done);
   };
@@ -66,7 +66,7 @@ export function WeekFocus({
         {focus.task ? <Text style={s.where}>{where(focus.task)}</Text> : null}
       </View>
       <View style={s.row}>
-        {focus.task ? (
+        {focus.text.trim() ? (
           <View style={s.tick}>
             <CheckBox size={20} checked={focus.done} onChange={tick} />
           </View>
@@ -89,7 +89,7 @@ export function WeekFocus({
           <View style={s.askActions}>
             <GhostButton
               onPress={() => {
-                patch({ focusTaskId: null, focus: "" });
+                patch({ focusTaskId: null, focus: "", focusDone: false });
                 setAsking(false);
                 setWriteNew(true);
               }}
@@ -99,7 +99,7 @@ export function WeekFocus({
             <GhostButton onPress={() => setAsking(false)}>That’s it</GhostButton>
           </View>
         </View>
-      ) : !focus.task && candidates.length ? (
+      ) : canChangeFocus(focus) && candidates.length ? (
         picking ? (
           <View style={s.ask}>
             <Choices tasks={candidates} onPick={link} />
@@ -107,7 +107,7 @@ export function WeekFocus({
           </View>
         ) : (
           <GhostButton style={{ alignSelf: "flex-start", marginTop: 4 }} onPress={() => setPicking(true)}>
-            Pick from your list
+            {focus.done ? "Pick the next focus" : "Pick from your list"}
           </GhostButton>
         )
       ) : null}
