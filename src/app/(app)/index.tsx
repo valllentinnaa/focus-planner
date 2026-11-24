@@ -11,7 +11,7 @@ import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import type { DayEvent } from "@/lib/calendar-events";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { ShoppingLine } from "@/components/shopping-line";
-import { dayBoxTake } from "@/lib/day-box";
+import { blankRowsFor, pickEvents, pickTasks } from "@/lib/day-box";
 import { dayAgenda } from "@/lib/task-time";
 import type { FoodItemRow, TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
@@ -211,6 +211,17 @@ export default function WeekScreen() {
   );
 }
 
+/** The current time, refreshed every minute (only while it matters, e.g. for today's box). */
+function useMinuteClock(active: boolean) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, [active]);
+  return now;
+}
+
 /** A day box: its focus line (shared with the Daily journal) and its scheduled tasks. */
 function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEvent, meals, onMealDone, ops, weekStart, wide, onOpen }: {
   label: string;
@@ -229,8 +240,13 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
   onOpen: () => void;
 }) {
   const day = useDaily(iso);
-  // Events and timed tasks in time order ("14:00 …"), then the rest.
-  const fit = dayBoxTake([...dayAgenda(events, tasks), ...meals.map((meal) => ({ kind: "meal" as const, meal }))]);
+  const now = useMinuteClock(isToday);
+  // Events (max 3 — see pickEvents) and tasks, in time order ("14:00 …"), then planned meals.
+  const ev = pickEvents(events, isToday, now);
+  const tk = pickTasks(tasks);
+  const shownMeals = meals.slice(0, Math.max(0, 5 - tk.shown.length));
+  const hidden = ev.hidden + tk.hidden + (meals.length - shownMeals.length);
+  const fit = { shown: [...dayAgenda(ev.shown, tk.shown), ...shownMeals.map((meal) => ({ kind: "meal" as const, meal }))], hidden };
   return (
     <DropZone
       id={`day-${iso}`}
@@ -259,9 +275,9 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
           <Pressable onPress={onOpen} style={s.more} accessibilityRole="button" accessibilityLabel={`${fit.hidden} more on ${label}. Open the day`}>
             <Text style={s.moreText}>+{fit.hidden} more →</Text>
           </Pressable>
-        ) : (
-          <BlankRows count={Math.max(0, 3 - tasks.length)} size={16} onAdd={() => ops.add({ kind: "day", date: iso }, weekStart)} />
-        )}
+        ) : null}
+        {/* Always room to write a new task. */}
+        <BlankRows count={blankRowsFor(tk.shown.length + shownMeals.length)} size={16} onAdd={() => ops.add({ kind: "day", date: iso }, weekStart)} />
       </View>
       <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, weekStart)} style={{ marginTop: 4 }}>
         + add
