@@ -22,12 +22,25 @@ export function placementOf(t: Pick<TaskRow, "area" | "task_date">): Placement {
   return { kind: "loose" };
 }
 
-/** The columns written to the DB for a given placement, keeping week_start consistent. */
-export function placementColumns(p: Placement, weekStart: string): Pick<TaskRow, "area" | "task_date" | "week_start"> {
-  if (p.kind === "day") return { area: null, task_date: p.date, week_start: toISO(mondayOf(fromISO(p.date))) };
-  if (p.kind === "area") return { area: p.area, task_date: null, week_start: weekStart };
-  return { area: null, task_date: null, week_start: weekStart };
+/**
+ * The columns written to the DB when a task is dropped somewhere. A task can be in a life area AND
+ * on a day: dropping on a day keeps its area, dropping on an area keeps its day. week_start always
+ * follows the day when there is one.
+ */
+export function placementColumns(
+  p: Placement,
+  weekStart: string,
+  current?: Pick<TaskRow, "area" | "task_date">,
+): Pick<TaskRow, "area" | "task_date" | "week_start"> {
+  const weekOf = (date: string | null) => (date ? toISO(mondayOf(fromISO(date))) : weekStart);
+  if (p.kind === "day") return { area: current?.area ?? null, task_date: p.date, week_start: weekOf(p.date) };
+  const date = current?.task_date ?? null;
+  if (p.kind === "area") return { area: p.area, task_date: date, week_start: weekOf(date) };
+  return { area: null, task_date: date, week_start: weekOf(date) };
 }
+
+/** Take a task off its day; it stays in its life area (or the week) it belongs to. */
+export const unscheduleColumns = (): Pick<TaskRow, "task_date"> => ({ task_date: null });
 
 /** Postpone by one week: a dated task moves +7 days; an area/loose task moves to the next week. */
 export function postponeColumns(t: Pick<TaskRow, "area" | "task_date" | "week_start">): Pick<TaskRow, "task_date" | "week_start"> {

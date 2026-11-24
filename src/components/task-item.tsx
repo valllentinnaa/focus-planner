@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import type { TaskRow } from "@/lib/database.types";
 import { fromISO } from "@/lib/dates";
-import { AREAS, AREA_LABELS, placementOf } from "@/lib/tasks";
+import { AREAS, AREA_LABELS } from "@/lib/tasks";
 import type { TaskOps } from "@/data/tasks";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { CheckBox, GhostButton, RuleInput } from "./ui";
@@ -15,11 +15,23 @@ import { useFocusLink } from "./week-focus";
  * or open the move menu to schedule it to a day or file it under a life area. On the Week
  * screen it also carries a drag handle to drop it into a day box or life area.
  */
-export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops: TaskOps; compact?: boolean; draggable?: boolean }) {
+export function TaskItem({
+  task,
+  ops,
+  compact,
+  draggable,
+  inDay,
+}: {
+  task: TaskRow;
+  ops: TaskOps;
+  compact?: boolean;
+  draggable?: boolean;
+  /** Shown inside a day box: ✕ takes a life-area task off the day instead of deleting it. */
+  inDay?: boolean;
+}) {
   const [menu, setMenu] = useState(false);
   const focus = useFocusLink();
   const isFocus = !!focus && focus.focusTaskId === task.id;
-  const here = placementOf(task);
   const days = Array.from({ length: 7 }, (_, i) => addDays(fromISO(task.week_start), i));
 
   return (
@@ -34,13 +46,21 @@ export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops
         autoFocus={ops.focusId === task.id}
         style={[{ flex: 1, fontSize: compact ? 13 : 14 }, task.done && s.done]}
       />
+      {!inDay && task.task_date ? (
+        <Text style={s.when} accessibilityLabel={`Scheduled ${format(fromISO(task.task_date), "EEEE")}`}>
+          {format(fromISO(task.task_date), "EEE")}
+        </Text>
+      ) : null}
       <GhostButton accessibilityLabel="Postpone to next week" onPress={() => ops.postpone(task)}>
         <Text style={s.act}>↪</Text>
       </GhostButton>
       <GhostButton accessibilityLabel="Move" onPress={() => setMenu(true)}>
         <Text style={s.act}>⋯</Text>
       </GhostButton>
-      <GhostButton accessibilityLabel="Remove" onPress={() => ops.remove(task.id)}>
+      <GhostButton
+        accessibilityLabel={inDay && task.area ? "Remove from this day" : "Remove"}
+        onPress={() => (inDay && task.area ? ops.unschedule(task) : ops.remove(task.id))}
+      >
         <Text style={s.x}>✕</Text>
       </GhostButton>
 
@@ -65,7 +85,7 @@ export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops
             <View style={s.dayGrid}>
               {days.map((d) => {
                 const iso = format(d, "yyyy-MM-dd");
-                const active = here.kind === "day" && here.date === iso;
+                const active = task.task_date === iso;
                 return (
                   <Pressable key={iso} style={[s.chip, active && s.chipActive]} onPress={() => { ops.move(task, { kind: "day", date: iso }); setMenu(false); }}>
                     <Text style={[s.chipText, active && s.chipTextActive]}>{format(d, "EEE d")}</Text>
@@ -74,18 +94,24 @@ export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops
               })}
             </View>
 
+            {task.task_date ? (
+              <Pressable style={s.chip} onPress={() => { ops.unschedule(task); setMenu(false); }}>
+                <Text style={s.chipText}>Not scheduled</Text>
+              </Pressable>
+            ) : null}
+
             <Text style={s.group}>File under</Text>
             <View style={s.dayGrid}>
               {AREAS.map((a) => {
-                const active = here.kind === "area" && here.area === a;
+                const active = task.area === a;
                 return (
                   <Pressable key={a} style={[s.chip, active && s.chipActive]} onPress={() => { ops.move(task, { kind: "area", area: a }); setMenu(false); }}>
                     <Text style={[s.chipText, active && s.chipTextActive]}>{AREA_LABELS[a]}</Text>
                   </Pressable>
                 );
               })}
-              <Pressable style={[s.chip, here.kind === "loose" && s.chipActive]} onPress={() => { ops.move(task, { kind: "loose" }); setMenu(false); }}>
-                <Text style={[s.chipText, here.kind === "loose" && s.chipTextActive]}>No area</Text>
+              <Pressable style={[s.chip, !task.area && s.chipActive]} onPress={() => { ops.move(task, { kind: "loose" }); setMenu(false); }}>
+                <Text style={[s.chipText, !task.area && s.chipTextActive]}>No area</Text>
               </Pressable>
             </View>
 
@@ -102,6 +128,7 @@ export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops
 const s = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 6 },
   done: { textDecorationLine: "line-through", color: colors.mutedForeground },
+  when: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 1.4, textTransform: "uppercase", color: colors.gold, borderWidth: 1, borderColor: colors.gold, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   star: { fontFamily: fonts.sans, fontSize: 13, color: colors.gold, marginLeft: -2 },
   makeFocus: { borderWidth: 1, borderColor: colors.gold, borderRadius: 6, paddingVertical: 10, paddingHorizontal: 12, marginTop: space.sm },
   act: { fontFamily: fonts.sans, fontSize: 15, color: colors.gold },

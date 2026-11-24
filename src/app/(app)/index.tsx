@@ -64,7 +64,7 @@ export default function WeekScreen() {
 
   const byArea = useMemo(() => {
     const m: Record<string, TaskRow[]> = { personal: [], work: [], development: [] };
-    for (const t of tasks) if (t.area && !t.task_date) m[t.area]!.push(t);
+    for (const t of tasks) if (t.area) m[t.area]!.push(t); // also when scheduled to a day
     return m;
   }, [tasks]);
   const loose = useMemo(() => tasks.filter((t) => !t.area && !t.task_date), [tasks]);
@@ -236,7 +236,7 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
         </View>
       ) : null}
       <View style={{ gap: 2 }}>
-        {tasks.slice(0, fit.tasks).map((t) => <TaskItem key={t.id} task={t} ops={ops} compact draggable />)}
+        {tasks.slice(0, fit.tasks).map((t) => <TaskItem key={t.id} task={t} ops={ops} compact draggable inDay />)}
         {fit.hidden ? (
           <Pressable onPress={onOpen} style={s.more} accessibilityRole="button" accessibilityLabel={`${fit.hidden} more on ${label}. Open the day`}>
             <Text style={s.moreText}>+{fit.hidden} more →</Text>

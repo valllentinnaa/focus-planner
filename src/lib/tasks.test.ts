@@ -1,4 +1,4 @@
-import { placementColumns, placementOf, postponeColumns } from "./tasks";
+import { placementColumns, placementOf, postponeColumns, unscheduleColumns } from "./tasks";
 
 describe("placementOf", () => {
   it("reads the placement back from columns", () => {
@@ -24,6 +24,26 @@ describe("placementColumns", () => {
     });
     expect(placementColumns({ kind: "loose" }, "2026-10-26")).toEqual({ area: null, task_date: null, week_start: "2026-10-26" });
   });
+  it("dropping an area task on a day keeps its area (shows in both)", () => {
+    expect(placementColumns({ kind: "day", date: "2026-10-29" }, "2026-10-26", { area: "work", task_date: null })).toEqual({
+      area: "work",
+      task_date: "2026-10-29",
+      week_start: "2026-10-26",
+    });
+  });
+  it("dropping a day task on an area keeps its day; moving between days keeps its area", () => {
+    expect(placementColumns({ kind: "area", area: "personal" }, "2026-10-26", { area: null, task_date: "2026-10-29" })).toEqual({
+      area: "personal",
+      task_date: "2026-10-29",
+      week_start: "2026-10-26",
+    });
+    expect(placementColumns({ kind: "day", date: "2026-11-03" }, "2026-10-26", { area: "work", task_date: "2026-10-29" })).toEqual({
+      area: "work",
+      task_date: "2026-11-03",
+      week_start: "2026-11-02",
+    });
+  });
+  it("unscheduling only clears the day", () => expect(unscheduleColumns()).toEqual({ task_date: null }));
 });
 
 describe("postponeColumns", () => {

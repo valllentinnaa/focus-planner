@@ -8,7 +8,7 @@ import { rawDb } from "@/lib/supabase";
 import type { TaskRow } from "@/lib/database.types";
 import { addDays } from "date-fns";
 import { fromISO, mondayOf, toISO } from "@/lib/dates";
-import { placementColumns, postponeColumns, type Placement } from "@/lib/tasks";
+import { placementColumns, postponeColumns, unscheduleColumns, type Placement } from "@/lib/tasks";
 import { useUserId } from "./auth";
 
 const TEXT_SAVE_MS = 600;
@@ -114,7 +114,13 @@ export function useTaskOps() {
       },
       /** Move a task to a new placement (drag, assign-to-day, send-to-area). */
       move(task: TaskRow, placement: Placement) {
-        const cols = placementColumns(placement, task.week_start);
+        const cols = placementColumns(placement, task.week_start, task);
+        eachSlice((rows) => rows.map((r) => (r.id === task.id ? { ...r, ...cols } : r)));
+        persist.mutate({ id: task.id, ...cols }, { onSettled: invalidate });
+      },
+      /** Take it off its day; it stays in its life area. */
+      unschedule(task: TaskRow) {
+        const cols = unscheduleColumns();
         eachSlice((rows) => rows.map((r) => (r.id === task.id ? { ...r, ...cols } : r)));
         persist.mutate({ id: task.id, ...cols }, { onSettled: invalidate });
       },
