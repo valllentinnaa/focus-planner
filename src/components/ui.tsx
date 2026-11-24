@@ -45,8 +45,20 @@ export function SectionLabel({ children, right }: { children: ReactNode; right?:
 const WEB_NO_OUTLINE = (Platform.OS === "web" ? { outlineStyle: "none" } : null) as StyleProp<TextStyle>;
 
 /** Dashed-underline input, like writing on a ruled line. */
-export function RuleInput({ style, italicGold, lines, ...props }: TextInputProps & { italicGold?: boolean; lines?: number }) {
-  const multiline = (lines ?? 1) > 1 || props.multiline;
+export function RuleInput({
+  style,
+  italicGold,
+  lines,
+  autoGrow,
+  ...props
+}: TextInputProps & {
+  italicGold?: boolean;
+  lines?: number;
+  /** Start at one line and grow with the text (wraps instead of scrolling sideways). */
+  autoGrow?: boolean;
+}) {
+  const multiline = autoGrow || (lines ?? 1) > 1 || props.multiline;
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
   // Focus shows as a gold underline (instead of the browser's black outline box on web).
   const [focused, setFocused] = useState(false);
   // While typing, the input keeps its own text so a saved value arriving a tick late can't
@@ -74,15 +86,21 @@ export function RuleInput({ style, italicGold, lines, ...props }: TextInputProps
         setDraft(null);
         props.onBlur?.(e);
       }}
+      onContentSizeChange={(e) => {
+        if (autoGrow) setContentHeight(e.nativeEvent.contentSize.height);
+        props.onContentSizeChange?.(e);
+      }}
       multiline={multiline}
-      numberOfLines={lines}
+      numberOfLines={autoGrow ? undefined : lines}
       style={[
         s.ruleInput,
         WEB_NO_OUTLINE,
         focused && s.ruleInputFocused,
-        multiline && { minHeight: 28 * (lines ?? 1), textAlignVertical: "top" },
+        multiline && !autoGrow && { minHeight: 28 * (lines ?? 1), textAlignVertical: "top" },
+        autoGrow && { textAlignVertical: "top" },
         italicGold && { fontFamily: fonts.displayItalic, color: colors.gold, fontSize: 17 },
         style,
+        autoGrow && contentHeight ? { height: contentHeight } : null,
       ]}
     />
   );

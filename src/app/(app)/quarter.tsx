@@ -281,12 +281,11 @@ function QuarterTheme({ id }: { id: string }) {
         <Text style={s.themeLabel}>Focus this quarter</Text>
       </View>
       <RuleInput
-        italicGold
-        lines={2}
+        autoGrow
         value={d.doc.theme}
         onChangeText={(theme) => d.patch({ theme })}
         placeholder="The one thing these 12 weeks are about…"
-        style={{ fontSize: 19 }}
+        style={s.themeText}
       />
     </View>
   );
@@ -343,6 +342,7 @@ const s = StyleSheet.create({
   error: { fontFamily: fonts.sans, fontSize: 12, color: colors.destructive },
   themeCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg },
   themeHead: { marginBottom: 4 },
+  themeText: { fontFamily: fonts.displayItalic, fontSize: 24, lineHeight: 32, color: colors.ink, paddingVertical: 2 },
   themeLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   cols: { flexDirection: "row", gap: space.lg },
   col: { minWidth: 0 },

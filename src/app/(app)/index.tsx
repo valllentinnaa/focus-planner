@@ -129,7 +129,7 @@ export default function WeekScreen() {
 
       <View style={s.focusCard}>
         <Text style={s.focusLabel}>Focus of the week</Text>
-        <RuleInput italicGold lines={3} value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="What matters most this week…" style={{ fontSize: 18 }} />
+        <RuleInput autoGrow value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="What matters most this week…" style={s.focusText} />
       </View>
 
       <SwipePager labels={["Life areas", "The week"]}>
@@ -254,6 +254,7 @@ const s = StyleSheet.create({
   themeReminderText: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.gold },
   calendarWarning: { fontFamily: fonts.sans, fontSize: 12, color: colors.destructive },
   focusCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg },
+  focusText: { fontFamily: fonts.displayItalic, fontSize: 24, lineHeight: 32, color: colors.ink, paddingVertical: 2 },
   focusLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginBottom: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   dayBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.md, minHeight: 120, gap: 4 },
