@@ -52,9 +52,13 @@ export function eventTime(label: string): number | null {
 
 export type AgendaItem<E, T> = { kind: "event"; event: E } | { kind: "task"; task: T };
 
+/** From this time on, an item counts as "evening" and goes after the tasks without a time. */
+export const EVENING_MINUTES = 18 * 60;
+
 /**
- * One day in order: all-day events, then everything with a time (events and timed tasks, by time;
- * an event first on a tie), then tasks without a time in their own order.
+ * One day in order: all-day events; then daytime items with a time (events and tasks, by time; an
+ * event first on a tie); then tasks without a time in their own order; then evening items (18:00+),
+ * by time — so "21:30 diary" sits at the end of the day, not above everything else.
  */
 export function dayAgenda<E extends { label: string }, T extends { text: string; task_time?: string | null }>(
   events: E[],
@@ -74,5 +78,7 @@ export function dayAgenda<E extends { label: string }, T extends { text: string;
     else timed.push({ at, rank: 1, i, item: { kind: "task", task } });
   });
   timed.sort((a, b) => a.at - b.at || a.rank - b.rank || a.i - b.i);
-  return [...untimedEvents, ...timed.map((t) => t.item), ...untimedTasks];
+  const day = timed.filter((t) => t.at < EVENING_MINUTES).map((t) => t.item);
+  const evening = timed.filter((t) => t.at >= EVENING_MINUTES).map((t) => t.item);
+  return [...untimedEvents, ...day, ...untimedTasks, ...evening];
 }

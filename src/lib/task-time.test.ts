@@ -76,3 +76,13 @@ describe("task times", () => {
     expect(out.map((i) => (i.kind === "task" ? i.task.text : ""))).toEqual(["early", "later", "none"]);
   });
 });
+
+describe("evening items", () => {
+  it("go after the tasks without a time", () => {
+    const out = dayAgenda(
+      [{ label: "19:00", key: "dinner" }],
+      [{ text: "dnevnik", task_time: "21:30:00" }, { text: "outreach" }, { text: "gym", task_time: "08:00:00" }, { text: "prane" }],
+    );
+    expect(out.map((i) => (i.kind === "event" ? i.event.key : i.task.text))).toEqual(["gym", "outreach", "prane", "dinner", "dnevnik"]);
+  });
+});
