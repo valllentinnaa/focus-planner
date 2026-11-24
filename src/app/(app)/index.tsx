@@ -21,6 +21,8 @@ import { PageTitle, Screen, SwipePager, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
 import { BlankRows, GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
+import { FocusLink, WeekFocus } from "@/components/week-focus";
+import { resolveFocus } from "@/lib/week-focus";
 import { DropZone } from "@/components/drag";
 import { NewWeekDialog } from "@/components/new-week-dialog";
 import { CheckinNudge } from "@/components/checkin/nudge";
@@ -74,7 +76,12 @@ export default function WeekScreen() {
 
   const prevNotes = prev.doc.notes.trim();
 
+  const focusTaskId = resolveFocus({ focus: doc.focus, focusTaskId: doc.focusTaskId }, tasks).task?.id ?? null;
+  const focusLink = { focusTaskId, makeFocus: (t: TaskRow) => patch({ focusTaskId: t.id, focus: t.text }) };
+
   return (
+    // Task rows read this to show ★ and offer "Make this the week's focus".
+    <FocusLink.Provider value={focusLink}>
     <Screen>
       <NewWeekDialog
         enabled={key === weekKey(new Date()) && !doc.promptDismissed}
@@ -127,10 +134,7 @@ export default function WeekScreen() {
         </Link>
       ) : null}
 
-      <View style={s.focusCard}>
-        <Text style={s.focusLabel}>Focus of the week</Text>
-        <RuleInput autoGrow value={doc.focus} onChangeText={(v) => patch({ focus: v })} placeholder="What matters most this week…" style={s.focusText} />
-      </View>
+      <WeekFocus doc={doc} patch={patch} tasks={tasks} ops={ops} />
 
       <SwipePager labels={["Life areas", "The week"]}>
         <View style={{ gap: space.xl }}>
@@ -193,6 +197,7 @@ export default function WeekScreen() {
         <RuledArea lines={2} value={doc.notes} onChangeText={(v) => patch({ notes: v })} />
       </View>
     </Screen>
+    </FocusLink.Provider>
   );
 }
 
@@ -253,9 +258,6 @@ const s = StyleSheet.create({
   themeReminderLabel: { fontFamily: fonts.sans, fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   themeReminderText: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.gold },
   calendarWarning: { fontFamily: fonts.sans, fontSize: 12, color: colors.destructive },
-  focusCard: { borderWidth: 1, borderColor: colors.gold, borderRadius: 4, backgroundColor: alpha("card", "66"), padding: space.lg },
-  focusText: { fontFamily: fonts.displayItalic, fontSize: 24, lineHeight: 32, color: colors.ink, paddingVertical: 2 },
-  focusLabel: { fontFamily: fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginBottom: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   dayBox: { borderWidth: 1, borderColor: colors.rule, borderRadius: 4, padding: space.md, minHeight: 120, gap: 4 },
   dayBoxCol: { flexBasis: "48%", flexGrow: 1 },

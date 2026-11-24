@@ -8,6 +8,7 @@ import type { TaskOps } from "@/data/tasks";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { CheckBox, GhostButton, RuleInput } from "./ui";
 import { DragHandle } from "./drag";
+import { useFocusLink } from "./week-focus";
 
 /**
  * One task line: check it off (strikes through), edit its text, postpone it to next week,
@@ -16,6 +17,8 @@ import { DragHandle } from "./drag";
  */
 export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops: TaskOps; compact?: boolean; draggable?: boolean }) {
   const [menu, setMenu] = useState(false);
+  const focus = useFocusLink();
+  const isFocus = !!focus && focus.focusTaskId === task.id;
   const here = placementOf(task);
   const days = Array.from({ length: 7 }, (_, i) => addDays(fromISO(task.week_start), i));
 
@@ -23,6 +26,7 @@ export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops
     <View style={s.row}>
       {draggable ? <DragHandle task={task} label={task.text} /> : null}
       <CheckBox size={compact ? 16 : 18} checked={task.done} onChange={(done) => ops.setDone(task.id, done)} />
+      {isFocus ? <Text style={s.star} accessibilityLabel="Week's focus">★</Text> : null}
       <RuleInput
         value={task.text}
         onChangeText={(text) => ops.setText(task.id, text)}
@@ -44,6 +48,18 @@ export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops
         <Pressable style={s.backdrop} onPress={() => setMenu(false)}>
           <Pressable style={s.sheet}>
             <Text style={s.sheetTitle}>Move task</Text>
+
+            {focus ? (
+              <Pressable
+                style={[s.makeFocus, isFocus && s.chipActive]}
+                disabled={isFocus}
+                onPress={() => { focus.makeFocus(task); setMenu(false); }}
+              >
+                <Text style={[s.postponeText, isFocus && s.chipTextActive]}>
+                  {isFocus ? "★  This is the week’s focus" : "★  Make this the week’s focus"}
+                </Text>
+              </Pressable>
+            ) : null}
 
             <Text style={s.group}>Schedule to a day</Text>
             <View style={s.dayGrid}>
@@ -86,6 +102,8 @@ export function TaskItem({ task, ops, compact, draggable }: { task: TaskRow; ops
 const s = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 6 },
   done: { textDecorationLine: "line-through", color: colors.mutedForeground },
+  star: { fontFamily: fonts.sans, fontSize: 13, color: colors.gold, marginLeft: -2 },
+  makeFocus: { borderWidth: 1, borderColor: colors.gold, borderRadius: 6, paddingVertical: 10, paddingHorizontal: 12, marginTop: space.sm },
   act: { fontFamily: fonts.sans, fontSize: 15, color: colors.gold },
   x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
   backdrop: { flex: 1, backgroundColor: alpha("ink", "55"), alignItems: "center", justifyContent: "center", padding: space.lg },
