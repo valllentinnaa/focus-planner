@@ -1,14 +1,14 @@
 // The end of a 12-week cycle: what got done, a moment to enjoy it, and when the next 12 weeks start.
 import { addDays, format } from "date-fns";
 import { useEffect, useState } from "react";
-import { Animated, Easing, Modal, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { fromISO } from "@/lib/dates";
 import { AREAS, AREA_LABELS, type GoalWithSteps } from "@/lib/quarter-goals";
-import { CYCLE_DAYS, cycleHeadline, cycleStats, defaultNextStart, habitsForNext, isValidNextStart } from "@/lib/quarter-cycle";
+import { CYCLE_DAYS, cycleHeadline, cycleStats, defaultNextStart, habitsForNext, isValidNextStart, unfinishedToOffer } from "@/lib/quarter-cycle";
 import type { QuarterRow } from "@/lib/database.types";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { DateNav } from "./date-nav";
-import { Body, Display, Eyebrow, GhostButton, GoldButton } from "./ui";
+import { Body, CheckBox, Display, Eyebrow, GhostButton, GoldButton } from "./ui";
 
 const native = Platform.OS !== "web";
 const SPARKS = [
@@ -31,10 +31,19 @@ export function QuarterComplete({
   quarter: QuarterRow;
   goals: GoalWithSteps[];
   onClose: () => void;
-  onStartNext: (startISO: string) => Promise<unknown>;
+  /** Start the next cycle; `carry` = ids of this cycle's unfinished goals to take along. */
+  onStartNext: (startISO: string, carry: string[]) => Promise<unknown>;
 }) {
   const st = cycleStats(goals);
   const carried = habitsForNext(goals).length;
+  const offer = unfinishedToOffer(goals);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const flip = (id: string) => {
+    const n = new Set(picked);
+    if (n.has(id)) n.delete(id);
+    else n.add(id);
+    setPicked(n);
+  };
   const [next, setNext] = useState(() => defaultNextStart(quarter.start_date, new Date()));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -54,7 +63,7 @@ export function QuarterComplete({
     if (!isValidNextStart(quarter.start_date, next)) return;
     setBusy(true);
     try {
-      await onStartNext(next);
+      await onStartNext(next, [...picked]);
       onClose();
     } catch {
       setError("Couldn't start the next 12 weeks. Try again.");
@@ -113,6 +122,33 @@ export function QuarterComplete({
               </View>
             ) : null}
 
+            {offer.length ? (
+              <View style={s.next}>
+                <Eyebrow>Not finished · take into the next 12 weeks?</Eyebrow>
+                <View style={{ gap: 6 }}>
+                  {offer.map((g) => {
+                    const actions = g.is_project ? g.steps.filter((x) => x.text.trim() && !x.done).length : 0;
+                    return (
+                      <Pressable key={g.id} style={s.pick} onPress={() => flip(g.id)} accessibilityRole="checkbox" accessibilityState={{ checked: picked.has(g.id) }}>
+                        <CheckBox size={16} checked={picked.has(g.id)} onChange={() => flip(g.id)} />
+                        <Text style={s.pickArea}>{AREA_LABELS[g.area]}</Text>
+                        <Text style={s.pickText} numberOfLines={2}>
+                          {g.text.trim()}
+                          {actions ? <Text style={s.pickMeta}>  · {actions} open action{actions === 1 ? "" : "s"}</Text> : null}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <GhostButton
+                  style={{ alignSelf: "flex-start" }}
+                  onPress={() => setPicked(picked.size === offer.length ? new Set() : new Set(offer.map((g) => g.id)))}
+                >
+                  {picked.size === offer.length ? "Clear" : "Take all"}
+                </GhostButton>
+              </View>
+            ) : null}
+
             <View style={s.next}>
               <Eyebrow>Next 12 weeks</Eyebrow>
               <DateNav
@@ -125,8 +161,8 @@ export function QuarterComplete({
                   {carried} habit{carried === 1 ? "" : "s"} marked → come{carried === 1 ? "s" : ""} with you.
                 </Body>
               ) : null}
-              {st.goals > st.goalsDone ? (
-                <Body muted style={s.hint}>Anything unfinished waits for you there — bring it in or let it go.</Body>
+              {offer.length > picked.size ? (
+                <Body muted style={s.hint}>What you leave unticked waits under “Unfinished from before”.</Body>
               ) : null}
               {error ? <Text style={s.error}>{error}</Text> : null}
             </View>
@@ -214,6 +250,10 @@ const s = StyleSheet.create({
   areaCount: { width: 36, textAlign: "right", fontFamily: fonts.sans, fontSize: 12, color: colors.ink },
   next: { gap: 8, borderTopWidth: 1, borderTopColor: colors.rule, paddingTop: space.lg },
   hint: { fontSize: 13 },
+  pick: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: 4 },
+  pickArea: { width: 120, fontFamily: fonts.sans, fontSize: 9, letterSpacing: 1.4, textTransform: "uppercase", color: colors.mutedForeground },
+  pickText: { flex: 1, fontFamily: fonts.sans, fontSize: 14, color: colors.ink },
+  pickMeta: { fontSize: 12, color: colors.mutedForeground },
   error: { fontFamily: fonts.sans, fontSize: 12, color: colors.destructive },
   actions: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: space.md },
   spark: { position: "absolute", bottom: 40, color: colors.gold },

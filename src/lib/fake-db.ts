@@ -1,6 +1,7 @@
 // Demo-mode database: a tiny PostgREST-shaped client over AsyncStorage. Only the chain the data
 // hooks use is supported (select/eq/gte/lte/order/limit/maybeSingle/single, insert, upsert, update,
-// delete). It exists so the app can be explored without a Supabase project; never used otherwise.
+// delete), plus the 12W cycle functions (rpc) mirrored from 20261124200000_quarter_cycle_functions.sql.
+// It exists so the app can be explored without a Supabase project; never used otherwise.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 
@@ -28,7 +29,7 @@ const defaultsFor: Record<string, () => Row> = {
   food_weeks: () => ({ notes: "", schedule: ["", "", "", "", "", "", ""] }),
   food_items: () => ({ done: false, position: 0 }),
   quarters: () => ({ theme: "", notes: "" }),
-  goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false, carry_next: false }),
+  goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false, carry_next: false, carried_from: null }),
   goal_steps: () => ({ text: "", done: false, position: 0 }),
   clipboard_items: () => ({ text: "", attention: false, position: 0 }),
   people: () => ({ birth_month: null, birth_day: null, birth_year: null, notes: "", source: "manual", external_id: null, linked_user_id: null }),
@@ -134,8 +135,80 @@ class Query implements PromiseLike<Result<unknown>> {
   }
 }
 
+// ---------- 12W cycle functions (same rules as the SQL versions) ----------
+const fail = (message: string): Result<null> => ({ data: null, error: { message } });
+const norm = (t: unknown) => String(t ?? "").trim().toLowerCase();
+const byStart = (a: Row, b: Row) => (String(a.start_date) < String(b.start_date) ? 1 : -1);
+
+async function copyGoal(goals: Row[], steps: Row[], g: Row, quarterId: string, position: number) {
+  const copy = stamp("goals", {
+    quarter_id: quarterId, area: g.area, text: String(g.text).trim(), is_project: g.is_project,
+    carry_next: g.carry_next ?? false, position, carried_from: g.id,
+  });
+  goals.push(copy);
+  if (g.is_project) {
+    steps
+      .filter((st) => st.goal_id === g.id && !st.done && String(st.text).trim())
+      .sort((a, b) => Number(a.position) - Number(b.position))
+      .forEach((st, i) => steps.push(stamp("goal_steps", { goal_id: copy.id, text: String(st.text).trim(), position: i })));
+  }
+  return copy.id as string;
+}
+
+async function rpc(fn: string, args: Record<string, unknown>): Promise<Result<unknown>> {
+  const quarters = await load("quarters");
+  const goals = await load("goals");
+  const steps = await load("goal_steps");
+  const current = [...quarters].sort(byStart)[0];
+  const save = async () => {
+    await store("quarters", quarters);
+    await store("goals", goals);
+    await store("goal_steps", steps);
+  };
+
+  if (fn === "start_next_quarter") {
+    const start = String(args.p_start);
+    const carry = new Set((args.p_carry as string[] | undefined) ?? []);
+    if (current && start <= String(current.start_date)) return fail(`The next cycle must start after ${current.start_date}`);
+    const next = stamp("quarters", { start_date: start });
+    quarters.push(next);
+    if (current) {
+      const picked = goals
+        .filter((g) => g.quarter_id === current.id && String(g.text).trim() && !g.archived)
+        .filter((g) => (g.area === "habits" && g.carry_next) || (carry.has(String(g.id)) && !g.done))
+        .sort((a, b) => String(a.area).localeCompare(String(b.area)) || Number(a.position) - Number(b.position));
+      for (const g of picked) {
+        await copyGoal(goals, steps, g, String(next.id), goals.filter((x) => x.quarter_id === next.id && x.area === g.area).length);
+        g.archived = true;
+      }
+    }
+    await save();
+    return { data: next, error: null };
+  }
+
+  const g = goals.find((x) => x.id === args.p_goal);
+  if (!g) return fail("Goal not found");
+  const sameOpenElsewhere = (x: Row) =>
+    x.quarter_id !== current?.id && !x.done && !x.archived && x.area === g.area && norm(x.text) === norm(g.text);
+
+  if (fn === "bring_in_goal") {
+    if (g.archived) return fail("Already brought in or let go");
+    if (!current || g.quarter_id === current.id) return fail("Goal is already in the current cycle");
+    const id = await copyGoal(goals, steps, g, String(current.id), goals.filter((x) => x.quarter_id === current.id && x.area === g.area).length);
+    goals.filter(sameOpenElsewhere).forEach((x) => (x.archived = true));
+    await save();
+    return { data: id, error: null };
+  }
+  if (fn === "let_go_goal") {
+    goals.filter(sameOpenElsewhere).forEach((x) => (x.archived = true));
+    await save();
+    return { data: null, error: null };
+  }
+  return fail(`Unknown function ${fn}`);
+}
+
 export function createFakeDb() {
-  return { from: (table: string) => new Query(table) };
+  return { from: (table: string) => new Query(table), rpc };
 }
 
 export async function clearDemoData() {

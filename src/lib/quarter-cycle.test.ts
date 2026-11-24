@@ -8,7 +8,7 @@ import {
   isValidNextStart,
   leftoverGoals,
   openSteps,
-  sameGoalIds,
+  unfinishedToOffer,
 } from "./quarter-cycle";
 import { fromISO, toISO } from "./dates";
 import type { GoalStepRow } from "./database.types";
@@ -90,7 +90,6 @@ describe("leftoverGoals", () => {
     const newer = goal({ text: "read more ", quarter_id: "q2" });
     const out = leftoverGoals([older, newer], "now");
     expect(out.map((g) => g.id)).toEqual([newer.id]);
-    expect(sameGoalIds([older, newer], newer, "now").sort()).toEqual([older.id, newer.id].sort());
   });
 
   it("orders by area, then position", () => {
@@ -111,5 +110,19 @@ describe("habitsForNext", () => {
     const b = goal({ area: "habits", text: "Read", carry_next: true, position: 1 });
     const out = habitsForNext([a, b, goal({ area: "habits", text: "x" }), goal({ area: "habits", text: " ", carry_next: true }), goal({ area: "work", carry_next: true })]);
     expect(out.map((g) => g.id)).toEqual([b.id, a.id]);
+  });
+});
+
+describe("unfinishedToOffer", () => {
+  it("lists this cycle's open, written goals by area; skips habits marked → (they come anyway)", () => {
+    const w = goal({ area: "work", text: "Ship" });
+    const p = goal({ area: "personal", text: "Pilates" });
+    const out = unfinishedToOffer([
+      w, p, goal({ done: true }), goal({ text: " " }),
+      goal({ area: "habits", text: "Walk", carry_next: true }),
+    ]);
+    expect(out.map((g) => g.id)).toEqual([p.id, w.id]);
+    const h = goal({ area: "habits", text: "No phone" });
+    expect(unfinishedToOffer([h]).map((g) => g.id)).toEqual([h.id]);
   });
 });

@@ -6,8 +6,7 @@ import type { GoalRow, QuarterRow } from "@/lib/database.types";
 import { toISO, mondayOf } from "@/lib/dates";
 import type { GoalWithSteps } from "@/lib/quarter-goals";
 import { useUserId } from "./auth";
-import { newId, useItems } from "./items";
-import { habitsForNext, openSteps, sameGoalIds } from "@/lib/quarter-cycle";
+import { useItems } from "./items";
 
 export function useCurrentQuarter() {
   const userId = useUserId();
@@ -49,32 +48,17 @@ export function useCurrentQuarter() {
   });
 
   // A new cycle is a new row; the latest start date is always the current cycle.
-  // Habits marked → come along: fresh (not done) copies, still marked, and the old ones stop
-  // showing as "unfinished from before".
+  // One server-side transaction: new cycle + habits marked → + the unfinished goals picked.
   const startNext = useMutation({
-    mutationFn: async ({ start_date, goals }: { start_date: string; goals: GoalWithSteps[] }) => {
-      const { data, error } = await rawDb.from("quarters").insert({ start_date, notes: "" }).select("*").single();
+    mutationFn: async ({ start_date, carry }: { start_date: string; carry: string[] }) => {
+      const { data, error } = await rawDb.rpc("start_next_quarter", { p_start: start_date, p_carry: carry });
       if (error) throw error;
-      const row = data as QuarterRow;
-      for (const [i, h] of habitsForNext(goals).entries()) {
-        const r = await rawDb.from("goals").insert({
-          id: newId(),
-          quarter_id: row.id,
-          area: "habits",
-          text: h.text.trim(),
-          is_project: h.is_project,
-          carry_next: true,
-          position: i,
-        });
-        if (r.error) throw r.error;
-        const a = await rawDb.from("goals").update({ archived: true }).eq("id", h.id);
-        if (a.error) throw a.error;
-      }
-      return row;
+      return data as QuarterRow;
     },
     onSuccess: (row) => {
       qc.setQueryData(queryKey, row);
       qc.invalidateQueries({ queryKey: ["goals"] });
+      qc.invalidateQueries({ queryKey: ["goal_steps"] });
     },
   });
 
@@ -83,7 +67,7 @@ export function useCurrentQuarter() {
     loading: query.isPending,
     error: query.error,
     save: upsert.mutate,
-    startNext: (start_date: string, goals: GoalWithSteps[]) => startNext.mutateAsync({ start_date, goals }),
+    startNext: (start_date: string, carry: string[]) => startNext.mutateAsync({ start_date, carry }),
     starting: startNext.isPending,
   };
 }
@@ -112,7 +96,8 @@ export function useOpenGoals(enabled: boolean) {
     queryKey,
     enabled: !!userId && enabled,
     queryFn: async () => {
-      const { data, error } = await rawDb.from("goals").select("*").eq("done", false);
+      // Matches the partial index goals_leftovers (not done, not archived).
+      const { data, error } = await rawDb.from("goals").select("*").eq("done", false).eq("archived", false);
       if (error) throw error;
       return (data ?? []) as (GoalRow & { archived?: boolean | null })[];
     },
@@ -123,37 +108,18 @@ export function useOpenGoals(enabled: boolean) {
     [goals.data, steps.items],
   );
 
-  const archive = async (ids: string[]) => {
-    qc.setQueryData<GoalRow[]>(queryKey, (cur) => (cur ?? []).map((g) => (ids.includes(g.id) ? { ...g, archived: true } : g)));
-    for (const id of ids) {
-      const { error } = await rawDb.from("goals").update({ archived: true }).eq("id", id);
-      if (error) {
-        qc.invalidateQueries({ queryKey });
-        throw error;
-      }
-    }
-  };
-
-  /** Let go: it stops being offered, and stays as it was in its old cycle. */
-  const letGo = (g: OpenGoal, currentQuarterId: string) => archive(sameGoalIds(withSteps, g, currentQuarterId));
-
-  /** Bring in: a fresh copy in the current cycle (same area; open actions for a project). */
-  const bringIn = async (g: OpenGoal, currentQuarterId: string, position: number) => {
-    const id = newId();
-    const { error } = await rawDb
-      .from("goals")
-      .insert({ id, quarter_id: currentQuarterId, area: g.area, text: g.text.trim(), is_project: g.is_project, position });
-    if (error) throw error;
-    // Sequential on purpose: each action needs the goal row to exist first.
-    const carry = g.is_project ? openSteps(g.steps) : [];
-    for (const [i, st] of carry.entries()) {
-      const r = await rawDb.from("goal_steps").insert({ id: newId(), goal_id: id, text: st.text, position: i });
-      if (r.error) throw r.error;
-    }
-    await archive(sameGoalIds(withSteps, g, currentQuarterId));
+  const call = async (fn: "bring_in_goal" | "let_go_goal", goalId: string) => {
+    const { error } = await rawDb.rpc(fn, { p_goal: goalId });
     await qc.invalidateQueries({ queryKey: ["goals"] });
     await qc.invalidateQueries({ queryKey: ["goal_steps"] });
+    if (error) throw error;
   };
+
+  /** Let go: every earlier copy stops being offered, and stays as it was in its own cycle. */
+  const letGo = (g: OpenGoal) => call("let_go_goal", g.id);
+
+  /** Bring in: a fresh copy in the current cycle (same area; a project keeps its open actions). */
+  const bringIn = (g: OpenGoal) => call("bring_in_goal", g.id);
 
   return { goals: withSteps, loading: goals.isPending, letGo, bringIn };
 }

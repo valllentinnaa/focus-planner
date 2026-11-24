@@ -83,13 +83,14 @@ export function leftoverGoals(goals: Archivable[], currentQuarterId: string | nu
   return out.sort((a, b) => AREAS.indexOf(a.area) - AREAS.indexOf(b.area) || a.position - b.position);
 }
 
-/** All copies of a leftover (same area and text) — bringing it in or letting go handles every one. */
-export function sameGoalIds(goals: Archivable[], g: Archivable, currentQuarterId: string | null) {
-  const key = `${g.area}|${g.text.trim().toLowerCase()}`;
-  return goals
-    .filter((x) => x.quarter_id !== currentQuarterId && !x.done && `${x.area}|${x.text.trim().toLowerCase()}` === key)
-    .map((x) => x.id);
-}
+/**
+ * The completion screen's "take into the next 12W?" list: this cycle's unfinished, written goals.
+ * Habits marked → aren't listed — they come along anyway.
+ */
+export const unfinishedToOffer = (goals: GoalWithSteps[]) =>
+  goals
+    .filter((g) => g.text.trim() && !g.done && !(g.area === "habits" && g.carry_next))
+    .sort((a, b) => AREAS.indexOf(a.area) - AREAS.indexOf(b.area) || a.position - b.position);
 
 /** Habits marked → that go into the next cycle by themselves (written ones only, in their order). */
 export const habitsForNext = (goals: GoalWithSteps[]) =>

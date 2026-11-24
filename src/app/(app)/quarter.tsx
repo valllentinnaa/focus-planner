@@ -1,11 +1,12 @@
 import { addDays, format } from "date-fns";
-import { Fragment, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useCurrentQuarter, useGoals, useOpenGoals } from "@/data/quarter";
 import { fromISO, mondayOf, toISO } from "@/lib/dates";
 import { AREAS, AREA_LABELS, type GoalWithSteps } from "@/lib/quarter-goals";
 import { canCompleteCycle, leftoverGoals, openSteps } from "@/lib/quarter-cycle";
-import { ArrowRight } from "lucide-react-native";
+import { ArrowRight, ChevronRight } from "lucide-react-native";
+import { useDisclosure } from "@/components/use-disclosure";
 import { QuarterComplete } from "@/components/quarter-complete";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, useIsWide } from "@/components/screen";
@@ -66,13 +67,13 @@ export default function QuarterScreen() {
           quarter={quarter}
           goals={goals}
           onClose={() => setCompleting(false)}
-          onStartNext={(iso) => startNext(iso, goals)}
+          onStartNext={startNext}
         />
       ) : null}
 
       {quarter ? <QuarterTheme id={quarter.id} /> : null}
 
-      {quarter ? <Leftovers quarterId={quarter.id} current={goals} /> : null}
+      {quarter ? <Leftovers quarterId={quarter.id} /> : null}
 
       <View style={[s.cols, !wide && { flexDirection: "column" }]}>
         {AREAS.map((area) => {
@@ -82,44 +83,13 @@ export default function QuarterScreen() {
               <SectionLabel>{AREA_LABELS[area]}</SectionLabel>
               <View style={{ gap: space.sm, marginTop: space.sm }}>
                 {list.map((g) => (
-                  <Fragment key={g.id}>
-                    <View style={s.goalRow}>
-                      <CheckBox size={18} checked={g.done} onChange={(done) => goalOps.update(g.id, { done })} />
-                      <RuleInput value={g.text} onChangeText={(text) => goalOps.update(g.id, { text })} placeholder="Write a goal…" autoFocus={focusGoal === g.id} style={[{ flex: 1 }, g.done && s.done]} />
-                      <GhostButton
-                        accessibilityLabel={g.is_project ? "Make simple goal" : "Make it a project"}
-                        onPress={() => goalOps.update(g.id, { is_project: !g.is_project })}
-                      >
-                        <Text style={[s.icon, g.is_project && { color: colors.gold, opacity: 1 }]}>▣</Text>
-                      </GhostButton>
-                      {area === "habits" ? (
-                        <GhostButton
-                          accessibilityLabel={g.carry_next ? "Don't take into the next 12W" : "Also take into the next 12W"}
-                          onPress={() => goalOps.update(g.id, { carry_next: !g.carry_next })}
-                        >
-                          <ArrowRight
-                            size={14}
-                            strokeWidth={g.carry_next ? 2.25 : 1.75}
-                            color={g.carry_next ? colors.gold : colors.mutedForeground}
-                            style={{ opacity: g.carry_next ? 1 : 0.5 }}
-                          />
-                        </GhostButton>
-                      ) : null}
-                      <GhostButton accessibilityLabel="Remove" onPress={() => goalOps.remove(g.id)}><Text style={s.x}>✕</Text></GhostButton>
-                    </View>
-                    {g.is_project ? (
-                      <View style={s.steps}>
-                        {g.steps.map((st) => (
-                          <View key={st.id} style={s.goalRow}>
-                            <CheckBox size={14} checked={st.done} onChange={(done) => stepOps.update(st.id, { done })} />
-                            <RuleInput value={st.text} onChangeText={(text) => stepOps.update(st.id, { text })} placeholder="action…" style={[{ flex: 1, fontSize: 13 }, st.done && s.done]} />
-                            <GhostButton accessibilityLabel="Remove action" onPress={() => stepOps.remove(st.id)}><Text style={s.x}>✕</Text></GhostButton>
-                          </View>
-                        ))}
-                        <GhostButton onPress={() => stepOps.add({ goal_id: g.id, text: "", position: g.steps.length })}>+ action</GhostButton>
-                      </View>
-                    ) : null}
-                  </Fragment>
+                  <GoalBlock
+                    key={g.id}
+                    goal={g}
+                    autoFocus={focusGoal === g.id}
+                    goalOps={goalOps}
+                    stepOps={stepOps}
+                  />
                 ))}
                 <BlankRows count={Math.max(0, 6 - list.length)} onAdd={() => addGoal(area, list.length)} />
               </View>
@@ -138,11 +108,95 @@ export default function QuarterScreen() {
   );
 }
 
+type GoalOps = ReturnType<typeof useGoals>["goalOps"];
+type StepOps = ReturnType<typeof useGoals>["stepOps"];
+
+/**
+ * One 12W goal. A project's actions are folded away: hovering opens them (they close 5 s after
+ * the pointer leaves), the "› 2/4" toggle opens and keeps them open, or closes them.
+ * A project with no actions yet stays open so the first one can be added.
+ */
+function GoalBlock({ goal: g, autoFocus, goalOps, stepOps }: { goal: GoalWithSteps; autoFocus: boolean; goalOps: GoalOps; stepOps: StepOps }) {
+  const { open, pinned, send } = useDisclosure();
+  const written = g.steps.filter((st) => st.text.trim());
+  const done = written.filter((st) => st.done).length;
+  const showSteps = g.is_project && (open || g.steps.length === 0);
+  const hover = g.is_project
+    ? { onHoverIn: () => send("enter"), onHoverOut: () => send("leave") }
+    : {};
+  return (
+    <Pressable accessible={false} focusable={false} style={{ gap: space.sm }} {...hover}>
+      <View style={s.goalRow}>
+        <CheckBox size={18} checked={g.done} onChange={(v) => goalOps.update(g.id, { done: v })} />
+        <RuleInput
+          value={g.text}
+          onChangeText={(text) => goalOps.update(g.id, { text })}
+          placeholder="Write a goal…"
+          autoFocus={autoFocus}
+          style={[{ flex: 1 }, g.done && s.done]}
+        />
+        {g.is_project && g.steps.length ? (
+          <GhostButton accessibilityLabel={pinned ? "Hide actions" : "Keep actions open"} onPress={() => send("toggle")}>
+            <View style={s.toggle}>
+              <ChevronRight
+                size={12}
+                color={colors.gold}
+                strokeWidth={2}
+                style={{ transform: [{ rotate: open ? "90deg" : "0deg" }] }}
+              />
+              <Text style={s.toggleCount}>{done}/{written.length}</Text>
+            </View>
+          </GhostButton>
+        ) : null}
+        <GhostButton
+          accessibilityLabel={g.is_project ? "Make simple goal" : "Make it a project"}
+          onPress={() => goalOps.update(g.id, { is_project: !g.is_project })}
+        >
+          <Text style={[s.icon, g.is_project && { color: colors.gold, opacity: 1 }]}>▣</Text>
+        </GhostButton>
+        {g.area === "habits" ? (
+          <GhostButton
+            accessibilityLabel={g.carry_next ? "Don't take into the next 12W" : "Also take into the next 12W"}
+            onPress={() => goalOps.update(g.id, { carry_next: !g.carry_next })}
+          >
+            <ArrowRight
+              size={14}
+              strokeWidth={g.carry_next ? 2.25 : 1.75}
+              color={g.carry_next ? colors.gold : colors.mutedForeground}
+              style={{ opacity: g.carry_next ? 1 : 0.5 }}
+            />
+          </GhostButton>
+        ) : null}
+        <GhostButton accessibilityLabel="Remove" onPress={() => goalOps.remove(g.id)}><Text style={s.x}>✕</Text></GhostButton>
+      </View>
+      {showSteps ? (
+        <View style={s.steps}>
+          {g.steps.map((st) => (
+            <View key={st.id} style={s.goalRow}>
+              <CheckBox size={14} checked={st.done} onChange={(v) => stepOps.update(st.id, { done: v })} />
+              <RuleInput
+                value={st.text}
+                onChangeText={(text) => stepOps.update(st.id, { text })}
+                onFocus={() => send("focus")}
+                onBlur={() => send("blur")}
+                placeholder="action…"
+                style={[{ flex: 1, fontSize: 13 }, st.done && s.done]}
+              />
+              <GhostButton accessibilityLabel="Remove action" onPress={() => stepOps.remove(st.id)}><Text style={s.x}>✕</Text></GhostButton>
+            </View>
+          ))}
+          <GhostButton onPress={() => stepOps.add({ goal_id: g.id, text: "", position: g.steps.length })}>+ action</GhostButton>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
 /**
  * Unfinished goals from earlier 12W cycles. Bring one in (it joins this cycle, with its open
  * actions) or let it go (it stays in its old cycle and stops being offered).
  */
-function Leftovers({ quarterId, current }: { quarterId: string; current: GoalWithSteps[] }) {
+function Leftovers({ quarterId }: { quarterId: string }) {
   const open = useOpenGoals(true);
   const [hidden, setHidden] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -189,12 +243,12 @@ function Leftovers({ quarterId, current }: { quarterId: string; current: GoalWit
                     gold
                     disabled={!!busy}
                     onPress={() =>
-                      run(g.id, () => open.bringIn(g, quarterId, current.filter((c) => c.area === g.area).length))
+                      run(g.id, () => open.bringIn(g))
                     }
                   >
                     Bring in
                   </OutlineButton>
-                  <GhostButton disabled={!!busy} onPress={() => run(g.id, () => open.letGo(g, quarterId))}>
+                  <GhostButton disabled={!!busy} onPress={() => run(g.id, () => open.letGo(g))}>
                     Let go
                   </GhostButton>
                 </View>
@@ -274,6 +328,8 @@ function QuarterNotes({ id }: { id: string }) {
 }
 
 const s = StyleSheet.create({
+  toggle: { flexDirection: "row", alignItems: "center", gap: 2 },
+  toggleCount: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground, fontVariant: ["tabular-nums"] },
   titleRight: { flexDirection: "row", alignItems: "center", gap: space.md, flexWrap: "wrap", justifyContent: "flex-end" },
   leftovers: { borderWidth: 1, borderStyle: "dashed", borderColor: colors.gold, borderRadius: 4, padding: space.lg, marginBottom: space.xl },
   leftRow: { flexDirection: "row", alignItems: "center", gap: space.md, flexWrap: "wrap", paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: colors.rule },

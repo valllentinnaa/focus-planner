@@ -145,6 +145,8 @@ export type GoalRow = {
   archived?: boolean;
   /** Copy into the next 12W cycle when it starts (used for habits). */
   carry_next?: boolean;
+  /** The earlier goal this one was copied from (brought in, or a habit carried forward). */
+  carried_from?: string | null;
 } & Timestamps;
 
 export type GoalStepRow = {
