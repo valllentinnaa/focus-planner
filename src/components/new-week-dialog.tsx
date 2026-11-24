@@ -1,10 +1,11 @@
-// Shown once per week, the first time the current week is opened, if the 12W has open goals.
+// Shown once per week, on the Week page only, the first time the current week is opened, if the 12W has open goals.
 // Pick goals (or a project's next actions) to copy into the week's life areas.
 import { useState } from "react";
+import { useIsFocused } from "expo-router";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useCurrentQuarter, useGoals } from "@/data/quarter";
 import { quarterWeekNumber } from "@/lib/dates";
-import { AREAS, AREA_LABELS, hasOpenGoals, linesFromPicks, type WeekArea } from "@/lib/quarter-goals";
+import { AREAS, AREA_LABELS, linesFromPicks, newWeekPromptOpen, type WeekArea } from "@/lib/quarter-goals";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Body, CheckBox, Display, Eyebrow, GhostButton, RuleInput, SectionLabel, SolidButton } from "./ui";
 
@@ -24,7 +25,8 @@ export function NewWeekDialog({
   const [stepPicks, setStepPicks] = useState<Set<string>>(new Set());
   const [drafts, setDrafts] = useState<Record<string, string>>({});
 
-  const open = enabled && !loading && !!quarter && hasOpenGoals(goals) && !dismissed;
+  const focused = useIsFocused();
+  const open = newWeekPromptOpen({ enabled, focused, loading, hasQuarter: !!quarter, goals, dismissed });
 
   if (!quarter) return null;
   const weekNo = quarterWeekNumber(quarter.start_date, new Date());

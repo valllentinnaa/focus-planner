@@ -1,4 +1,4 @@
-import { appendLines, hasOpenGoals, linesFromPicks, type GoalWithSteps } from "./quarter-goals";
+import { appendLines, hasOpenGoals, linesFromPicks, newWeekPromptOpen, type GoalWithSteps } from "./quarter-goals";
 
 const ts = { created_at: "", updated_at: "", user_id: "u", quarter_id: "q", position: 0 };
 const goal = (p: Partial<GoalWithSteps>): GoalWithSteps => ({
@@ -52,5 +52,18 @@ describe("hasOpenGoals", () => {
   it("ignores blank and done goals", () => {
     expect(hasOpenGoals([goal({ text: " " }), goal({ text: "done", done: true })])).toBe(false);
     expect(hasOpenGoals([goal({ text: "open" })])).toBe(true);
+  });
+});
+
+describe("newWeekPromptOpen", () => {
+  const goal = { id: "g", text: "Run 5k", done: false, area: "personal", is_project: false, steps: [] } as never;
+  const base = { enabled: true, focused: true, loading: false, hasQuarter: true, goals: [goal], dismissed: false };
+  it("opens on the Week page when the 12W has an open goal", () => expect(newWeekPromptOpen(base)).toBe(true));
+  it("never opens while another page (e.g. 12W) is in front", () =>
+    expect(newWeekPromptOpen({ ...base, focused: false })).toBe(false));
+  it("stays closed once dismissed, while loading, or with no open goals", () => {
+    expect(newWeekPromptOpen({ ...base, dismissed: true })).toBe(false);
+    expect(newWeekPromptOpen({ ...base, loading: true })).toBe(false);
+    expect(newWeekPromptOpen({ ...base, goals: [] })).toBe(false);
   });
 });

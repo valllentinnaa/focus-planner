@@ -53,3 +53,19 @@ export function appendLines(existing: string, lines: string[]) {
 export function hasOpenGoals(goals: GoalWithSteps[]) {
   return goals.some((g) => g.text.trim() && !g.done);
 }
+
+/**
+ * The new-week prompt only opens while you are looking at the Week page. The Week page stays
+ * mounted in the background, so without `focused` it popped up over 12W the moment the first
+ * goal was typed there.
+ */
+export function newWeekPromptOpen(o: {
+  enabled: boolean;
+  focused: boolean;
+  loading: boolean;
+  hasQuarter: boolean;
+  goals: GoalWithSteps[];
+  dismissed: boolean;
+}) {
+  return o.enabled && o.focused && !o.loading && o.hasQuarter && !o.dismissed && hasOpenGoals(o.goals);
+}
