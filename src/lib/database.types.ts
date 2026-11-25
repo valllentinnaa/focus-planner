@@ -124,7 +124,7 @@ export type WishlistItemRow = {
   position: number;
 } & Timestamps;
 
-export type EntitlementRow = { user_id: string; plan: "free" | "pro"; updated_at: string };
+export type EntitlementRow = { user_id: string; plan: "free" | "pro"; comped: boolean; updated_at: string };
 
 export type ClipboardItemRow = {
   id: string;
@@ -217,7 +217,7 @@ export type Database = {
       wishlist_items: Table<WishlistItemRow, "text">;
       clipboard_items: Table<ClipboardItemRow, never>;
       /** Read-only for users; written by the server. */
-      entitlements: Table<EntitlementRow, "user_id" | "plan", "updated_at">;
+      entitlements: Table<EntitlementRow, "user_id" | "plan", "updated_at" | "comped">;
       vision_items: Table<VisionItemRow, "quarter_id" | "kind">;
       month_checkins: Table<MonthCheckinRow, "month">;
     };
