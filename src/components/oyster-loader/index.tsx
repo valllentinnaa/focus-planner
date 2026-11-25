@@ -2,6 +2,7 @@
 import { Text } from "react-native";
 import { colors, fonts } from "@/theme/tokens";
 
-export function OysterLoader({ hint = "One moment…" }: { size?: number; hint?: string }) {
+export function OysterLoader({ hint = "One moment…" }: { size?: number; hint?: string | false; wordmark?: boolean; rule?: boolean }) {
+  if (!hint) return null;
   return <Text style={{ fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground }}>{hint}</Text>;
 }

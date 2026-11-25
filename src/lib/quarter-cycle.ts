@@ -100,3 +100,20 @@ export const habitsForNext = (goals: GoalWithSteps[]) =>
 
 /** The project actions worth carrying with a goal: written and not done. */
 export const openSteps = (steps: GoalStepRow[]) => steps.filter((s) => s.text.trim() && !s.done);
+
+const LIFE_AREAS = ["personal", "work", "development"] as const;
+export type LifeArea = (typeof LIFE_AREAS)[number];
+
+/**
+ * 12W progress for the monthly check-in: the goals in the three life areas (habits are ongoing,
+ * so they don't count toward done/total), what's done, per area, and the share done.
+ */
+export function twelveWeekProgress(goals: GoalWithSteps[]) {
+  const items = goals.filter((g) => g.text.trim() && (LIFE_AREAS as readonly string[]).includes(g.area));
+  const done = items.filter((g) => g.done);
+  const areas = LIFE_AREAS.map((area) => {
+    const mine = items.filter((g) => g.area === area);
+    return { area, total: mine.length, done: mine.filter((g) => g.done).length };
+  });
+  return { done, total: items.length, doneCount: done.length, percent: items.length ? Math.round((done.length / items.length) * 100) : 0, areas };
+}

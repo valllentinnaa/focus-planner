@@ -8,6 +8,7 @@ import {
   isValidNextStart,
   leftoverGoals,
   openSteps,
+  twelveWeekProgress,
   unfinishedToOffer,
 } from "./quarter-cycle";
 import { fromISO, toISO } from "./dates";
@@ -125,4 +126,27 @@ describe("unfinishedToOffer", () => {
     const h = goal({ area: "habits", text: "No phone" });
     expect(unfinishedToOffer([h]).map((g) => g.id)).toEqual([h.id]);
   });
+});
+
+describe("twelveWeekProgress", () => {
+  it("counts the three life areas, skipping habits and empty lines", () => {
+    const p = twelveWeekProgress([
+      goal({ area: "personal", done: true, text: "Run 10k" }),
+      goal({ area: "personal" }),
+      goal({ area: "work", done: true, text: "Ship v1" }),
+      goal({ area: "development" }),
+      goal({ area: "habits", done: true }),
+      goal({ area: "work", text: "  " }),
+    ]);
+    expect(p.total).toBe(4);
+    expect(p.doneCount).toBe(2);
+    expect(p.percent).toBe(50);
+    expect(p.done.map((g) => g.text)).toEqual(["Run 10k", "Ship v1"]);
+    expect(p.areas).toEqual([
+      { area: "personal", total: 2, done: 1 },
+      { area: "work", total: 1, done: 1 },
+      { area: "development", total: 1, done: 0 },
+    ]);
+  });
+  it("is 0% with no goals", () => expect(twelveWeekProgress([]).percent).toBe(0));
 });

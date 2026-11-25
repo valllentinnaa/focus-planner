@@ -243,7 +243,8 @@ const GLOWS: { top: `${number}%`; left: `${number}%`; size: number; tone: "gold"
   { top: "5%", left: "70%", size: 420, tone: "card", strength: "22", dx: -40, dy: 70, ms: 9500 },
 ];
 
-function Glows({ big }: { big: boolean }) {
+/** The soft drifting glows behind the welcome screen (also used by the monthly check-in). */
+export function Glows({ big }: { big: boolean }) {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {GLOWS.map((g, i) => (

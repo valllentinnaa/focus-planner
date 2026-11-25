@@ -22,7 +22,7 @@ import { CheckBox, GhostButton, GoldButton, RuledArea, RuleInput } from "@/compo
 import { CheckinCard } from "@/components/checkin/checkin-card";
 import { TogetherPanel } from "@/components/checkin/together";
 import { VoicePlayer, VoiceRecorder } from "@/components/checkin/voice-note";
-import { OysterLoader } from "@/components/oyster-loader";
+import { Reveal, TwelveWeekCelebration } from "@/components/checkin/twelve-week-celebration";
 
 const STEPS = ["Look back", "Reflect", "Share", "Look ahead"] as const;
 
@@ -106,11 +106,12 @@ function LookBack({ month }: { month: string }) {
     eventCount,
   });
 
-  if (loading) return <OysterLoader size={88} hint="Gathering your month…" />;
-
   return (
     <View style={{ gap: space.lg }}>
+      <TwelveWeekCelebration />
       <Text style={s.calm}>Take a minute. No rush. Just look — there’s nothing to fill in yet.</Text>
+      {loading ? null : (
+        <MonthReveal>
       {reviewIsEmpty(review) ? (
         <Text style={s.quiet}>A quiet month in the planner. That’s fine too — what do you remember from it?</Text>
       ) : (
@@ -161,7 +162,18 @@ function LookBack({ month }: { month: string }) {
           ) : null}
         </>
       )}
+        </MonthReveal>
+      )}
     </View>
+  );
+}
+
+/** This month's own summary comes in after the 12-week celebration. */
+function MonthReveal({ children }: { children: React.ReactNode }) {
+  return (
+    <Reveal delay={Platform.OS === "web" ? 3000 : 400} style={{ gap: space.lg }}>
+      {children}
+    </Reveal>
   );
 }
 
