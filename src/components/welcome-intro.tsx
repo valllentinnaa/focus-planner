@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Animated, Easing, Image, Platform, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
+import { isDarkNow } from "@/theme/theme";
 import { GhostButton, GoldButton } from "./ui";
 import { WebWelcome } from "./welcome-web";
 
@@ -44,7 +45,7 @@ function AppWelcome({ onStart, onSignIn, wide }: { onStart: () => void; onSignIn
       <View style={[s.layout, wide && s.layoutWide]}>
       <View style={[s.box, wide && s.boxWide]}>
         <Reveal at={INTRO_TIMELINE.brand} still={reduce}>
-          <Image source={require("../../assets/images/mark.png")} style={s.mark} accessibilityIgnoresInvertColors />
+          <Image source={isDarkNow() ? require("../../assets/images/mark-dark.png") : require("../../assets/images/mark.png")} style={s.mark} accessibilityIgnoresInvertColors />
           <View style={s.brand}>
             <Text style={s.brandName}>Focus</Text>
             <Text style={s.brandSub}> planner</Text>

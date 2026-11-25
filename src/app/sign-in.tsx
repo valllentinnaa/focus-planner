@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { WelcomeIntro } from "@/components/welcome-intro";
 import { colors, fonts, space } from "@/theme/tokens";
+import { isDarkNow } from "@/theme/theme";
 import { Body, Display, Eyebrow, GhostButton, GoldButton, RuleInput } from "@/components/ui";
 
 type Mode = "welcome" | "signin" | "signup";
@@ -78,7 +79,7 @@ export default function SignIn() {
       style={[s.root, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.xl }]}
     >
       <View style={s.box}>
-        <Image source={require("../../assets/images/mark.png")} style={s.mark} accessibilityIgnoresInvertColors />
+        <Image source={isDarkNow() ? require("../../assets/images/mark-dark.png") : require("../../assets/images/mark.png")} style={s.mark} accessibilityIgnoresInvertColors />
         <Eyebrow style={{ marginBottom: 6 }}>{mode === "signup" ? "Create account" : "Sign in"}</Eyebrow>
         <Display italic>Focus Planner</Display>
         <Body muted style={{ marginTop: space.md }}>

@@ -25,7 +25,16 @@ if (html.includes('rel="manifest"')) {
 // ---------- opening loader ----------
 const css = readFileSync("src/components/oyster-loader/oyster-loader.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ");
 const { ambient, burst } = JSON.parse(readFileSync("src/components/oyster-loader/sparks.json", "utf8"));
+// The loader's text uses the app's own fonts, loaded here straight away (same family names the app
+// registers), and waits for them instead of flashing a fallback font first.
+const FONTS = [
+  ["InstrumentSerif_400Regular", "InstrumentSerif_400Regular"],
+  ["InstrumentSerif_400Regular_Italic", "InstrumentSerif_400Regular_Italic"],
+  ["WorkSans_400Regular", "WorkSans_400Regular"],
+];
+const fontFaces = FONTS.map(([family, file]) => `@font-face{font-family:${family};src:url(${base}/loader/fonts/${file}.woff2) format("woff2");font-display:block}`).join("");
 const bootCss = [
+  fontFaces,
   // the app's own font names (loaded by the app); Georgia until then
   `#fp-boot{--font-display:InstrumentSerif_400Regular,"Instrument Serif",Georgia,serif;--font-sans:WorkSans_400Regular,"Work Sans","Helvetica Neue",Arial,sans-serif;z-index:2147483000;transition:opacity .45s ease}`,
   `#fp-boot .oyster-loader__label em{font-family:InstrumentSerif_400Regular_Italic,"Instrument Serif",Georgia,serif}`,
@@ -50,7 +59,7 @@ const loader =
   `<span class="oyster-loader__burst">${glints}</span></div>` +
   `<p class="oyster-loader__label">Focus <em>planner</em></p><span class="oyster-loader__rule"></span><p class="oyster-loader__hint">gathering focus</p></div>` +
   `<script>${bootJs}</script>`;
-const preload = `<link rel="preload" as="image" href="${base}/loader/oyster-closed.webp"/><link rel="preload" as="image" href="${base}/loader/oyster-mark.webp"/>`;
+const preload = FONTS.map(([, file]) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="${base}/loader/fonts/${file}.woff2"/>`).join("") + `<link rel="preload" as="image" href="${base}/loader/oyster-closed.webp"/><link rel="preload" as="image" href="${base}/loader/oyster-mark.webp"/>`;
 
 html = html.replace("</head>", `${tags}${preload}<style id="fp-boot-css">${css}${bootCss}</style></head>`);
 if (!/<body[^>]*>/.test(html)) throw new Error("pwa-head: no <body> in index.html");

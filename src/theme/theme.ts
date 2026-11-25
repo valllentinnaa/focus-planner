@@ -64,6 +64,14 @@ function applyWeb() {
   }
   const dark = resolveTheme(pref, window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light") === "dark";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", palettes[dark ? "dark" : "light"].paper);
+  // The browser-tab icon follows the theme too (home-screen icons can't change once added).
+  document.querySelector('link[rel="icon"]')?.setAttribute("href", dark ? "/icons/favicon-dark.png" : "/favicon.ico");
+}
+
+/** Is the app showing its dark theme right now? */
+export function isDarkNow() {
+  if (!web) return isDarkNative;
+  return resolveTheme(pref, typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light") === "dark";
 }
 applyWeb();
 

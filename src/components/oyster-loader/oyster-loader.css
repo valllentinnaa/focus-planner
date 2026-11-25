@@ -372,3 +372,21 @@
   border:1px solid rgba(96,106,120,.28);transform:translate(-50%,-50%) scale(.8);
   animation:ol-ripple 5.2s ease-out var(--rd) infinite}
 @keyframes ol-ripple{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}12%{opacity:.7}70%,100%{opacity:0;transform:translate(-50%,-50%) scale(2.1)}}
+
+/* ---------- dark theme: a warm cream-and-sepia oyster instead of the sage one ---------- */
+:root[data-theme="dark"] .oyster-loader img,
+html[data-fp-boot="dark"] #fp-boot img {
+  filter: sepia(0.55) saturate(0.6) hue-rotate(-6deg) brightness(1.03);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .oyster-loader img {
+    filter: sepia(0.55) saturate(0.6) hue-rotate(-6deg) brightness(1.03);
+  }
+}
+/* inside the app, follow the app's own theme colours */
+:root[data-theme] .oyster-loader:not(#fp-boot) {
+  --paper: var(--fp-paper);
+  --ink: var(--fp-ink);
+  --gold: var(--fp-gold);
+  --rule: var(--fp-rule);
+}

@@ -54,6 +54,13 @@ const CSS = `
 @keyframes fpw-reveal { from { opacity: 0; transform: translateY(14px); filter: blur(7px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
 
 .fpw-brand { font-family: ${fonts.display}; font-size: 30px; line-height: 1; color: var(--fp-ink); margin: 0 0 36px; }
+.fpw-mark-dark { display: none !important; }
+:root[data-theme="dark"] .fpw-mark-dark { display: block !important; }
+:root[data-theme="dark"] .fpw-mark-light { display: none !important; }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .fpw-mark-dark { display: block !important; }
+  :root[data-theme="system"] .fpw-mark-light { display: none !important; }
+}
 .fpw-mark { display: block; width: 64px; height: 64px; border-radius: 15px; margin: 0 0 18px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 .fpw-brand em { font-family: ${fonts.displayItalic}; font-style: normal; color: var(--fp-gold); }
 
@@ -188,7 +195,8 @@ export function WebWelcome({ onStart, onSignIn }: WebWelcomeProps) {
       <main className="fpw-content">
         <div className="fpw-exit" data-exiting={exiting ? "1" : "0"}>
           <div className="fpw-brand fpw-r" style={{ ["--d" as string]: "0ms" }}>
-            <img className="fpw-mark" src="/icons/icon-192.png" width={64} height={64} alt="" />
+            <img className="fpw-mark fpw-mark-light" src="/icons/icon-192.png" width={64} height={64} alt="" />
+            <img className="fpw-mark fpw-mark-dark" src="/icons/icon-192-dark.png" width={64} height={64} alt="" />
             Focus <em>planner</em>
           </div>
           <h1 className="fpw-h">
