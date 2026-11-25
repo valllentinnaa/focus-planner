@@ -2,7 +2,7 @@
 // after another (blur → sharp on web; fade + rise on phones), then "Get started" pops up.
 // Respects the system "reduce motion" setting by showing everything at once.
 import { useEffect, useState, type ReactNode } from "react";
-import { AccessibilityInfo, Animated, Easing, Platform, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
+import { AccessibilityInfo, Animated, Easing, Image, Platform, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { GhostButton, GoldButton } from "./ui";
@@ -44,6 +44,7 @@ function AppWelcome({ onStart, onSignIn, wide }: { onStart: () => void; onSignIn
       <View style={[s.layout, wide && s.layoutWide]}>
       <View style={[s.box, wide && s.boxWide]}>
         <Reveal at={INTRO_TIMELINE.brand} still={reduce}>
+          <Image source={require("../../assets/images/mark.png")} style={s.mark} accessibilityIgnoresInvertColors />
           <View style={s.brand}>
             <Text style={s.brandName}>Focus</Text>
             <Text style={s.brandSub}> planner</Text>
@@ -292,6 +293,7 @@ const s = StyleSheet.create({
   taglineWide: { fontSize: 20, lineHeight: 30, marginTop: space.xl },
   ctaWide: { alignSelf: "flex-start", width: 260 },
   secondaryWide: { alignSelf: "flex-start", marginLeft: -6 },
+  mark: { width: 64, height: 64, borderRadius: 15, overflow: "hidden", marginBottom: space.md },
   brand: { flexDirection: "row", alignItems: "baseline", marginBottom: space.xl },
   brandName: { fontFamily: fonts.display, fontSize: 26, color: colors.ink },
   brandSub: { fontFamily: fonts.displayItalic, fontSize: 23, color: colors.gold },

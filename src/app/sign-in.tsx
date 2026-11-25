@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { LAST_EMAIL_KEY } from "@/data/auth";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { WelcomeIntro } from "@/components/welcome-intro";
@@ -78,6 +78,7 @@ export default function SignIn() {
       style={[s.root, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.xl }]}
     >
       <View style={s.box}>
+        <Image source={require("../../assets/images/mark.png")} style={s.mark} accessibilityIgnoresInvertColors />
         <Eyebrow style={{ marginBottom: 6 }}>{mode === "signup" ? "Create account" : "Sign in"}</Eyebrow>
         <Display italic>Focus Planner</Display>
         <Body muted style={{ marginTop: space.md }}>
@@ -138,6 +139,7 @@ export default function SignIn() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper, paddingHorizontal: space.lg, justifyContent: "center" },
   box: { width: "100%", maxWidth: 420, alignSelf: "center" },
+  mark: { width: 56, height: 56, borderRadius: 13, overflow: "hidden", marginBottom: space.lg },
   input: { marginTop: space.lg, fontSize: 16 },
   button: { marginTop: space.xl },
   error: { fontFamily: fonts.sans, fontSize: 13, color: colors.destructive, marginTop: space.md },
