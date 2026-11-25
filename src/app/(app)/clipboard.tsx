@@ -12,7 +12,7 @@ import { dateChoices } from "@/lib/clipboard";
 import { fromISO, maskDMY, parseDMY } from "@/lib/dates";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Hint, PageTitle, Screen } from "@/components/screen";
-import { Display, GhostButton, RuleInput } from "@/components/ui";
+import { Display, GhostButton, RuleInput, RemoveButton } from "@/components/ui";
 
 export default function ClipboardScreen() {
   const { items, add, update, removeItem, moveToDay, addVoice, savingVoice } = useClipboard();
@@ -105,15 +105,12 @@ export default function ClipboardScreen() {
                 <GhostButton accessibilityLabel="Give it a date" onPress={() => setDating(it)}>
                   <CalendarPlus size={15} color={colors.gold} strokeWidth={1.7} />
                 </GhostButton>
-                <GhostButton
+                <RemoveButton
                   accessibilityLabel="Delete"
                   onPress={() => {
                     setShowLimit(false);
                     void removeItem(it);
-                  }}
-                >
-                  <Text style={s.x}>✕</Text>
-                </GhostButton>
+                  }} />
               </View>
             </View>
           ))}

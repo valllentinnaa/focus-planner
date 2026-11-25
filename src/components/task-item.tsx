@@ -6,7 +6,7 @@ import { fromISO } from "@/lib/dates";
 import { AREAS, AREA_LABELS } from "@/lib/tasks";
 import type { TaskOps } from "@/data/tasks";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
-import { CheckBox, GhostButton, OutlineButton, RuleInput } from "./ui";
+import { CheckBox, GhostButton, OutlineButton, RuleInput, RemoveButton } from "./ui";
 import { Clock, X } from "lucide-react-native";
 import { extractTime, parseHM, shortTime } from "@/lib/task-time";
 import { DragHandle } from "./drag";
@@ -98,12 +98,9 @@ export function TaskItem({
           <GhostButton accessibilityLabel="Move" onPress={() => setMenu(true)}>
             <Text style={s.act}>⋯</Text>
           </GhostButton>
-          <GhostButton
+          <RemoveButton
             accessibilityLabel={inDay && task.area ? "Remove from this day" : "Remove"}
-            onPress={() => (inDay && task.area ? ops.unschedule(task) : ops.remove(task.id))}
-          >
-            <Text style={s.x}>✕</Text>
-          </GhostButton>
+            onPress={() => (inDay && task.area ? ops.unschedule(task) : ops.remove(task.id))} />
         </>
       ) : null}
 

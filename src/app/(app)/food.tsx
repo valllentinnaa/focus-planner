@@ -8,7 +8,7 @@ import { fromISO, mondayOf, toISO, weekKey } from "@/lib/dates";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Columns, Column, PageTitle, Screen } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
-import { Body, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
+import { Body, CheckBox, OutlineButton, RemoveButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 
 const LISTS = [
   { key: "shopping", label: "Shopping list" },
@@ -93,7 +93,7 @@ export default function FoodScreen() {
                       )}
                     </Pressable>
                   ) : null}
-                  <GhostButton accessibilityLabel="Remove" onPress={() => remove(it.id)}><Text style={s.x}>✕</Text></GhostButton>
+                  <RemoveButton accessibilityLabel="Remove" onPress={() => remove(it.id)} />
                 </View>
               ))}
               {/* Empty rows you can write in: type and press Enter (or click away) to add. */}

@@ -23,7 +23,7 @@ import { formatBirthday, formatBirthdayInput, parseBirthday, splitLink } from "@
 import type { GiftIdeaRow, PersonRow } from "@/lib/database.types";
 import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
 import { Hint, PageTitle, Screen } from "@/components/screen";
-import { Body, Card, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
+import { Body, Card, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton, RemoveButton } from "@/components/ui";
 
 const SOON_DAYS = 30;
 const STATUS_NEXT: Record<GiftIdeaRow["status"], GiftIdeaRow["status"]> = { idea: "bought", bought: "given", given: "idea" };
@@ -429,9 +429,7 @@ function PersonDetail({
             </Pressable>
           ) : null}
           {i.link && i.link === i.text ? <GhostButton onPress={() => Linking.openURL(i.link!)}>Open</GhostButton> : null}
-          <GhostButton accessibilityLabel="Remove idea" onPress={() => removeIdea(i)}>
-            <Text style={s.x}>✕</Text>
-          </GhostButton>
+          <RemoveButton accessibilityLabel="Remove idea" onPress={() => removeIdea(i)} />
         </View>
       ))}
 
@@ -538,9 +536,7 @@ function MyWishlist() {
               </Text>
             ) : null}
           </View>
-          <GhostButton accessibilityLabel="Remove" onPress={() => list.remove(i.id)}>
-            <Text style={s.x}>✕</Text>
-          </GhostButton>
+          <RemoveButton accessibilityLabel="Remove" onPress={() => list.remove(i.id)} />
         </View>
       ))}
 

@@ -13,7 +13,7 @@ import { FocusCard, FocusInput } from "@/components/focus-card";
 import { colors, fonts, space } from "@/theme/tokens";
 import { PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
-import { BlankRows, Body, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton } from "@/components/ui";
+import { BlankRows, Body, CheckBox, GhostButton, OutlineButton, RuleInput, RuledArea, SectionLabel, SolidButton, RemoveButton } from "@/components/ui";
 import { useDocument } from "@/data/document";
 import { useCheckinsBetween } from "@/data/checkins";
 import { monthKey } from "@/lib/checkin";
@@ -171,7 +171,7 @@ function GoalBlock({ goal: g, autoFocus, goalOps, stepOps }: { goal: GoalWithSte
             />
           </GhostButton>
         ) : null}
-        <GhostButton accessibilityLabel="Remove" onPress={() => goalOps.remove(g.id)}><Text style={s.x}>✕</Text></GhostButton>
+        <RemoveButton accessibilityLabel="Remove" onPress={() => goalOps.remove(g.id)} />
       </View>
       {showSteps ? (
         <View style={s.steps}>
@@ -186,7 +186,7 @@ function GoalBlock({ goal: g, autoFocus, goalOps, stepOps }: { goal: GoalWithSte
                 placeholder="action…"
                 style={[{ flex: 1, fontSize: 13 }, st.done && s.done]}
               />
-              <GhostButton accessibilityLabel="Remove action" onPress={() => stepOps.remove(st.id)}><Text style={s.x}>✕</Text></GhostButton>
+              <RemoveButton accessibilityLabel="Remove action" onPress={() => stepOps.remove(st.id)} />
             </View>
           ))}
           <GhostButton onPress={() => stepOps.add({ goal_id: g.id, text: "", position: g.steps.length })}>+ action</GhostButton>

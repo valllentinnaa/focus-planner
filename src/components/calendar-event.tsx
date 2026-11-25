@@ -5,7 +5,7 @@ import { Animated, Linking, Pressable, StyleSheet, Text, View } from "react-nati
 import { isPast, type AgendaItem, type DayEvent } from "@/lib/calendar-events";
 import { fromISO } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
-import { GhostButton } from "./ui";
+import { GhostButton, RemoveButton } from "./ui";
 
 const dayLabel = (iso: string) => format(fromISO(iso), "EEE d").toUpperCase();
 
@@ -36,9 +36,7 @@ function EventLine({ event, onRemove, children }: { event: DayEvent; onRemove: (
       <View style={[s.dot, { backgroundColor: event.color || colors.gold }]} />
       <View style={s.body}>{children}</View>
       <View style={[s.xWrap, !showX && s.hidden]} pointerEvents={showX ? "auto" : "none"}>
-        <GhostButton accessibilityLabel={`Remove ${event.title} from the planner`} onPress={() => onRemove(event.key)}>
-          <Text style={s.x}>✕</Text>
-        </GhostButton>
+        <RemoveButton accessibilityLabel={`Remove ${event.title} from the planner`} onPress={() => onRemove(event.key)} />
       </View>
     </Pressable>
   );

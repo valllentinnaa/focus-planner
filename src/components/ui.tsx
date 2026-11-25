@@ -15,6 +15,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import { X } from "lucide-react-native";
 import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
 
 export function Display({ children, italic, style }: { children: ReactNode; italic?: boolean; style?: StyleProp<TextStyle> }) {
@@ -195,6 +196,18 @@ export function GhostButton({ children, style, ...props }: PressableProps & { ch
   );
 }
 
+/** Phones/tablets: fingers need a bigger target than a mouse. */
+const coarsePointer = Platform.OS !== "web" || (typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches);
+
+/** The ✕ for removing a line — small on desktop, a comfortable 40px tap target on touch screens. */
+export function RemoveButton({ style, ...props }: PressableProps & { style?: StyleProp<ViewStyle> }) {
+  return (
+    <Pressable accessibilityRole="button" hitSlop={coarsePointer ? 4 : 6} {...props} style={({ pressed }) => [coarsePointer ? s.removeTouch : s.remove, pressed && { opacity: 0.5 }, style]}>
+      <X size={coarsePointer ? 17 : 13} color={colors.mutedForeground} strokeWidth={coarsePointer ? 1.8 : 1.6} />
+    </Pressable>
+  );
+}
+
 export function OutlineButton({ children, gold, style, ...props }: PressableProps & { children: ReactNode; gold?: boolean; style?: StyleProp<ViewStyle> }) {
   return (
     <Pressable {...props} style={({ pressed }) => [s.outline, gold && { borderColor: colors.gold }, pressed && { opacity: 0.6 }, style]}>
@@ -284,6 +297,8 @@ const s = StyleSheet.create({
   ruledLine: { position: "absolute", left: 0, right: 0, height: 0, borderBottomWidth: 1, borderBottomColor: colors.rule, borderStyle: "dashed" },
   check: { borderWidth: 1, borderColor: colors.gold, borderRadius: radius.sm, alignItems: "center", justifyContent: "center", backgroundColor: "transparent" },
   checkMark: { color: colors.ink, fontFamily: fonts.sansSemiBold, lineHeight: undefined },
+  remove: { padding: space.xs, alignItems: "center", justifyContent: "center" },
+  removeTouch: { width: 40, height: 36, alignItems: "center", justifyContent: "center" },
   ghost: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: space.xs, paddingHorizontal: space.xs },
   ghostText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground },
   outline: { borderWidth: 1, borderColor: colors.rule, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 14, alignSelf: "flex-start" },
