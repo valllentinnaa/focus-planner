@@ -9,6 +9,7 @@ import { savePendingLink } from "@/data/circles";
 import { connectWith, profilePreview } from "@/data/connections";
 import { colors, space } from "@/theme/tokens";
 import { Body, Display, Eyebrow, SolidButton } from "@/components/ui";
+import { OysterLoader } from "@/components/oyster-loader";
 
 export default function ProfileLinkPage() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -44,7 +45,7 @@ export default function ProfileLinkPage() {
       <View style={s.inner}>
         <Eyebrow style={{ marginBottom: 6 }}>Focus Planner</Eyebrow>
         {preview.isLoading ? (
-          <Body muted>Loading…</Body>
+          <OysterLoader />
         ) : !p ? (
           <>
             <Display italic>Link not working</Display>

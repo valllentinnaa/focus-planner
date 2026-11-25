@@ -8,6 +8,7 @@ import { useAuth } from "@/data/auth";
 import { circlePreview, joinCircle, savePendingLink } from "@/data/circles";
 import { colors, space } from "@/theme/tokens";
 import { Body, Display, Eyebrow, SolidButton } from "@/components/ui";
+import { OysterLoader } from "@/components/oyster-loader";
 
 export default function JoinCirclePage() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -50,7 +51,7 @@ export default function JoinCirclePage() {
             <SolidButton onPress={signIn}>Continue</SolidButton>
           </>
         ) : preview.isLoading ? (
-          <Body muted>Loading…</Body>
+          <OysterLoader />
         ) : !p ? (
           <>
             <Display italic>Link not working</Display>

@@ -1,0 +1,374 @@
+/*
+ * Oyster loader — Focus Planner's loading state (web).
+ * The oyster opens; just before the top shell is gone, pearly glints drift out from the pearl and a
+ * soft glow breathes out; then the rings around the pearl drift gently and glints twinkle further
+ * out. Reads the planner's --paper/--ink/--gold/--rule when set; falls back to the light paper.
+ * The opening copy is inlined into index.html at build time (scripts/pwa-head.mjs), so it shows
+ * before any JavaScript loads. Base design: oyster-loader zip (Lovable); pearly sparkle tuned here.
+ */
+.oyster-loader {
+  --ol-ink: var(--ink, #2b2926);
+  --ol-gold: var(--gold, #a69b85);
+  --ol-paper: var(--paper, #ede9e0);
+  --ol-rule: var(--rule, #ddd8cc);
+  --ol-rule-gap: 12px;
+  --ol-size: 168px;
+
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--ol-size) * 0.055);
+  color: var(--ol-ink);
+}
+
+/* full-screen opening state: the mark sits on the planner's own paper */
+.oyster-loader--full {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ol-paper);
+  padding: 24px;
+}
+
+.oyster-loader__stage {
+  position: relative;
+  width: var(--ol-size);
+  height: var(--ol-size);
+  flex: none;
+}
+
+.oyster-loader__mark {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: ol-breathe 5.4s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+
+/*
+ * The mark is a cut-out: the oyster and pearl only, no paper of its own. So the
+ * loader draws the planner's ruled paper itself, behind the mark, and fades it
+ * out before the edge — the lines never end in a box, and they take the surface
+ * they are on (paper, card, dark theme) from the same variables.
+ */
+.oyster-loader__lines {
+  position: absolute;
+  z-index: 1;
+  left: -18%;
+  right: -18%;
+  top: -14%;
+  bottom: -14%;
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent calc(var(--ol-rule-gap) - 1px),
+    var(--ol-rule) calc(var(--ol-rule-gap) - 1px),
+    var(--ol-rule) var(--ol-rule-gap)
+  );
+  -webkit-mask-image: radial-gradient(ellipse 62% 58% at 50% 50%, #000 0%, #000 42%, transparent 76%);
+  mask-image: radial-gradient(ellipse 62% 58% at 50% 50%, #000 0%, #000 42%, transparent 76%);
+  pointer-events: none;
+}
+
+/*
+ * On a surface that is not the planner's paper (a card, the dark theme) pass
+ * `tile` and the loader lays a small paper card under the mark and its lines.
+ */
+.oyster-loader__tile {
+  position: absolute;
+  z-index: 0;
+  inset: -12%;
+  border-radius: 16px;
+  background: var(--ol-paper);
+  border: 1px solid color-mix(in oklab, var(--ol-rule) 78%, transparent);
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--ol-ink) 10%, transparent);
+  pointer-events: none;
+}
+
+/* the pearl's halo: a warm gold shimmer that settles the eye on the focus */
+.oyster-loader__halo {
+  position: absolute;
+  left: 49.7%;
+  top: 49.7%;
+  width: 30%;
+  height: 30%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(166, 155, 133, 0.5) 0%, rgba(166, 155, 133, 0) 70%);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  animation: ol-halo 3.2s ease-in-out infinite;
+}
+
+.oyster-loader__label {
+  margin: 0;
+  font-family: var(--font-display, "Instrument Serif", ui-serif, Georgia, serif);
+  font-size: calc(var(--ol-size) * 0.135);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--ol-ink);
+}
+
+.oyster-loader__label em {
+  font-style: italic;
+  color: var(--ol-gold);
+}
+
+.oyster-loader__hint {
+  margin: 0;
+  font-family: var(--font-sans, "Work Sans", ui-sans-serif, system-ui, sans-serif);
+  font-size: clamp(9px, calc(var(--ol-size) * 0.062), 12px);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ol-ink) 62%, transparent);
+}
+
+/* a ruled line the planner would draw: gold light travelling along it */
+.oyster-loader__rule {
+  position: relative;
+  width: calc(var(--ol-size) * 0.78);
+  height: 1px;
+  background: var(--ol-rule);
+  overflow: hidden;
+}
+
+.oyster-loader__rule::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, var(--ol-gold), transparent);
+  animation: ol-rule 2.6s ease-in-out infinite;
+}
+
+@keyframes ol-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.022); }
+}
+
+@keyframes ol-halo {
+  0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.92); }
+  50% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+@keyframes ol-rule {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(340%); }
+}
+
+/* the oyster comes alive once: closed, a little stir, the shell lifts on its
+   hinge and folds away, the pearl flares big, then keeps shimmering. It stays open. */
+.oyster-loader__lid {
+  position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%;
+  object-fit: contain; pointer-events: none;
+  transform-origin: 50% 14%;
+  animation: ol-lid 2.4s cubic-bezier(.55,.05,.35,1) forwards;
+}
+.oyster-loader__glow {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  opacity: 0;
+  animation: ol-reveal 2.2s ease-in-out forwards;
+}
+.oyster-loader__mark { animation: ol-stir 2.6s ease-in-out forwards; }
+@keyframes ol-lid {
+  0%, 14% { transform: perspective(700px) rotateX(0deg) rotate(0deg); opacity: 1; }
+  24% { transform: perspective(700px) rotateX(0deg) rotate(-2.5deg); }
+  34% { transform: perspective(700px) rotateX(0deg) rotate(2.5deg); }
+  43% { transform: perspective(700px) rotateX(0deg) rotate(0deg); opacity: 1; }
+  57% { transform: perspective(700px) rotateX(20deg) translateY(-2%); opacity: 1; }
+  71% { transform: perspective(700px) rotateX(44deg) translateY(-4%); opacity: 1; }
+  82% { transform: perspective(700px) rotateX(58deg) translateY(-5%); opacity: 1; }
+  90% { transform: perspective(700px) rotateX(68deg) translateY(-6%); opacity: 0.62; }
+  100% { transform: perspective(700px) rotateX(76deg) translateY(-7%); opacity: 0; }
+}
+@keyframes ol-stir {
+  0%, 30% { transform: scale(.96); }
+  66% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+@keyframes ol-reveal {
+  0%, 50% { opacity: 0; }
+  90%, 100% { opacity: 1; }
+}
+
+/*
+ * The pearl's shine. Deliberately gentle: no hard white flash. A wide, soft
+ * ivory wash that spreads out from the pearl as the shell folds away, plus a
+ * scattering of small star glints that twinkle on and off around it.
+ */
+.oyster-loader__bloom {
+  position: absolute;
+  left: 49.7%;
+  top: 49.7%;
+  width: 62%;
+  height: 62%;
+  transform: translate(-50%, -50%) scale(0.7);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 252, 245, 0.55) 0%,
+    rgba(255, 246, 231, 0.3) 38%,
+    rgba(214, 197, 166, 0) 76%
+  );
+  pointer-events: none;
+  opacity: 0;
+  animation:
+    ol-flare 1.6s cubic-bezier(.22,.68,.3,1) 1.85s forwards,
+    ol-shimmer 3.4s ease-in-out 3.4s infinite;
+}
+
+/* one soft wave of light that spreads outward once, as the shell disappears */
+.oyster-loader__spread {
+  position: absolute;
+  left: 49.7%;
+  top: 49.7%;
+  width: 58%;
+  height: 58%;
+  transform: translate(-50%, -50%) scale(0.5);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(214, 197, 166, 0) 22%,
+    rgba(214, 197, 166, 0.34) 52%,
+    rgba(214, 197, 166, 0) 82%
+  );
+  pointer-events: none;
+  opacity: 0;
+  animation: ol-spread 1.9s ease-out 2.05s forwards;
+}
+
+@keyframes ol-flare {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+  30% { opacity: 0.62; transform: translate(-50%, -50%) scale(1.06); }
+  100% { opacity: 0.42; transform: translate(-50%, -50%) scale(0.96); }
+}
+
+@keyframes ol-spread {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  26% { opacity: 0.5; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.85); }
+}
+
+@keyframes ol-shimmer {
+  0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(0.96); }
+  42% { opacity: 0.58; transform: translate(-50%, -50%) scale(1.04); }
+  70% { opacity: 0.34; transform: translate(-50%, -50%) scale(0.94); }
+}
+
+/*
+ * Sparkles: small four-point glints scattered around the pearl. Each one fades
+ * in, holds a moment, fades out, and repeats on its own slow rhythm, so the
+ * light reads as scattered and alive instead of one bright burst.
+ */
+.oyster-loader__sparks {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.oyster-loader__spark {
+  position: absolute;
+  left: var(--sx);
+  top: var(--sy);
+  width: calc(var(--ol-size) * var(--ss));
+  height: calc(var(--ol-size) * var(--ss));
+  transform: translate(-50%, -50%) scale(0.45) rotate(0deg);
+  opacity: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 251, 243, 0.9) 0%,
+    rgba(214, 197, 166, 0.42) 46%,
+    rgba(214, 197, 166, 0) 76%
+  );
+  animation: ol-twinkle var(--sd) ease-in-out var(--sdl) infinite;
+}
+
+/* the crisp four-point glint sitting inside each soft glow */
+.oyster-loader__spark::before {
+  content: "";
+  position: absolute;
+  inset: -22%;
+  background: radial-gradient(
+    circle,
+    #fffaf1 0%,
+    color-mix(in oklab, var(--ol-gold) 72%, transparent) 100%
+  );
+  clip-path: polygon(50% 0%, 55% 45%, 100% 50%, 55% 55%, 50% 100%, 45% 55%, 0% 50%, 45% 45%);
+}
+
+@keyframes ol-twinkle {
+  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(0deg); }
+  12% { opacity: 0.28; transform: translate(-50%, -50%) scale(0.8) rotate(7deg); }
+  26% { opacity: 0.82; transform: translate(-50%, -50%) scale(1) rotate(15deg); }
+  40% { opacity: 0.34; transform: translate(-50%, -50%) scale(0.86) rotate(21deg); }
+  52% { opacity: 0; transform: translate(-50%, -50%) scale(0.66) rotate(26deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oyster-loader__mark,
+  .oyster-loader__lid,
+  .oyster-loader__glow,
+  .oyster-loader__bloom,
+  .oyster-loader__spread,
+  .oyster-loader__sparks,
+  .oyster-loader__halo,
+  .oyster-loader__rule::after {
+    animation: none;
+  }
+  .oyster-loader__halo { opacity: 0.6; }
+  .oyster-loader__bloom { opacity: 0.42; }
+  .oyster-loader__spread { opacity: 0; }
+  .oyster-loader__spark { opacity: 0.45; transform: translate(-50%, -50%) scale(0.9); }
+  .oyster-loader__lid { display: none; }
+  .oyster-loader__rule::after { width: 100%; opacity: 0.5; }
+}
+
+/* ---------- pearly sparkle (tuned) ---------- */
+
+/* sparkle: pearly-silver glints drift out from the pearl as the shell disappears */
+.oyster-loader__spark{background:radial-gradient(circle,rgba(255,255,255,.85) 0%,rgba(214,219,226,.35) 46%,rgba(214,219,226,0) 76%)}
+.oyster-loader__spark::before{background:radial-gradient(circle,#ffffff 0%,#eef0f3 30%,#aeb5bf 100%);filter:drop-shadow(0 0 .6px rgba(70,78,92,.9)) drop-shadow(0 0 2px rgba(150,158,172,.6))}
+.oyster-loader__burst{position:absolute;inset:0;z-index:4;pointer-events:none}
+.oyster-loader__bspark{position:absolute;left:49.7%;top:49.7%;width:calc(var(--ol-size)*var(--ss));height:calc(var(--ol-size)*var(--ss));
+  border-radius:50%;opacity:0;transform:translate(-50%,-50%) scale(.3);
+  background:radial-gradient(circle,rgba(255,255,255,.85) 0%,rgba(214,219,226,.35) 46%,rgba(214,219,226,0) 76%);
+  animation:ol-burst var(--bd) cubic-bezier(.16,.84,.3,1) var(--bdl) forwards}
+.oyster-loader__bspark::before{content:"";position:absolute;inset:-26%;background:radial-gradient(circle,#ffffff 0%,#eef0f3 30%,#aeb5bf 100%);filter:drop-shadow(0 0 .6px rgba(70,78,92,.9)) drop-shadow(0 0 2px rgba(150,158,172,.6));
+  clip-path:polygon(50% 0%,55% 45%,100% 50%,55% 55%,50% 100%,45% 55%,0% 50%,45% 45%)}
+@keyframes ol-burst{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.25) rotate(0)}
+  18%{opacity:1}
+  60%{opacity:.6}
+  100%{opacity:0;transform:translate(calc(-50% + var(--ol-size)*var(--dx)),calc(-50% + var(--ol-size)*var(--dy))) scale(.9) rotate(25deg)}}
+/* the light: a soft, borderless pearly glow that breathes out once — no ring */
+.oyster-loader__spread{width:46%;height:42%;border-radius:50%;
+  background:radial-gradient(ellipse at center,rgba(250,250,252,.55) 0%,rgba(236,238,242,.28) 35%,rgba(236,238,242,.08) 60%,rgba(236,238,242,0) 75%);
+  filter:blur(calc(var(--ol-size)*.04));
+  animation:ol-glow 3s cubic-bezier(.25,.6,.3,1) 1.78s forwards}
+@keyframes ol-glow{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}30%{opacity:.7}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
+.oyster-loader__bloom{background:radial-gradient(circle,rgba(255,255,255,.5) 0%,rgba(240,242,246,.25) 38%,rgba(220,224,230,0) 76%);
+  animation:ol-flare 1.6s cubic-bezier(.22,.68,.3,1) 1.78s forwards, ol-shimmer 3.4s ease-in-out 3.38s infinite}
+.oyster-loader__halo{background:radial-gradient(circle,rgba(190,196,205,.45) 0%,rgba(190,196,205,0) 70%)}
+
+
+/* the drawn rings around the pearl: their own layer, so they can breathe and drift gently */
+.oyster-loader__rings{position:absolute;inset:0;z-index:2;width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:0;
+  -webkit-mask-image:radial-gradient(circle at 49.7% 49.7%,transparent 0,transparent 9.6%,#000 11%,#000 19.5%,transparent 21.5%);
+  mask-image:radial-gradient(circle at 49.7% 49.7%,transparent 0,transparent 9.6%,#000 11%,#000 19.5%,transparent 21.5%);
+  transform-origin:49.7% 49.7%;
+  animation:ol-rings-in .4s ease-out 2.3s forwards, ol-rings 5.2s ease-in-out 2.7s infinite}
+@keyframes ol-rings-in{to{opacity:1}}
+@keyframes ol-rings{0%,100%{transform:scale(1) rotate(0deg)}35%{transform:scale(1.045) rotate(1.6deg)}70%{transform:scale(.985) rotate(-1deg)}}
+/* a faint ripple leaving the pearl now and then */
+.oyster-loader__ripple{position:absolute;left:49.7%;top:49.7%;width:22%;height:22%;border-radius:50%;z-index:2;pointer-events:none;opacity:0;
+  border:1px solid rgba(96,106,120,.28);transform:translate(-50%,-50%) scale(.8);
+  animation:ol-ripple 5.2s ease-out var(--rd) infinite}
+@keyframes ol-ripple{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}12%{opacity:.7}70%,100%{opacity:0;transform:translate(-50%,-50%) scale(2.1)}}

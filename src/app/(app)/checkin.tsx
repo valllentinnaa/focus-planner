@@ -17,11 +17,12 @@ import { AREA_LABELS } from "@/lib/tasks";
 import type { TaskArea } from "@/lib/database.types";
 import type { Recording } from "@/lib/voice";
 import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
-import { Hint, PageTitle, Screen } from "@/components/screen";
+import { PageTitle, Screen } from "@/components/screen";
 import { CheckBox, GhostButton, GoldButton, RuledArea, RuleInput } from "@/components/ui";
 import { CheckinCard } from "@/components/checkin/checkin-card";
 import { TogetherPanel } from "@/components/checkin/together";
 import { VoicePlayer, VoiceRecorder } from "@/components/checkin/voice-note";
+import { OysterLoader } from "@/components/oyster-loader";
 
 const STEPS = ["Look back", "Reflect", "Share", "Look ahead"] as const;
 
@@ -105,7 +106,7 @@ function LookBack({ month }: { month: string }) {
     eventCount,
   });
 
-  if (loading) return <Hint>Gathering your month…</Hint>;
+  if (loading) return <OysterLoader size={88} hint="Gathering your month…" />;
 
   return (
     <View style={{ gap: space.lg }}>

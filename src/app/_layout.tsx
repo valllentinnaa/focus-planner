@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/data/auth";
 import { CACHE_MAX_AGE, persister } from "@/lib/query-cache";
+import { hideOpeningLoader } from "@/lib/opening-loader";
 import { registerShareWorker } from "@/lib/share-inbox";
 import { DragProvider } from "@/components/drag";
 import { UpdateBanner } from "@/components/update-banner";
@@ -83,6 +84,10 @@ function RootStack() {
     }
     wasSignedIn.current = !!session;
   }, [session, loading, qc]);
+  // Web: the oyster opening loader fades out once we know who's signed in (and it has opened).
+  useEffect(() => {
+    if (!loading) hideOpeningLoader();
+  }, [loading]);
   if (loading) return null;
   const signedIn = !!session;
   return (
