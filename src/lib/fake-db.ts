@@ -34,7 +34,7 @@ const defaultsFor: Record<string, () => Row> = {
   goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false, carry_next: false, carried_from: null }),
   goal_steps: () => ({ text: "", done: false, position: 0 }),
   vision_items: () => ({ file_path: null, text: "", position: 0 }),
-  clipboard_items: () => ({ text: "", attention: false, position: 0 }),
+  clipboard_items: () => ({ text: "", attention: false, position: 0, audio_path: null, audio_seconds: null }),
   people: () => ({ birth_month: null, birth_day: null, birth_year: null, notes: "", source: "manual", external_id: null, linked_user_id: null }),
   wishlist_items: () => ({ link: null, note: "", position: 0 }),
   month_checkins: () => ({ went_well: "", felt_heavy: "", try_next: "", went_well_audio: null, felt_heavy_audio: null, try_next_audio: null, share_fields: [], done_at: null }),

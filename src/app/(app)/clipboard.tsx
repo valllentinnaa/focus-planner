@@ -1,10 +1,13 @@
-// Clipboard — a quick dump. Type a line, hit Enter. Flag it burgundy if it needs attention.
-// Give it a date and it moves into your planner as a task on that day.
+// Clipboard — a quick dump. Type a line and hit Enter, or record a voice note. Flag it burgundy if
+// it needs attention. Give it a date and it moves into your planner as a task on that day.
 import { format } from "date-fns";
 import { CalendarPlus, Flag } from "lucide-react-native";
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { useClipboard } from "@/data/clipboard";
+import { isVoiceLimitError, useClipboard, useClipboardVoiceUrls, usePlan, VOICE_LIMIT } from "@/data/clipboard";
+import { VoicePlayer, VoiceRecorder } from "@/components/checkin/voice-note";
+import type { ClipboardItemRow } from "@/lib/database.types";
+import { formatSeconds, type Recording } from "@/lib/voice";
 import { dateChoices } from "@/lib/clipboard";
 import { fromISO, maskDMY, parseDMY } from "@/lib/dates";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
@@ -12,10 +15,28 @@ import { Hint, PageTitle, Screen } from "@/components/screen";
 import { Display, GhostButton, RuleInput } from "@/components/ui";
 
 export default function ClipboardScreen() {
-  const { items, add, update, remove, moveToDay } = useClipboard();
+  const { items, add, update, removeItem, moveToDay, addVoice, savingVoice } = useClipboard();
+  const voiceUrls = useClipboardVoiceUrls(items.map((i) => i.audio_path));
+  const plan = usePlan();
+  const voiceCount = items.filter((i) => i.audio_path).length;
+  const voiceLimit = VOICE_LIMIT[plan];
+  const [hitLimit, setHitLimit] = useState(false);
+  const atLimit = hitLimit || voiceCount >= voiceLimit;
   const [draft, setDraft] = useState("");
-  const [dating, setDating] = useState<{ id: string; text: string } | null>(null);
+  const [dating, setDating] = useState<ClipboardItemRow | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // A voice note takes whatever's typed in the box as its title.
+  const saveVoice = (rec: Recording) => {
+    setNotice(null);
+    const title = draft;
+    setDraft("");
+    addVoice(rec, title).catch((e) => {
+      setDraft(title);
+      if (isVoiceLimitError(e)) setHitLimit(true);
+      else setNotice("Couldn't save the voice note — please try again.");
+    });
+  };
 
   const addLine = () => {
     const text = draft.trim();
@@ -37,27 +58,60 @@ export default function ClipboardScreen() {
           blurOnSubmit={false}
           style={{ fontSize: 16 }}
         />
+        {atLimit ? (
+          <View style={s.limit}>
+            <Text style={s.limitText}>
+              {plan === "pro"
+                ? `You have ${voiceLimit} voice notes saved — the most you can keep. Delete one to record another.`
+                : `You've used all ${voiceLimit} free voice notes. Delete one to record another, or go Pro for up to ${VOICE_LIMIT.pro}.`}
+            </Text>
+            {plan === "free" ? <Text style={s.pro}>Pro — coming soon</Text> : null}
+          </View>
+        ) : (
+          <View style={s.voiceRow}>
+            <VoiceRecorder label="Record a voice note" onDone={saveVoice} disabled={savingVoice} />
+            {savingVoice ? (
+              <Text style={s.saving}>Saving voice note…</Text>
+            ) : voiceCount > 0 && plan === "free" ? (
+              <Text style={s.saving}>{`${voiceCount} of ${voiceLimit} free voice notes`}</Text>
+            ) : null}
+          </View>
+        )}
         <Hint>Flag a line if it needs attention. Give it a date and it moves to that day in your planner.</Hint>
         {notice ? <Text style={s.notice}>{notice}</Text> : null}
 
         <View style={s.list}>
           {items.length === 0 ? <Text style={s.empty}>Nothing here — lovely and clear.</Text> : null}
           {items.map((it) => (
-            <View key={it.id} style={s.row}>
-              <RuleInput
-                value={it.text}
-                onChangeText={(text) => update(it.id, { text })}
-                style={[s.text, it.attention && s.attention]}
-              />
-              <GhostButton accessibilityLabel={it.attention ? "Remove flag" : "Flag as needing attention"} onPress={() => update(it.id, { attention: !it.attention })}>
-                <Flag size={15} color={it.attention ? colors.burgundy : colors.mutedForeground} fill={it.attention ? colors.burgundy : "none"} strokeWidth={1.7} />
-              </GhostButton>
-              <GhostButton accessibilityLabel="Give it a date" onPress={() => setDating({ id: it.id, text: it.text })}>
-                <CalendarPlus size={15} color={colors.gold} strokeWidth={1.7} />
-              </GhostButton>
-              <GhostButton accessibilityLabel="Delete" onPress={() => remove(it.id)}>
-                <Text style={s.x}>✕</Text>
-              </GhostButton>
+            <View key={it.id}>
+              <View style={s.row}>
+                <RuleInput
+                  value={it.text}
+                  onChangeText={(text) => update(it.id, { text })}
+                  placeholder={it.audio_path ? "Add a title…" : undefined}
+                  style={[s.text, it.attention && s.attention]}
+                />
+                <GhostButton accessibilityLabel={it.attention ? "Remove flag" : "Flag as needing attention"} onPress={() => update(it.id, { attention: !it.attention })}>
+                  <Flag size={15} color={it.attention ? colors.burgundy : colors.mutedForeground} fill={it.attention ? colors.burgundy : "none"} strokeWidth={1.7} />
+                </GhostButton>
+                <GhostButton accessibilityLabel="Give it a date" onPress={() => setDating(it)}>
+                  <CalendarPlus size={15} color={colors.gold} strokeWidth={1.7} />
+                </GhostButton>
+                <GhostButton
+                  accessibilityLabel="Delete"
+                  onPress={() => {
+                    setHitLimit(false);
+                    void removeItem(it);
+                  }}
+                >
+                  <Text style={s.x}>✕</Text>
+                </GhostButton>
+              </View>
+              {it.audio_path ? (
+                <View style={s.player}>
+                  <VoicePlayer url={voiceUrls[it.audio_path]} label={`Voice note${it.audio_seconds ? ` · ${formatSeconds(it.audio_seconds)}` : ""}`} />
+                </View>
+              ) : null}
             </View>
           ))}
         </View>
@@ -69,8 +123,14 @@ export default function ClipboardScreen() {
           onPick={(iso) => {
             const item = dating;
             setDating(null);
-            moveToDay(item.id, item.text, iso)
-              .then(() => setNotice(`Moved to ${format(fromISO(iso), "EEEE d MMM")}.`))
+            moveToDay(item, iso)
+              .then(() =>
+                setNotice(
+                  item.audio_path
+                    ? `Added to ${format(fromISO(iso), "EEEE d MMM")}. The recording stays here on your Clipboard.`
+                    : `Moved to ${format(fromISO(iso), "EEEE d MMM")}.`,
+                ),
+              )
               .catch(() => setNotice("Couldn't move it — please try again."));
           }}
         />
@@ -120,6 +180,12 @@ function DatePicker({ onPick, onClose }: { onPick: (iso: string) => void; onClos
 const s = StyleSheet.create({
   list: { marginTop: space.lg, gap: 2 },
   row: { flexDirection: "row", alignItems: "center", gap: 4 },
+  player: { marginTop: -4, marginBottom: 6 },
+  voiceRow: { flexDirection: "row", alignItems: "center", gap: space.md, flexWrap: "wrap" },
+  limit: { marginTop: space.sm, gap: 4 },
+  limitText: { fontFamily: fonts.sans, fontSize: 13, color: colors.ink, lineHeight: 19 },
+  pro: { fontFamily: fonts.sans, fontSize: 12, color: colors.gold, letterSpacing: 0.4 },
+  saving: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground, marginTop: space.sm },
   text: { flex: 1, fontSize: 15 },
   attention: { color: colors.burgundy, fontFamily: fonts.sansMedium },
   x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },

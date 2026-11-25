@@ -34,7 +34,8 @@ export async function startRecording(onAutoStop?: () => void): Promise<Recorder 
     return "denied";
   }
   const mime = pickMime();
-  const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  // 32 kbps is plenty for speech (≈0.25 MB a minute) and keeps storage costs tiny.
+  const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: 32_000 });
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   const startedAt = Date.now();

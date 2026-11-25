@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { canPlayVoice, canRecordVoice, formatSeconds, MAX_VOICE_SECONDS, playVoice, startRecording, type Recorder, type Recording } from "@/lib/voice";
 import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
 
-export function VoiceRecorder({ onDone, disabled }: { onDone: (rec: Recording) => void; disabled?: boolean }) {
+export function VoiceRecorder({ onDone, disabled, label = "Say it instead" }: { onDone: (rec: Recording) => void; disabled?: boolean; label?: string }) {
   const rec = useRef<Recorder | null>(null);
   const [state, setState] = useState<"idle" | "asking" | "recording">("idle");
   const [seconds, setSeconds] = useState(0);
@@ -55,7 +55,7 @@ export function VoiceRecorder({ onDone, disabled }: { onDone: (rec: Recording) =
       ) : (
         <Pressable onPress={start} disabled={disabled || state === "asking"} style={({ pressed }) => [s.pill, (pressed || disabled) && { opacity: 0.6 }]} accessibilityRole="button">
           <Mic size={13} color={colors.gold} strokeWidth={1.7} />
-          <Text style={s.pillText}>Say it instead</Text>
+          <Text style={s.pillText}>{label}</Text>
         </Pressable>
       )}
       {note ? <Text style={s.note}>{note}</Text> : null}
