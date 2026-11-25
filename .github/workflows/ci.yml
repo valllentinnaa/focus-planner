@@ -25,7 +25,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test -- --ci
-      - run: npx expo export --platform web --output-dir dist
+      - run: npm run build:web # same production build as the live site (tree shaking, route splitting)
       - run: npm audit --omit=dev --audit-level=high
 
   db:

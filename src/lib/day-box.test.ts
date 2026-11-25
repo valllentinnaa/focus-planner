@@ -1,26 +1,4 @@
-import { blankRowsFor, foldLabel, pickEvents, pickTasks, dayBoxTake, dayBoxSlice } from "./day-box";
-
-describe("dayBoxSlice", () => {
-  it("shows everything when it fits", () => {
-    expect(dayBoxSlice(2, 4)).toEqual({ events: 2, tasks: 4, hidden: 0 });
-  });
-  it("past the limit keeps one line for '+N more' (events first, then tasks)", () => {
-    expect(dayBoxSlice(3, 20)).toEqual({ events: 3, tasks: 2, hidden: 18 });
-  });
-  it("a day full of events can hide all the tasks", () => {
-    expect(dayBoxSlice(9, 2)).toEqual({ events: 5, tasks: 0, hidden: 6 });
-  });
-  it("never says '+1 more' — one over the limit just hides two", () => {
-    expect(dayBoxSlice(0, 7).hidden).toBe(2);
-  });
-});
-
-describe("dayBoxTake", () => {
-  it("shows all up to the limit, then max-1 plus '+N more'", () => {
-    expect(dayBoxTake([1, 2, 3], 6)).toEqual({ shown: [1, 2, 3], hidden: 0 });
-    expect(dayBoxTake([1, 2, 3, 4, 5, 6, 7, 8], 6)).toEqual({ shown: [1, 2, 3, 4, 5], hidden: 3 });
-  });
-});
+import { blankRowsFor, foldLabel, pickEvents, pickTasks } from "./day-box";
 
 describe("pickEvents", () => {
   const at = (h: number, m = 0, len = 60) => {

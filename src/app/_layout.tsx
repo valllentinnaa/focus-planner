@@ -1,5 +1,3 @@
-import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from "@expo-google-fonts/instrument-serif";
-import { WorkSans_400Regular, WorkSans_500Medium, WorkSans_600SemiBold } from "@expo-google-fonts/work-sans";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useFonts } from "expo-font";
@@ -14,6 +12,7 @@ import { CACHE_MAX_AGE, persister } from "@/lib/query-cache";
 import { DragProvider } from "@/components/drag";
 import { UpdateBanner } from "@/components/update-banner";
 import { colors } from "@/theme/tokens";
+import { FONT_WAIT_MS, FONTS } from "@/theme/fonts";
 import { isDarkNative } from "@/theme/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -21,13 +20,15 @@ SplashScreen.preventAutoHideAsync();
 export const unstable_settings = { anchor: "(app)" };
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    InstrumentSerif_400Regular,
-    InstrumentSerif_400Regular_Italic,
-    WorkSans_400Regular,
-    WorkSans_500Medium,
-    WorkSans_600SemiBold,
-  });
+  const [fontsLoaded, fontError] = useFonts(FONTS);
+  // Web: show the app after FONT_WAIT_MS even if fonts are still loading (slow connection).
+  const [fontWaitOver, setFontWaitOver] = useState(false);
+  useEffect(() => {
+    if (FONT_WAIT_MS === null) return;
+    const t = setTimeout(() => setFontWaitOver(true), FONT_WAIT_MS);
+    return () => clearTimeout(t);
+  }, []);
+  const fontsReady = fontsLoaded || !!fontError || fontWaitOver;
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -36,10 +37,10 @@ export default function RootLayout() {
   );
 
   useEffect(() => {
-    if (fontsLoaded || fontError) SplashScreen.hideAsync();
-  }, [fontsLoaded, fontError]);
+    if (fontsReady) SplashScreen.hideAsync();
+  }, [fontsReady]);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

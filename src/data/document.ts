@@ -45,6 +45,8 @@ export function useDocument<T extends DocTable, Doc extends object>(opts: {
    * UPDATE. An upsert would be refused there: RLS allows users to update their profile, never insert.
    */
   updateOnly?: boolean;
+  /** Hold off fetching (e.g. until a batch load has filled the cache). Default true. */
+  enabled?: boolean;
 }) {
   const userId = useUserId();
   const qc = useQueryClient();
@@ -52,7 +54,7 @@ export function useDocument<T extends DocTable, Doc extends object>(opts: {
 
   const query = useQuery({
     queryKey,
-    enabled: !!userId,
+    enabled: !!userId && opts.enabled !== false,
     queryFn: async () => {
       const { data, error } = await rawDb
         .from(opts.table)

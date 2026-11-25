@@ -1,15 +1,15 @@
-import { z } from "zod";
-
-const schema = z.object({
-  EXPO_PUBLIC_SUPABASE_URL: z.string().url(),
-  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(10),
-});
-
 // Expo inlines EXPO_PUBLIC_* at build time; read them statically so Metro can replace them.
-const parsed = schema.safeParse({
-  EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
-  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-});
+const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
+const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
+
+/**
+ * A usable Supabase config: an http(s) URL with a host, and a key of plausible length.
+ * (A pattern, not `new URL`: React Native's URL support is incomplete on phones.)
+ */
+export function validSupabaseConfig(u: string, k: string) {
+  return /^https?:\/\/[^\s/:]+(:\d+)?(\/\S*)?$/.test(u) && k.length >= 10;
+}
+const parsed = { success: validSupabaseConfig(url, key) };
 
 /**
  * Demo mode: no Supabase configured (or EXPO_PUBLIC_DEMO=1). The app runs fully against local
@@ -25,8 +25,8 @@ if (!parsed.success && process.env.EXPO_PUBLIC_DEMO !== "1" && process.env.NODE_
 
 export const env = {
   demo,
-  supabaseUrl: parsed.success ? parsed.data.EXPO_PUBLIC_SUPABASE_URL : "https://demo.invalid",
-  supabasePublishableKey: parsed.success ? parsed.data.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY : "demo",
+  supabaseUrl: parsed.success ? url : "https://demo.invalid",
+  supabasePublishableKey: parsed.success ? key : "demo",
   /** Public web address (for share links made from the phone app). Web uses its own origin. */
   webUrl: (process.env.EXPO_PUBLIC_WEB_URL ?? "").replace(/\/$/, ""),
 };

@@ -43,12 +43,6 @@ export function linesFromPicks(
   return out;
 }
 
-export function appendLines(existing: string, lines: string[]) {
-  if (!lines.length) return existing;
-  const base = existing.replace(/\n+$/, "");
-  return base ? `${base}\n${lines.join("\n")}` : lines.join("\n");
-}
-
 /** Does the quarter still have something open worth prompting about? */
 export function hasOpenGoals(goals: GoalWithSteps[]) {
   return goals.some((g) => g.text.trim() && !g.done);

@@ -1,12 +1,4 @@
-import { placementColumns, placementOf, postponeColumns, unscheduleColumns } from "./tasks";
-
-describe("placementOf", () => {
-  it("reads the placement back from columns", () => {
-    expect(placementOf({ area: "work", task_date: null })).toEqual({ kind: "area", area: "work" });
-    expect(placementOf({ area: null, task_date: "2026-10-29" })).toEqual({ kind: "day", date: "2026-10-29" });
-    expect(placementOf({ area: null, task_date: null })).toEqual({ kind: "loose" });
-  });
-});
+import { placementColumns, postponeColumns, unscheduleColumns } from "./tasks";
 
 describe("placementColumns", () => {
   it("sets week_start to the Monday of a day task", () => {

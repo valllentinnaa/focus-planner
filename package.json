@@ -15,7 +15,7 @@
     "export:web": "expo export --platform web",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
-    "build:web": "expo export -p web && node scripts/pwa-head.mjs"
+    "build:web": "EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1 EXPO_UNSTABLE_TREE_SHAKING=1 expo export -p web && node scripts/pwa-head.mjs"
   },
   "jest": {
     "preset": "jest-expo",
@@ -63,8 +63,7 @@
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.0",
     "react-native-svg": "15.16.0",
-    "react-native-web": "~0.21.4",
-    "zod": "^4.6.7"
+    "react-native-web": "~0.21.4"
   },
   "devDependencies": {
     "@testing-library/react-native": "^14.1.0",

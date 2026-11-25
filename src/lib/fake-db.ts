@@ -1,5 +1,5 @@
 // Demo-mode database: a tiny PostgREST-shaped client over AsyncStorage. Only the chain the data
-// hooks use is supported (select/eq/gte/lte/order/limit/maybeSingle/single, insert, upsert, update,
+// hooks use is supported (select/eq/in/gte/lte/order/limit/maybeSingle/single, insert, upsert, update,
 // delete), plus the 12W cycle functions (rpc) mirrored from 20261124200000_quarter_cycle_functions.sql.
 // It exists so the app can be explored without a Supabase project; never used otherwise.
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -69,6 +69,7 @@ class Query implements PromiseLike<Result<unknown>> {
 
   select() { this.returning = true; return this; }
   eq(col: string, val: unknown) { this.filters.push((r) => r[col] === val); return this; }
+  in(col: string, vals: unknown[]) { const set = new Set(vals); this.filters.push((r) => set.has(r[col])); return this; }
   gte(col: string, val: string) { this.filters.push((r) => String(r[col]) >= val); return this; }
   lte(col: string, val: string) { this.filters.push((r) => String(r[col]) <= val); return this; }
   order(col: string, o?: { ascending?: boolean }) { this.orders.push({ col, asc: o?.ascending !== false }); return this; }

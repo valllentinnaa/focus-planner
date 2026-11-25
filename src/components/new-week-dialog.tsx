@@ -19,7 +19,8 @@ export function NewWeekDialog({
   onApply: (lines: Record<WeekArea, string[]>) => void;
 }) {
   const { quarter } = useCurrentQuarter();
-  const { goals, loading, stepOps } = useGoals(quarter?.id ?? null);
+  // Only load the 12W goals when the prompt can actually show (not once it's been answered).
+  const { goals, loading, stepOps } = useGoals(enabled ? (quarter?.id ?? null) : null);
   const [dismissed, setDismissed] = useState(false);
   const [goalPicks, setGoalPicks] = useState<Set<string>>(new Set());
   const [stepPicks, setStepPicks] = useState<Set<string>>(new Set());

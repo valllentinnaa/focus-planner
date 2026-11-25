@@ -18,12 +18,14 @@ export function useItems<T extends ListTable>(opts: {
   /** Equality filters, e.g. { week_start: "2026-10-26" }. A range is passed via `range`. */
   filters: Partial<Record<keyof Row<T> & string, string>>;
   range?: { column: keyof Row<T> & string; from: string; to: string };
+  /** Only rows whose column is one of these values (e.g. the steps of the goals on screen). */
+  oneOf?: { column: keyof Row<T> & string; values: string[] };
   orderBy?: (keyof Row<T> & string)[];
   enabled?: boolean;
 }) {
   const userId = useUserId();
   const qc = useQueryClient();
-  const filterKey = JSON.stringify([opts.filters, opts.range ?? null]);
+  const filterKey = JSON.stringify([opts.filters, opts.range ?? null, opts.oneOf ? [opts.oneOf.column, [...opts.oneOf.values].sort()] : null]);
   const queryKey = useMemo(() => [opts.table, userId, filterKey] as const, [opts.table, userId, filterKey]);
 
   const query = useQuery({
@@ -33,6 +35,10 @@ export function useItems<T extends ListTable>(opts: {
       let q = rawDb.from(opts.table).select("*");
       for (const [col, val] of Object.entries(opts.filters)) if (val !== undefined) q = q.eq(col, val as string);
       if (opts.range) q = q.gte(opts.range.column, opts.range.from).lte(opts.range.column, opts.range.to);
+      if (opts.oneOf) {
+        if (!opts.oneOf.values.length) return [] as Row<T>[];
+        q = q.in(opts.oneOf.column, opts.oneOf.values as never[]);
+      }
       for (const col of opts.orderBy ?? ["created_at"]) q = q.order(col, { ascending: true });
       const { data, error } = await q;
       if (error) throw error;

@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { takePendingLink } from "@/data/circles";
 import { useSettings } from "@/data/profile";
 import { colors } from "@/theme/tokens";
+import { preloadPages } from "@/lib/preload-pages";
 
 export const unstable_settings = { anchor: "index" };
 
@@ -18,6 +19,11 @@ export default function AppLayout() {
       .then((path) => path && router.push(path))
       .catch(() => undefined);
   }, [ready, router]);
+
+  // Web: fetch the other pages' code in the background once the app is idle.
+  useEffect(() => {
+    if (ready) preloadPages();
+  }, [ready]);
 
   // New account: first-run setup before the planner.
   if (!loading && !settings.onboarded) return <Redirect href="/welcome" />;

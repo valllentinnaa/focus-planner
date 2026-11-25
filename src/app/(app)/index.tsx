@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSettings } from "@/data/profile";
 import { useCurrentQuarter } from "@/data/quarter";
 import { useWeek } from "@/data/week";
-import { useDaily, dailyHasContent } from "@/data/daily";
+import { useDaily, useDailyWeek, dailyHasContent } from "@/data/daily";
 import { useWeekTasks, useTaskOps, type TaskOps } from "@/data/tasks";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import type { DayEvent } from "@/lib/calendar-events";
@@ -64,6 +64,8 @@ export default function WeekScreen() {
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
   const calendar = useCalendarEvents(key, toISO(weekEnd));
   const calendarOps = useCalendarOps();
+  // One request for the week's journal entries instead of one per day box.
+  const dailyWeek = useDailyWeek(key);
   const meals = useMeals(key, settings.showFood);
 
   const byArea = useMemo(() => {
@@ -185,6 +187,7 @@ export default function WeekScreen() {
                   onRemoveEvent={calendarOps.hide}
                   meals={settings.showFood ? (meals.byDay[iso] ?? []) : []}
                   onMealDone={meals.setDone}
+                  journalReady={dailyWeek.loaded}
                   ops={ops}
                   weekStart={key}
                   wide={wide}
@@ -223,7 +226,7 @@ function useMinuteClock(active: boolean) {
 }
 
 /** A day box: its focus line (shared with the Daily journal) and its scheduled tasks. */
-function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEvent, meals, onMealDone, ops, weekStart, wide, onOpen }: {
+function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEvent, meals, onMealDone, journalReady, ops, weekStart, wide, onOpen }: {
   label: string;
   iso: string;
   isToday: boolean;
@@ -234,12 +237,14 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
   /** Cooking-list items planned for this day (Food). */
   meals: FoodItemRow[];
   onMealDone: (id: string, done: boolean) => void;
+  /** The week's journal entries are in the cache (useDailyWeek). */
+  journalReady: boolean;
   ops: TaskOps;
   weekStart: string;
   wide: boolean;
   onOpen: () => void;
 }) {
-  const day = useDaily(iso);
+  const day = useDaily(iso, journalReady);
   const now = useMinuteClock(isToday);
   // Events (max 3 — see pickEvents) and tasks, in time order ("14:00 …"), then planned meals.
   const ev = pickEvents(events, isToday, now);

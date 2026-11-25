@@ -74,7 +74,15 @@ export function useCurrentQuarter() {
 
 export function useGoals(quarterId: string | null) {
   const goals = useItems({ table: "goals", filters: { quarter_id: quarterId ?? "" }, orderBy: ["position", "created_at"], enabled: !!quarterId });
-  const steps = useItems({ table: "goal_steps", filters: {}, orderBy: ["position", "created_at"], enabled: !!quarterId });
+  // Only this cycle's actions (not every action from every 12W ever).
+  const goalIds = useMemo(() => goals.items.map((g) => g.id), [goals.items]);
+  const steps = useItems({
+    table: "goal_steps",
+    filters: {},
+    oneOf: { column: "goal_id", values: goalIds },
+    orderBy: ["position", "created_at"],
+    enabled: !!quarterId && !goals.loading,
+  });
   const withSteps = useMemo<GoalWithSteps[]>(
     () => goals.items.map((g) => ({ ...g, steps: steps.items.filter((s) => s.goal_id === g.id) })),
     [goals.items, steps.items],
@@ -102,7 +110,14 @@ export function useOpenGoals(enabled: boolean) {
       return (data ?? []) as (GoalRow & { archived?: boolean | null })[];
     },
   });
-  const steps = useItems({ table: "goal_steps", filters: {}, orderBy: ["position", "created_at"], enabled });
+  const openIds = useMemo(() => (goals.data ?? []).map((g) => g.id), [goals.data]);
+  const steps = useItems({
+    table: "goal_steps",
+    filters: {},
+    oneOf: { column: "goal_id", values: openIds },
+    orderBy: ["position", "created_at"],
+    enabled: enabled && !!goals.data,
+  });
   const withSteps = useMemo<OpenGoal[]>(
     () => (goals.data ?? []).map((g) => ({ ...g, steps: steps.items.filter((s) => s.goal_id === g.id) })),
     [goals.data, steps.items],

@@ -32,7 +32,7 @@ supabase/           config + migrations
 
 ## Scripts
 
-`npm run typecheck` · `npm run lint` · `npm test` · `npm run export:web` · `npm run db:push`
+`npm run typecheck` · `npm run lint` · `npm test` · `npm run build:web` (production web build, what Cloudflare deploys) · `npm run db:push`
 
 ## Releasing (milestone 1 — internal TestFlight)
 
@@ -40,7 +40,14 @@ Requires an Apple Developer account. Then: `npx eas-cli@latest build --profile p
 
 ## Decisions
 
-- Normalized tables for things that are lists (month items, food items, goals, steps); jsonb for small fixed-shape arrays (week day boxes, daily tasks, cooking schedule). jsonb columns are validated with zod on read.
+- Normalized tables for things that are lists (month items, food items, goals, steps); jsonb for small fixed-shape arrays (week day boxes, daily tasks, cooking schedule). jsonb columns are checked on read with small plain functions (`src/lib/shapes.ts`, `daily-layout.ts`) — no validation library, it cost ~800 KB on web.
 - Autosave: edits apply locally at once, upsert ~0.6 s after typing stops and on unmount. Lists use optimistic updates.
 - Offline **reads** come from react-query's cache; offline **writes** are not queued yet (milestone 2).
+- Web load speed (keep these when changing the build):
+  - `npm run build:web` turns on Expo tree shaking (`EXPO_UNSTABLE_TREE_SHAKING`), so only the icons and date functions actually imported are shipped. `metro.config.js` enables the import support it needs.
+  - Route splitting (`asyncRoutes.web: "production"` in `app.json`): each page's code loads when first opened; `src/lib/preload-pages.web.ts` fetches the main pages' code in the background once the app is idle.
+  - `react-native-reanimated`/`worklets` are not in the web build (`metro.config.js` gives web a "not installed" stand-in; gesture handler loads them optionally). Phones are unaffected.
+  - Web fonts are WOFF2 subsets in `assets/fonts` (`src/theme/fonts.web.ts`, ~165 KB vs ~710 KB TTF) and never hold the first paint longer than 1.5 s. Phones use the TTFs.
+  - Result (Nov 2026): before the first page ~500 KB compressed JS instead of ~1.1 MB; Week page visible ~2× sooner on a slow connection.
+- Data loading: the Week page loads the week's journal entries in one request (`useDailyWeek`); 12W loads only the current cycle's actions (`oneOf` filter); the new-week prompt loads goals only when it can show.
 - Fixed a DST bug from the prototype: week-of-quarter now uses calendar days, not ms/86400000.

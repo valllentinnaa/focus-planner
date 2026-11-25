@@ -1,15 +1,21 @@
-import { parseDays, parseItems, parseSchedule } from "./shapes";
+import { parseSchedule } from "./shapes";
 
-describe("shapes", () => {
-  it("falls back to empty structures on bad data", () => {
-    expect(parseDays(null)).toHaveLength(7);
-    expect(parseDays([{ focus: "x" }])).toHaveLength(7);
-    expect(parseItems("nope")).toEqual([]);
-    expect(parseSchedule([1, 2])).toEqual(["", "", "", "", "", "", ""]);
+describe("parseSchedule", () => {
+  it("keeps a valid week", () => {
+    const week = ["a", "", "b", "", "", "", "c"];
+    expect(parseSchedule(week)).toEqual(week);
   });
-  it("fills defaults inside valid data", () => {
-    const days = parseDays(Array.from({ length: 7 }, () => ({})));
-    expect(days[0]).toEqual({ focus: "", items: [] });
-    expect(parseItems([{ text: "a" }])).toEqual([{ text: "a", done: false }]);
+  it("falls back to an empty week on bad data", () => {
+    const empty = ["", "", "", "", "", "", ""];
+    expect(parseSchedule(null)).toEqual(empty);
+    expect(parseSchedule([1, 2])).toEqual(empty);
+    expect(parseSchedule(["a", "b"])).toEqual(empty);
+    expect(parseSchedule(["x", 3, "", "", "", "", ""])).toEqual(empty);
+    expect(parseSchedule(["x".repeat(301), "", "", "", "", "", ""])).toEqual(empty);
+  });
+  it("returns a fresh array each time (callers may edit it)", () => {
+    const a = parseSchedule(null);
+    a[0] = "changed";
+    expect(parseSchedule(null)[0]).toBe("");
   });
 });

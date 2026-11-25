@@ -1,4 +1,4 @@
-import { appendLines, hasOpenGoals, linesFromPicks, newWeekPromptOpen, type GoalWithSteps } from "./quarter-goals";
+import { hasOpenGoals, linesFromPicks, newWeekPromptOpen, type GoalWithSteps } from "./quarter-goals";
 
 const ts = { created_at: "", updated_at: "", user_id: "u", quarter_id: "q", position: 0 };
 const goal = (p: Partial<GoalWithSteps>): GoalWithSteps => ({
@@ -37,14 +37,6 @@ describe("linesFromPicks", () => {
   it("expands project steps as 'goal → step'", () => {
     const out = linesFromPicks(goals, new Set(), new Set(["s2"]));
     expect(out.development).toEqual(["Learn Swift → Build toy app"]);
-  });
-});
-
-describe("appendLines", () => {
-  it("appends on new lines and trims trailing newlines", () => {
-    expect(appendLines("", ["a"])).toBe("a");
-    expect(appendLines("x\n\n", ["a", "b"])).toBe("x\na\nb");
-    expect(appendLines("x", [])).toBe("x");
   });
 });
 

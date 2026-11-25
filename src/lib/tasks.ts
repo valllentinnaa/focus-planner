@@ -16,12 +16,6 @@ export type Placement =
   | { kind: "day"; date: string } // scheduled to a specific day
   | { kind: "loose" }; // belongs to a week but no area and no day
 
-export function placementOf(t: Pick<TaskRow, "area" | "task_date">): Placement {
-  if (t.task_date) return { kind: "day", date: t.task_date };
-  if (t.area) return { kind: "area", area: t.area };
-  return { kind: "loose" };
-}
-
 /**
  * The columns written to the DB when a task is dropped somewhere. A task can be in a life area AND
  * on a day: dropping on a day keeps its area, dropping on an area keeps its day. week_start always
