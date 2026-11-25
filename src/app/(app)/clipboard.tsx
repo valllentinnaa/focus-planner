@@ -2,9 +2,9 @@
 // it needs attention. Give it a date and it moves into your planner as a task on that day.
 import { format } from "date-fns";
 import { CalendarPlus, Flag } from "lucide-react-native";
-import { useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { isVoiceLimitError, useClipboard, useClipboardVoiceUrls, usePlan, VOICE_LIMIT } from "@/data/clipboard";
+import { useEffect, useState } from "react";
+import { Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { importSharedInbox, isVoiceLimitError, useClipboard, useClipboardImageUrls, useClipboardVoiceUrls, usePlan, VOICE_LIMIT } from "@/data/clipboard";
 import { VoicePlayer, VoiceRecorder } from "@/components/checkin/voice-note";
 import type { ClipboardItemRow } from "@/lib/database.types";
 import { formatSeconds, type Recording } from "@/lib/voice";
@@ -12,11 +12,13 @@ import { dateChoices } from "@/lib/clipboard";
 import { fromISO, maskDMY, parseDMY } from "@/lib/dates";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Hint, PageTitle, Screen } from "@/components/screen";
-import { Display, GhostButton, RuleInput, RemoveButton } from "@/components/ui";
+import { Display, GhostButton, RemoveButton, RuleInput } from "@/components/ui";
 
 export default function ClipboardScreen() {
-  const { items, add, update, removeItem, moveToDay, addVoice, savingVoice } = useClipboard();
+  const { items, add, update, removeItem, moveToDay, addVoice, addShared, savingVoice } = useClipboard();
   const voiceUrls = useClipboardVoiceUrls(items.map((i) => i.audio_path));
+  const imageUrls = useClipboardImageUrls(items.map((i) => i.image_path));
+  const [viewing, setViewing] = useState<string | null>(null);
   const plan = usePlan();
   const voiceCount = items.filter((i) => i.audio_path).length;
   const voiceLimit = VOICE_LIMIT[plan];
@@ -24,6 +26,18 @@ export default function ClipboardScreen() {
   const [draft, setDraft] = useState("");
   const [dating, setDating] = useState<ClipboardItemRow | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // Anything shared to the app from another app (Android share menu) lands here.
+  useEffect(() => {
+    let live = true;
+    importSharedInbox(addShared)
+      .then((n) => live && n > 0 && setNotice(n === 1 ? "Added from your share." : `Added ${n} things from your share.`))
+      .catch(() => live && setNotice("Couldn't add what you shared — it's kept, and will retry next time you open the Clipboard."));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per visit
+  }, []);
 
   // A voice note takes whatever's typed in the box as its title.
   const saveVoice = (rec: Recording) => {
@@ -90,11 +104,21 @@ export default function ClipboardScreen() {
           {items.map((it) => (
             <View key={it.id}>
               <View style={s.row}>
+                {it.image_path ? (
+                  <Pressable
+                    onPress={() => imageUrls[it.image_path!] && setViewing(imageUrls[it.image_path!]!)}
+                    accessibilityRole="imagebutton"
+                    accessibilityLabel="Open image"
+                    hitSlop={6}
+                  >
+                    {imageUrls[it.image_path] ? <Image source={{ uri: imageUrls[it.image_path] }} style={s.thumb} /> : <View style={s.thumb} />}
+                  </Pressable>
+                ) : null}
                 {it.audio_path ? <VoicePlayer iconOnly url={voiceUrls[it.audio_path]} label={it.text || "Voice note"} /> : null}
                 <RuleInput
                   value={it.text}
                   onChangeText={(text) => update(it.id, { text })}
-                  placeholder={it.audio_path ? "Voice note" : undefined}
+                  placeholder={it.audio_path ? "Voice note" : it.image_path ? "Image" : undefined}
                   placeholderTextColor={it.attention ? colors.burgundy : colors.ink}
                   style={[s.text, it.attention && s.attention]}
                 />
@@ -116,6 +140,14 @@ export default function ClipboardScreen() {
           ))}
         </View>
       </View>
+
+      {viewing ? (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setViewing(null)}>
+          <Pressable style={s.backdrop} onPress={() => setViewing(null)} accessibilityLabel="Close image">
+            <Image source={{ uri: viewing }} style={s.big} resizeMode="contain" />
+          </Pressable>
+        </Modal>
+      ) : null}
 
       {dating ? (
         <DatePicker
@@ -180,6 +212,8 @@ function DatePicker({ onPick, onClose }: { onPick: (iso: string) => void; onClos
 const s = StyleSheet.create({
   list: { marginTop: space.lg, gap: 2 },
   row: { flexDirection: "row", alignItems: "center", gap: 4 },
+  thumb: { width: 26, height: 26, borderRadius: 4, backgroundColor: colors.muted, marginRight: 2 },
+  big: { width: "100%", height: "85%", maxWidth: 900 },
   secs: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground, fontVariant: ["tabular-nums"], marginRight: 4 },
   limit: { marginTop: space.sm, gap: 4 },
   limitText: { fontFamily: fonts.sans, fontSize: 13, color: colors.ink, lineHeight: 19 },

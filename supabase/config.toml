@@ -50,3 +50,8 @@ token_verifications = 30
 # (bearer token on every API action, signed `state` on the callback).
 [functions.google-calendar]
 verify_jwt = false
+
+# Called by the iPhone Shortcut with the user's share key (not a Supabase sign-in); the function
+# checks the key itself.
+[functions.share-in]
+verify_jwt = false

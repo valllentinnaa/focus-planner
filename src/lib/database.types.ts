@@ -124,6 +124,9 @@ export type WishlistItemRow = {
   position: number;
 } & Timestamps;
 
+/** iPhone share key: users see only when it was made / last used, never the hash. */
+export type ShareTokenRow = { user_id: string; created_at: string; last_used_at: string | null };
+
 export type EntitlementRow = { user_id: string; plan: "free" | "pro"; comped: boolean; updated_at: string };
 
 export type ClipboardItemRow = {
@@ -135,6 +138,8 @@ export type ClipboardItemRow = {
   /** Voice note in the private clipboard-voice bucket: "<user id>/<uuid>.<ext>". */
   audio_path?: string | null;
   audio_seconds?: number | null;
+  /** Image in the private clipboard-images bucket: "<user id>/<uuid>.<ext>". */
+  image_path?: string | null;
 } & Timestamps;
 
 export type VisionItemRow = {
@@ -217,12 +222,16 @@ export type Database = {
       wishlist_items: Table<WishlistItemRow, "text">;
       clipboard_items: Table<ClipboardItemRow, never>;
       /** Read-only for users; written by the server. */
+      share_tokens: Table<ShareTokenRow, "user_id">;
       entitlements: Table<EntitlementRow, "user_id" | "plan", "updated_at" | "comped">;
       vision_items: Table<VisionItemRow, "quarter_id" | "kind">;
       month_checkins: Table<MonthCheckinRow, "month">;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      create_share_token: { Args: Record<string, never>; Returns: string };
+      revoke_share_token: { Args: Record<string, never>; Returns: undefined };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

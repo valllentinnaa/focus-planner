@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/data/auth";
 import { CACHE_MAX_AGE, persister } from "@/lib/query-cache";
+import { registerShareWorker } from "@/lib/share-inbox";
 import { DragProvider } from "@/components/drag";
 import { UpdateBanner } from "@/components/update-banner";
 import { colors } from "@/theme/tokens";
@@ -39,6 +40,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsReady) SplashScreen.hideAsync();
   }, [fontsReady]);
+  // Web: lets the installed app appear in Android's Share menu (shares go to the Clipboard).
+  useEffect(registerShareWorker, []);
 
   if (!fontsReady) return null;
 

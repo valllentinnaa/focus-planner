@@ -15,3 +15,6 @@ export function dateChoices(today: Date, days = 14) {
 export function taskFromClipboard(text: string, iso: string) {
   return { text: text.trim().slice(0, 500), done: false, position: 0, task_date: iso, area: null, week_start: toISO(mondayOf(fromISO(iso))) };
 }
+
+// Shared with the share-in edge function (iPhone Shortcut), so both build lines the same way.
+export { sharedLine } from "../../supabase/functions/_shared/shared-line";

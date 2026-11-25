@@ -1,7 +1,7 @@
 import Constants from "expo-constants";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { useAuth } from "@/data/auth";
 import { calendarAvailable, useCalendarOps, useCalendarStatus } from "@/data/calendar";
 import { useRestartOnboarding, useSettings } from "@/data/profile";
@@ -15,6 +15,8 @@ import { GENDERS } from "@/lib/onboarding";
 import { Hint, PageTitle, Screen } from "@/components/screen";
 import { ShareProfileSection } from "@/components/share-profile";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "@/components/ui";
+import { shareInUrl, shareKeyAvailable, useShareKey } from "@/data/share-key";
+import { SHORTCUT_URL } from "@/lib/share-shortcut";
 
 export default function SettingsScreen() {
   const { settings, update, saveError } = useSettings();
@@ -66,6 +68,8 @@ export default function SettingsScreen() {
 
         <GoogleCalendarSection />
 
+        <ShareToClipboardSection />
+
         <View>
           <SectionLabel>Account</SectionLabel>
           <Body muted>{env.demo ? "Demo mode — data stays in this browser" : session?.user.email}</Body>
@@ -87,6 +91,81 @@ export default function SettingsScreen() {
         </Hint>
       </View>
     </Screen>
+  );
+}
+
+/**
+ * Share from other apps straight into the Clipboard. Android: the installed app is in the Share
+ * menu. iPhone: a Shortcut, which needs a personal share key (shown once, can be turned off).
+ */
+function ShareToClipboardSection() {
+  const { status, create, revoke } = useShareKey();
+  const [fresh, setFresh] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = async (what: string, text: string) => {
+    try {
+      await navigator.clipboard?.writeText(text);
+      setCopied(what);
+    } catch {
+      setCopied(null);
+    }
+  };
+  const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return (
+    <View>
+      <SectionLabel>Share to Clipboard</SectionLabel>
+      <Body muted>
+        Send a photo, link or text from any app to your Clipboard. On Android, add Focus Planner to your home screen, then tap Share → Focus Planner.
+      </Body>
+      {shareKeyAvailable ? (
+        <View style={{ marginTop: space.md, gap: space.sm }}>
+          <Text style={s.shareHead}>iPhone</Text>
+          {fresh ? (
+            <>
+              <Body>Your share key — copy it now, it won’t be shown again:</Body>
+              <Text selectable style={s.key}>{fresh}</Text>
+              <View style={{ flexDirection: "row", gap: space.sm, flexWrap: "wrap" }}>
+                <OutlineButton gold onPress={() => copy("key", fresh)}>{copied === "key" ? "Copied" : "Copy key"}</OutlineButton>
+                {SHORTCUT_URL ? <OutlineButton onPress={() => Linking.openURL(SHORTCUT_URL)}>Get the Shortcut</OutlineButton> : null}
+              </View>
+              <Hint>
+                {SHORTCUT_URL
+                  ? "Open the Shortcut link on your iPhone, tap Add Shortcut and paste the key when asked. Then in any app: Share → Add to Focus Planner."
+                  : "Paste this key into the “Add to Focus Planner” Shortcut on your iPhone. Then in any app: Share → Add to Focus Planner."}
+              </Hint>
+            </>
+          ) : status ? (
+            <Body muted>{`Share key made ${when(status.created_at)}${status.last_used_at ? ` · last used ${when(status.last_used_at)}` : " · not used yet"}`}</Body>
+          ) : (
+            <Body muted>Make a share key to use the iPhone Shortcut.</Body>
+          )}
+          <View style={{ flexDirection: "row", gap: space.md, flexWrap: "wrap" }}>
+            <GhostButton
+              disabled={create.isPending}
+              onPress={() =>
+                create.mutate(undefined, {
+                  onSuccess: (k) => {
+                    setCopied(null);
+                    setFresh(k);
+                  },
+                })
+              }
+            >
+              {status || fresh ? "Make a new key (turns off the old one)" : "Make a share key"}
+            </GhostButton>
+            {status || fresh ? (
+              <GhostButton disabled={revoke.isPending} onPress={() => revoke.mutate(undefined, { onSuccess: () => setFresh(null) })}>
+                Turn off
+              </GhostButton>
+            ) : null}
+          </View>
+          {create.isError || revoke.isError ? <Text style={s.error}>Couldn’t do that — please try again.</Text> : null}
+          <GhostButton style={{ alignSelf: "flex-start" }} onPress={() => copy("url", shareInUrl)}>
+            {copied === "url" ? "Address copied" : "Copy the Shortcut’s web address"}
+          </GhostButton>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -289,6 +368,8 @@ function Toggle({ label, value, onChange, color }: { label: string; value: boole
 
 const s = StyleSheet.create({
   navRow: { flexDirection: "row", alignItems: "center", gap: space.md },
+  shareHead: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.ink },
+  key: { fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "ui-monospace, Menlo, monospace" }), fontSize: 12, color: colors.ink, backgroundColor: colors.muted, padding: space.sm, borderRadius: 4 },
   navHint: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground, marginTop: -2 },
   navArrow: { fontFamily: fonts.sans, fontSize: 22, color: colors.gold },
   toggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 },
