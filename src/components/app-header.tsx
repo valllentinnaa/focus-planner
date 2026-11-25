@@ -35,6 +35,7 @@ export function AppHeader() {
   const iconSize = 38;
   const pathname = usePathname();
   const onToday = pathname === "/today";
+  const onClipboard = pathname === "/clipboard";
   const { plusButton } = useMenu(isPhone);
   const gutter = gutterFor(useWindowDimensions().width);
 
@@ -65,10 +66,12 @@ export function AppHeader() {
             <Pressable
               accessibilityLabel="Clipboard — quick dump"
               onPress={() => router.push("/clipboard")}
-              style={({ pressed }) => [s.iconBtn, s.iconBtnOutline, pathname === "/clipboard" && s.iconBtnOn, pressed && { opacity: 0.8 }]}
+              accessibilityState={{ selected: onClipboard }}
+              // Like Today: filled gold as a shortcut, plain outline while you're on the Clipboard.
+              style={({ pressed }) => [s.iconBtn, s.iconBtnOutline, !onClipboard && s.iconBtnOn, pressed && { opacity: 0.8 }]}
             >
               <View style={s.iconCenter} pointerEvents="none">
-                <Plus size={19} color={pathname === "/clipboard" ? colors.paper : colors.gold} strokeWidth={1.8} />
+                <Plus size={19} color={onClipboard ? colors.gold : colors.paper} strokeWidth={1.8} />
               </View>
             </Pressable>
           ) : null}
