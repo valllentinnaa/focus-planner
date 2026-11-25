@@ -5,11 +5,23 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { canPlayVoice, canRecordVoice, formatSeconds, MAX_VOICE_SECONDS, playVoice, startRecording, type Recorder, type Recording } from "@/lib/voice";
 import { alpha, colors, fonts, radius, space } from "@/theme/tokens";
 
-export function VoiceRecorder({ onDone, disabled, label = "Say it instead" }: { onDone: (rec: Recording) => void; disabled?: boolean; label?: string }) {
+type RecorderProps = {
+  onDone: (rec: Recording) => void;
+  disabled?: boolean;
+  label?: string;
+  /** Just a mic icon (e.g. at the end of an input row); messages go to onNote instead of showing here. */
+  compact?: boolean;
+  onNote?: (msg: string | null) => void;
+  /** Return false to stop recording from starting (e.g. at a limit). */
+  canStart?: () => boolean;
+};
+
+export function VoiceRecorder({ onDone, disabled, label = "Say it instead", compact, onNote, canStart }: RecorderProps) {
   const rec = useRef<Recorder | null>(null);
   const [state, setState] = useState<"idle" | "asking" | "recording">("idle");
   const [seconds, setSeconds] = useState(0);
-  const [note, setNote] = useState<string | null>(null);
+  const [note, setNoteState] = useState<string | null>(null);
+  const setNote = (m: string | null) => (compact && onNote ? onNote(m) : setNoteState(m));
 
   useEffect(() => {
     if (state !== "recording") return;
@@ -30,6 +42,7 @@ export function VoiceRecorder({ onDone, disabled, label = "Say it instead" }: { 
   };
 
   const start = async () => {
+    if (canStart && !canStart()) return;
     setNote(null);
     setState("asking");
     const r = await startRecording(() => finish());
@@ -42,6 +55,26 @@ export function VoiceRecorder({ onDone, disabled, label = "Say it instead" }: { 
     setSeconds(0);
     setState("recording");
   };
+
+  if (compact) {
+    return state === "recording" ? (
+      <Pressable onPress={finish} hitSlop={8} style={s.iconBtn} accessibilityRole="button" accessibilityLabel="Stop recording">
+        <Text style={s.timer}>{formatSeconds(seconds)}</Text>
+        <Square size={13} color={colors.burgundy} fill={colors.burgundy} />
+      </Pressable>
+    ) : (
+      <Pressable
+        onPress={start}
+        hitSlop={8}
+        disabled={disabled || state === "asking"}
+        style={({ pressed }) => [s.iconBtn, (pressed || disabled) && { opacity: 0.5 }]}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        <Mic size={17} color={colors.gold} strokeWidth={1.7} />
+      </Pressable>
+    );
+  }
 
   return (
     <View style={s.row}>
@@ -63,7 +96,7 @@ export function VoiceRecorder({ onDone, disabled, label = "Say it instead" }: { 
   );
 }
 
-export function VoicePlayer({ url, label = "Voice note", onRemove }: { url: string | undefined; label?: string; onRemove?: () => void }) {
+export function VoicePlayer({ url, label = "Voice note", onRemove, iconOnly }: { url: string | undefined; label?: string; onRemove?: () => void; iconOnly?: boolean }) {
   const [playing, setPlaying] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
   useEffect(() => () => stopRef.current?.(), []);
@@ -76,6 +109,21 @@ export function VoicePlayer({ url, label = "Voice note", onRemove }: { url: stri
       stopRef.current = null;
     });
   };
+  if (iconOnly) {
+    return (
+      <Pressable
+        onPress={toggle}
+        hitSlop={8}
+        disabled={!url || !canPlayVoice}
+        style={({ pressed }) => [s.iconBtn, (pressed || !url) && { opacity: 0.5 }]}
+        accessibilityRole="button"
+        accessibilityLabel={playing ? `Pause ${label}` : `Play ${label}`}
+      >
+        {playing ? <Pause size={15} color={colors.gold} fill={colors.gold} /> : <Play size={15} color={colors.gold} fill={colors.gold} />}
+      </Pressable>
+    );
+  }
+
   return (
     <View style={s.row}>
       <Pressable
@@ -105,4 +153,6 @@ const s = StyleSheet.create({
   pillText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: colors.gold },
   note: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground },
   trash: { padding: 4 },
+  iconBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 6, paddingVertical: 4 },
+  timer: { fontFamily: fonts.sans, fontSize: 12, color: colors.burgundy, fontVariant: ["tabular-nums"] },
 });
