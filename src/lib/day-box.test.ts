@@ -1,4 +1,4 @@
-import { blankRowsFor, pickEvents, pickTasks, dayBoxTake, dayBoxSlice } from "./day-box";
+import { blankRowsFor, foldLabel, pickEvents, pickTasks, dayBoxTake, dayBoxSlice } from "./day-box";
 
 describe("dayBoxSlice", () => {
   it("shows everything when it fits", () => {
@@ -49,9 +49,20 @@ describe("pickEvents", () => {
 });
 
 describe("pickTasks / blankRowsFor", () => {
+  const t = (n: number, done = false) => ({ n, done });
   it("folds tasks past 5", () => {
-    expect(pickTasks([1, 2, 3])).toEqual({ shown: [1, 2, 3], hidden: 0 });
-    expect(pickTasks([1, 2, 3, 4, 5, 6, 7])).toEqual({ shown: [1, 2, 3, 4, 5], hidden: 2 });
+    expect(pickTasks([t(1), t(2), t(3)]).hidden).toBe(0);
+    const r = pickTasks([1, 2, 3, 4, 5, 6, 7].map((n) => t(n)));
+    expect(r.shown.map((x) => x.n)).toEqual([1, 2, 3, 4, 5]);
+    expect(r).toMatchObject({ hidden: 2, hiddenOpen: 2 });
+  });
+  it("never hides an unfinished task to show a finished one", () => {
+    const items = [t(1, true), t(2, true), t(3, true), t(4, true), t(5, true), t(6), t(7)];
+    const r = pickTasks(items);
+    expect(r.shown.map((x) => x.n)).toEqual([1, 2, 3, 6, 7]);
+    expect(r).toMatchObject({ hidden: 2, hiddenOpen: 0 });
+    expect(foldLabel(r.hidden, r.hiddenOpen)).toBe("+2 done");
+    expect(foldLabel(3, 1)).toBe("+3 more");
   });
   it("always leaves 2–3 empty rows", () => {
     expect(blankRowsFor(0)).toBe(3);

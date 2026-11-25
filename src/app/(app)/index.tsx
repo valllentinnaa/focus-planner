@@ -11,7 +11,7 @@ import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import type { DayEvent } from "@/lib/calendar-events";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { ShoppingLine } from "@/components/shopping-line";
-import { blankRowsFor, pickEvents, pickTasks } from "@/lib/day-box";
+import { blankRowsFor, foldLabel, pickEvents, pickTasks } from "@/lib/day-box";
 import { dayAgenda } from "@/lib/task-time";
 import type { FoodItemRow, TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
@@ -245,7 +245,9 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
   const ev = pickEvents(events, isToday, now);
   const tk = pickTasks(tasks);
   const shownMeals = meals.slice(0, Math.max(0, 5 - tk.shown.length));
-  const hidden = ev.hidden + tk.hidden + (meals.length - shownMeals.length);
+  const hiddenMeals = meals.length - shownMeals.length;
+  const hidden = ev.hidden + tk.hidden + hiddenMeals;
+  const hiddenOpen = ev.hidden + tk.hiddenOpen + meals.slice(shownMeals.length).filter((m) => !m.done).length;
   const fit = { shown: [...dayAgenda(ev.shown, tk.shown), ...shownMeals.map((meal) => ({ kind: "meal" as const, meal }))], hidden };
   return (
     <DropZone
@@ -271,17 +273,18 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
             <TaskItem key={item.task.id} task={item.task} ops={ops} compact draggable inDay />
           ),
         )}
-        {fit.hidden ? (
-          <Pressable onPress={onOpen} style={s.more} accessibilityRole="button" accessibilityLabel={`${fit.hidden} more on ${label}. Open the day`}>
-            <Text style={s.moreText}>+{fit.hidden} more →</Text>
-          </Pressable>
-        ) : null}
         {/* Always room to write a new task. */}
         <BlankRows count={blankRowsFor(tk.shown.length + shownMeals.length)} size={16} onAdd={() => ops.add({ kind: "day", date: iso }, weekStart)} />
       </View>
-      <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, weekStart)} style={{ marginTop: 4 }}>
-        + add
-      </GhostButton>
+      {/* Footer: add on the left; what's folded away (opens the day) on the right. */}
+      <View style={s.foot}>
+        <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, weekStart)}>+ add</GhostButton>
+        {fit.hidden ? (
+          <Pressable onPress={onOpen} hitSlop={6} style={s.more} accessibilityRole="button" accessibilityLabel={`${foldLabel(fit.hidden, hiddenOpen)} on ${label}. Open the day`}>
+            <Text style={s.moreText}>{foldLabel(fit.hidden, hiddenOpen)} →</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </DropZone>
   );
 }
@@ -300,7 +303,8 @@ const s = StyleSheet.create({
   dayBoxDrop: { borderColor: colors.gold, backgroundColor: alpha("gold", "22") },
   zone: { borderRadius: 4 },
   zoneActive: { backgroundColor: alpha("gold", "18") },
-  more: { paddingVertical: 6, paddingLeft: 26 },
+  foot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
+  more: { paddingVertical: 4 },
   moreText: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 1, color: colors.gold },
   dayHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 },
   dayName: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },

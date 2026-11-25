@@ -22,10 +22,21 @@ export function pickEvents<E extends Ev>(events: E[], isToday: boolean, now: Dat
   return { shown, hidden: events.length - shown.length };
 }
 
-/** Tasks shown in a day box, and how many fold away. */
-export function pickTasks<T>(items: T[], max = DAY_BOX_MAX_TASKS) {
-  return items.length <= max ? { shown: items, hidden: 0 } : { shown: items.slice(0, max), hidden: items.length - max };
+/**
+ * Tasks shown in a day box. Unfinished ones always come first; finished ones fill what's left and
+ * are the first to fold away. Keeps the given order among those shown.
+ */
+export function pickTasks<T extends { done: boolean }>(items: T[], max = DAY_BOX_MAX_TASKS) {
+  if (items.length <= max) return { shown: items, hidden: 0, hiddenOpen: 0 };
+  const open = items.filter((t) => !t.done);
+  const keep = new Set<T>(open.slice(0, max));
+  for (const t of items) if (keep.size < max && t.done) keep.add(t);
+  const shown = items.filter((t) => keep.has(t));
+  return { shown, hidden: items.length - shown.length, hiddenOpen: open.length - Math.min(open.length, max) };
 }
+
+/** The fold's label: "+2 done" when only finished things are hidden, otherwise "+2 more". */
+export const foldLabel = (hidden: number, hiddenOpen: number) => `+${hidden} ${hiddenOpen > 0 ? "more" : "done"}`;
 
 /** Empty rows to write new tasks in: always at least 2, up to 3 when the day is light. */
 export const blankRowsFor = (shownTasks: number) => Math.max(2, 3 - shownTasks);
