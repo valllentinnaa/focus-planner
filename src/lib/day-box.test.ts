@@ -1,4 +1,4 @@
-import { blankRowsFor, foldLabel, pickEvents, pickTasks } from "./day-box";
+import { blankRowsFor, foldLabel, pickEvents, pickTasks, taskRoomFor } from "./day-box";
 
 describe("pickEvents", () => {
   const at = (h: number, m = 0, len = 60) => {
@@ -42,9 +42,16 @@ describe("pickTasks / blankRowsFor", () => {
     expect(foldLabel(r.hidden, r.hiddenOpen)).toBe("+2 done");
     expect(foldLabel(3, 1)).toBe("+3 more");
   });
-  it("always leaves 2–3 empty rows", () => {
+  it("leaves 3 empty rows on a light day, 2 as it fills, 1 when full", () => {
     expect(blankRowsFor(0)).toBe(3);
-    expect(blankRowsFor(1)).toBe(2);
-    expect(blankRowsFor(5)).toBe(2);
+    expect(blankRowsFor(2)).toBe(3);
+    expect(blankRowsFor(3)).toBe(2);
+    expect(blankRowsFor(6)).toBe(1);
+    expect(blankRowsFor(8)).toBe(1);
+  });
+  it("tasks share the 6 lines with events, but always get at least 2", () => {
+    expect(taskRoomFor(0)).toBe(5);
+    expect(taskRoomFor(3)).toBe(3);
+    expect(taskRoomFor(5)).toBe(2);
   });
 });

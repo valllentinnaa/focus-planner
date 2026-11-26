@@ -6,6 +6,7 @@ import { noteLaunchPath } from "@/lib/planner-opening";
 import { colors, fonts, gutterFor, layout, space } from "@/theme/tokens";
 import { Display, Eyebrow } from "./ui";
 import { AppHeader, BOTTOM_NAV_HEIGHT, BottomNav, useIsPhone } from "./app-header";
+import { useDrag } from "./drag";
 
 /** Full-page scroll container with the brand header, safe areas and a max content width. */
 // Web print: leave the app chrome (top bar, bottom tabs) and print buttons off the page.
@@ -39,12 +40,51 @@ export function Screen({ children }: { children: ReactNode }) {
     );
   }, []);
   const ctx = useMemo(() => ({ reveal }), [reveal]);
+
+  // Let drag-and-drop scroll this page when an item is held near the top or bottom edge.
+  const offset = useRef(0);
+  const maxOffset = useRef(0);
+  const viewH = useRef(0);
+  const contentH = useRef(0);
+  const drag = useDrag();
+  const setScroller = drag?.setScroller;
+  useEffect(() => {
+    if (!setScroller) return;
+    setScroller((dy) => {
+      if (Platform.OS === "web") {
+        const el = (scroll.current as unknown as { getScrollableNode?: () => HTMLElement | null })?.getScrollableNode?.();
+        if (!el) return 0;
+        const before = el.scrollTop;
+        el.scrollTop = before + dy;
+        return el.scrollTop - before;
+      }
+      const next = Math.max(0, Math.min(maxOffset.current, offset.current + dy));
+      const moved = next - offset.current;
+      if (moved) {
+        offset.current = next;
+        scroll.current?.scrollTo({ y: next, animated: false });
+      }
+      return moved;
+    });
+    return () => setScroller(null);
+  }, [setScroller]);
+  const updateMax = () => (maxOffset.current = Math.max(0, contentH.current - viewH.current));
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScreenScroll.Provider value={ctx}>
       <ScrollView
         ref={scroll}
         style={s.root}
+        scrollEventThrottle={32}
+        onScroll={(e) => (offset.current = e.nativeEvent.contentOffset.y)}
+        onLayout={(e) => {
+          viewH.current = e.nativeEvent.layout.height;
+          updateMax();
+        }}
+        onContentSizeChange={(_w, h) => {
+          contentH.current = h;
+          updateMax();
+        }}
         contentContainerStyle={[s.content, { paddingBottom: insets.bottom + space.xxl + (isPhone ? BOTTOM_NAV_HEIGHT : 0) }]}
         keyboardShouldPersistTaps="handled"
         contentInsetAdjustmentBehavior="automatic"

@@ -4,9 +4,11 @@
 // A DropZone registers its on-screen rectangle; a DragHandle (long-press to pick up) moves a
 // floating label and, on release, drops onto whichever zone contains the pointer. Dropping
 // outside every zone is a no-op, so the button-based moves remain the reliable path.
+// Holding the item near the top or bottom of the window scrolls the page (the page's Screen
+// registers how to scroll), so a task can travel to a day box that's off-screen.
 /* eslint-disable react-hooks/refs -- this module keeps a registry of drop-zone nodes in refs by design */
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ComponentRef, type ReactNode } from "react";
-import { Animated, StyleSheet, Text, View, type LayoutRectangle } from "react-native";
+import { Animated, Dimensions, StyleSheet, Text, View, type LayoutRectangle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import type { TaskRow } from "@/lib/database.types";
 import { colors, fonts } from "@/theme/tokens";
@@ -14,7 +16,7 @@ import { colors, fonts } from "@/theme/tokens";
 type Host = ComponentRef<typeof View>;
 
 type Zone = { id: string; node: Host | null; onDrop: (task: TaskRow) => void };
-type Rect = { id: string; onDrop: (task: TaskRow) => void } & LayoutRectangle;
+type Rect = { id: string; onDrop: (task: TaskRow) => void; x: number; y: number; width: number; height: number };
 
 type DragApi = {
   register: (id: string, node: Host | null, onDrop: (task: TaskRow) => void) => () => void;
@@ -22,6 +24,8 @@ type DragApi = {
   move: (x: number, y: number) => void;
   end: (x: number, y: number) => void;
   cancel: () => void;
+  /** The page's scroller: scrolls by dy and returns how far it actually moved. */
+  setScroller: (fn: ((dy: number) => number) | null) => void;
   highlight: string | null;
   dragging: boolean;
 };
@@ -35,6 +39,17 @@ function measure(node: Host | null): Promise<LayoutRectangle | null> {
     node.measureInWindow((x, y, width, height) => resolve({ x, y, width, height }));
   });
 }
+/** Within this many px of the window's top/bottom edge, dragging scrolls the page. */
+const EDGE = 90;
+const MAX_SPEED = 18; // px per frame at the very edge
+
+/** Scroll speed for a pointer at y: 0 in the middle, growing toward the edges. */
+export function edgeSpeed(y: number, height: number) {
+  if (y < EDGE) return -Math.ceil(((EDGE - Math.max(0, y)) / EDGE) * MAX_SPEED);
+  if (y > height - EDGE) return Math.ceil(((Math.min(height, y) - (height - EDGE)) / EDGE) * MAX_SPEED);
+  return 0;
+}
+
 const inside = (r: Rect, x: number, y: number) => x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height;
 
 export function DragProvider({ children }: { children: ReactNode }) {
@@ -44,6 +59,29 @@ export function DragProvider({ children }: { children: ReactNode }) {
   const pos = useRef(new Animated.ValueXY()).current;
   const [label, setLabel] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<string | null>(null);
+  const scroller = useRef<((dy: number) => number) | null>(null);
+  const pointer = useRef({ x: 0, y: 0 });
+  const frame = useRef<number | null>(null);
+
+  const setScroller: DragApi["setScroller"] = useCallback((fn) => {
+    scroller.current = fn;
+  }, []);
+
+  // While dragging near an edge, scroll a little every frame and keep the drop zones in step.
+  const loop = useRef<() => void>(() => {});
+  loop.current = () => {
+    frame.current = null;
+    if (!task.current || !scroller.current) return;
+    const speed = edgeSpeed(pointer.current.y, Dimensions.get("window").height);
+    if (!speed) return;
+    const moved = scroller.current(speed);
+    if (moved) {
+      for (const r of rects.current) r.y -= moved;
+      const hit = rects.current.find((r) => inside(r, pointer.current.x, pointer.current.y));
+      setHighlight(hit?.id ?? null);
+    }
+    frame.current = requestAnimationFrame(() => loop.current());
+  };
 
   const register: DragApi["register"] = useCallback((id, node, onDrop) => {
     zones.current.set(id, { id, node, onDrop });
@@ -63,11 +101,20 @@ export function DragProvider({ children }: { children: ReactNode }) {
 
   const move: DragApi["move"] = useCallback((x, y) => {
     pos.setValue({ x, y });
+    pointer.current = { x, y };
     const hit = rects.current.find((r) => inside(r, x, y));
     setHighlight(hit?.id ?? null);
+    if (frame.current === null && edgeSpeed(y, Dimensions.get("window").height)) frame.current = requestAnimationFrame(() => loop.current());
   }, [pos]);
 
-  const finish = useCallback(() => { task.current = null; rects.current = []; setLabel(null); setHighlight(null); }, []);
+  const finish = useCallback(() => {
+    task.current = null;
+    rects.current = [];
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+    frame.current = null;
+    setLabel(null);
+    setHighlight(null);
+  }, []);
 
   const end: DragApi["end"] = useCallback((x, y) => {
     const hit = rects.current.find((r) => inside(r, x, y));
@@ -75,7 +122,10 @@ export function DragProvider({ children }: { children: ReactNode }) {
     finish();
   }, [finish]);
 
-  const api = useMemo<DragApi>(() => ({ register, begin, move, end, cancel: finish, highlight, dragging: label !== null }), [register, begin, move, end, finish, highlight, label]);
+  const api = useMemo<DragApi>(
+    () => ({ register, begin, move, end, cancel: finish, setScroller, highlight, dragging: label !== null }),
+    [register, begin, move, end, finish, setScroller, highlight, label],
+  );
 
   return (
     <Ctx.Provider value={api}>

@@ -34,6 +34,12 @@ export function pickTasks<T extends { done: boolean }>(items: T[], max = DAY_BOX
 /** The fold's label: "+2 done" when only finished things are hidden, otherwise "+2 more". */
 export const foldLabel = (hidden: number, hiddenOpen: number) => `+${hidden} ${hiddenOpen > 0 ? "more" : "done"}`;
 
-/** Empty rows to write new tasks in: always at least 2, up to 3 when the day is light. */
-export const blankRowsFor = (shownTasks: number) => Math.max(2, 3 - shownTasks);
+/** Lines a day box shows in total (events + tasks + meals), so the boxes in a row stay even. */
+export const DAY_BOX_MAX_LINES = 6;
+
+/** How many tasks fit after the events: what's left of the 6 lines, never fewer than 2. */
+export const taskRoomFor = (shownEvents: number) => Math.max(2, Math.min(DAY_BOX_MAX_TASKS, DAY_BOX_MAX_LINES - shownEvents));
+
+/** Empty rows to write in: 3 when the day is light, 2 when it's filling up, 1 once it's full. */
+export const blankRowsFor = (shownLines: number) => (shownLines >= DAY_BOX_MAX_LINES ? 1 : shownLines >= 3 ? 2 : 3);
 

@@ -11,7 +11,7 @@ import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import type { DayEvent } from "@/lib/calendar-events";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { ShoppingLine } from "@/components/shopping-line";
-import { blankRowsFor, foldLabel, pickEvents, pickTasks } from "@/lib/day-box";
+import { blankRowsFor, foldLabel, pickEvents, pickTasks, taskRoomFor } from "@/lib/day-box";
 import { dayAgenda } from "@/lib/task-time";
 import type { FoodItemRow, TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
@@ -264,10 +264,12 @@ function DayBox({ label, iso, isToday, markRef, tasks, events, eventsLoading, on
 }) {
   const day = useDaily(iso, journalReady);
   const now = useMinuteClock(isToday);
-  // Events (max 3 — see pickEvents) and tasks, in time order ("14:00 …"), then planned meals.
+  // Events (max 3 — see pickEvents) and tasks, in time order ("14:00 …"), then planned meals —
+  // 6 lines in all, so a busy past day doesn't make its row of boxes tall. Finished things fold first.
   const ev = pickEvents(events, isToday, now);
-  const tk = pickTasks(tasks);
-  const shownMeals = meals.slice(0, Math.max(0, 5 - tk.shown.length));
+  const room = taskRoomFor(ev.shown.length);
+  const tk = pickTasks(tasks, room);
+  const shownMeals = meals.slice(0, Math.max(0, room - tk.shown.length));
   const hiddenMeals = meals.length - shownMeals.length;
   const hidden = ev.hidden + tk.hidden + hiddenMeals;
   const hiddenOpen = ev.hidden + tk.hiddenOpen + meals.slice(shownMeals.length).filter((m) => !m.done).length;
@@ -298,7 +300,7 @@ function DayBox({ label, iso, isToday, markRef, tasks, events, eventsLoading, on
           ),
         )}
         {/* Always room to write a new task. */}
-        <BlankRows count={blankRowsFor(tk.shown.length + shownMeals.length)} size={16} onAdd={() => ops.add({ kind: "day", date: iso }, weekStart)} />
+        <BlankRows count={blankRowsFor(ev.shown.length + tk.shown.length + shownMeals.length)} size={16} onAdd={() => ops.add({ kind: "day", date: iso }, weekStart)} />
       </View>
       {/* Footer: add on the left; what's folded away (opens the day) on the right. */}
       <View style={s.foot}>
