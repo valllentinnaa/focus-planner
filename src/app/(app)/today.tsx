@@ -142,31 +142,29 @@ export default function TodayScreen() {
       <Columns>
         <Column>
           <View style={{ gap: space.xl }}>
-            {show("tasks") ? (
+            {show("tasks") || show("calendar") ? (
             <View>
-              <SectionLabel>Tasks</SectionLabel>
+              {/* One list for the day: calendar events and tasks together, in time order. */}
+              <SectionLabel>{show("tasks") ? "Your day" : "Calendar"}</SectionLabel>
               <View style={{ gap: 2 }}>
-                {dayAgenda([], tasks).map((it) => (it.kind === "task" ? <TaskItem key={it.task.id} task={it.task} ops={ops} /> : null))}
-                {(settings.showFood ? (meals.byDay[iso] ?? []) : []).map((m) => (
-                  <MealRow key={m.id} meal={m} onDone={(done) => meals.setDone(m.id, done)} />
-                ))}
-              </View>
-              <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, toISO(monday))} style={{ marginTop: 6 }}>
-                + Add item
-              </GhostButton>
-            </View>
-            ) : null}
-            {show("calendar") && (calendar.loading || dayEvents.length) ? (
-              <View>
-                <SectionLabel>Calendar</SectionLabel>
-                {calendar.loading ? (
-                  <EventsLoading />
-                ) : (
-                  <View style={{ gap: 2 }}>
-                    {dayEvents.map((e) => <CalendarEventRow key={e.key} event={e} day={iso} onRemove={calendarOps.hide} />)}
-                  </View>
+                {show("calendar") && calendar.loading ? <EventsLoading /> : null}
+                {dayAgenda(show("calendar") ? dayEvents : [], show("tasks") ? tasks : []).map((it) =>
+                  it.kind === "task" ? (
+                    <TaskItem key={it.task.id} task={it.task} ops={ops} />
+                  ) : (
+                    <CalendarEventRow key={it.event.key} event={it.event} day={iso} onRemove={calendarOps.hide} />
+                  ),
                 )}
+                {show("tasks") && settings.showFood
+                  ? (meals.byDay[iso] ?? []).map((m) => <MealRow key={m.id} meal={m} onDone={(done) => meals.setDone(m.id, done)} />)
+                  : null}
               </View>
+              {show("tasks") ? (
+                <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, toISO(monday))} style={{ marginTop: 6 }}>
+                  + Add item
+                </GhostButton>
+              ) : null}
+            </View>
             ) : null}
           </View>
         </Column>
