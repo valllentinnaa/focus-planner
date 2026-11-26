@@ -135,6 +135,11 @@ export default function TodayScreen() {
           done={doc.focusDone}
           onDone={(focusDone) => patch({ focusDone })}
           onChangeText={(v) => patch(v.trim() ? { focus: v } : { focus: v, focusDone: false })}
+          onNew={() => {
+            // The finished focus stays on the day as a done task; then a fresh focus to write.
+            ops.add({ kind: "day", date: iso }, toISO(monday), doc.focus.trim(), tasks.length, { done: true });
+            patch({ focus: "", focusDone: false });
+          }}
           placeholder="The one thing for today…"
         />
       </FocusCard>

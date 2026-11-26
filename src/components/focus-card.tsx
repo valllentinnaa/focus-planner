@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View, type StyleProp, type TextInputProps, type TextStyle } from "react-native";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
-import { CheckBox, RuleInput } from "./ui";
+import { CheckBox, GhostButton, RuleInput } from "./ui";
 
 export function FocusCard({ label, right, children }: { label: string; right?: ReactNode; children: ReactNode }) {
   return (
@@ -19,14 +19,29 @@ export function FocusCard({ label, right, children }: { label: string; right?: R
 
 /**
  * The focus text. With onDone it gets a tick box (shown once something is written); ticking it
- * strikes the text through.
+ * strikes the text through. With onNew, a ticked focus sits as plain struck text with
+ * "+ New focus" right after it (wrapping under it when the text is long).
  */
 export function FocusInput({
   done,
   onDone,
+  onNew,
   style,
   ...props
-}: TextInputProps & { done?: boolean; onDone?: (done: boolean) => void; style?: StyleProp<TextStyle> }) {
+}: TextInputProps & { done?: boolean; onDone?: (done: boolean) => void; onNew?: () => void; style?: StyleProp<TextStyle> }) {
+  if (done && onDone && onNew && String(props.value ?? "").trim()) {
+    return (
+      <View style={s.row}>
+        <View style={s.tick}>
+          <CheckBox size={20} checked onChange={onDone} />
+        </View>
+        <View style={s.doneWrap}>
+          <Text style={[s.doneText, s.done, style]}>{String(props.value).trim()}</Text>
+          <GhostButton onPress={onNew}>+ New focus</GhostButton>
+        </View>
+      </View>
+    );
+  }
   const input = <RuleInput autoGrow {...props} style={[s.text, done && s.done, style]} />;
   if (!onDone) return input;
   return (
@@ -55,4 +70,7 @@ const s = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "flex-start", gap: space.md },
   tick: { paddingTop: 8 },
   done: { textDecorationLine: "line-through", color: colors.mutedForeground },
+  // Struck text, then "+ New focus" on the same line — or under it when the text is long.
+  doneWrap: { flex: 1, minWidth: 0, flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space.md, rowGap: 2 },
+  doneText: { flexGrow: 0, flexShrink: 1, flexBasis: "auto", maxWidth: "100%", fontFamily: fonts.displayItalic, fontSize: 24, lineHeight: 32, paddingVertical: 2 },
 });
