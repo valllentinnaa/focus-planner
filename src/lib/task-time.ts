@@ -52,6 +52,10 @@ export function eventTime(label: string): number | null {
 
 export type AgendaItem<E, T> = { kind: "event"; event: E } | { kind: "task"; task: T };
 
+/** A planned meal in a day's agenda: ordered by its cook time like a task's time. */
+export const asAgendaMeal = <M extends { text: string; cook_time?: string | null }>(m: M) => ({ ...m, task_time: m.cook_time ?? null, isMeal: true as const });
+export const isAgendaMeal = <T extends object>(t: T): t is Extract<T, { isMeal: true }> => "isMeal" in t;
+
 /** From this time on, an item counts as "evening" and goes after the tasks without a time. */
 export const EVENING_MINUTES = 18 * 60;
 

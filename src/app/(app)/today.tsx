@@ -4,16 +4,16 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useDaily, type DailyDoc } from "@/data/daily";
 import { useSettings } from "@/data/profile";
 import { useMeals } from "@/data/food";
-import { dayAgenda } from "@/lib/task-time";
+import { asAgendaMeal, dayAgenda, isAgendaMeal } from "@/lib/task-time";
 import { MealRow } from "@/components/meal-row";
 import { BUILTIN_FIELDS, isShown, pairRows, type BuiltinKey, type CustomField } from "@/lib/daily-layout";
 import { useDayTasks, useTaskOps } from "@/data/tasks";
 import { fromISO, isISODate, mondayOf, toISO } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
 import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/screen";
-import { FocusCard, FocusInput } from "@/components/focus-card";
+import { DayFocus } from "@/components/day-focus";
 import { DateNav } from "@/components/date-nav";
-import { GhostButton, OutlineButton, RuledArea, SectionLabel } from "@/components/ui";
+import { GhostButton, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
@@ -102,7 +102,9 @@ export default function TodayScreen() {
         right={
           <View style={{ gap: space.sm, alignItems: wide ? "flex-end" : "flex-start" }}>
             <Link href="/" asChild>
-              <OutlineButton gold style={wide && { alignSelf: "flex-end" }}>My Week ↗</OutlineButton>
+              <Pressable accessibilityRole="link" style={({ pressed }) => [wide && { alignSelf: "flex-end" }, pressed && { opacity: 0.6 }]}>
+                <Text style={s.weekLink}>My week ↗</Text>
+              </Pressable>
             </Link>
             <DateNav
               printable
@@ -129,20 +131,7 @@ export default function TodayScreen() {
         }
       />
 
-      <FocusCard label="Focus of the day" right={format(date, "MMM d")}>
-        <FocusInput
-          value={doc.focus}
-          done={doc.focusDone}
-          onDone={(focusDone) => patch({ focusDone })}
-          onChangeText={(v) => patch(v.trim() ? { focus: v } : { focus: v, focusDone: false })}
-          onNew={() => {
-            // The finished focus stays on the day as a done task; then a fresh focus to write.
-            ops.add({ kind: "day", date: iso }, toISO(monday), doc.focus.trim(), tasks.length, { done: true });
-            patch({ focus: "", focusDone: false });
-          }}
-          placeholder="The one thing for today…"
-        />
-      </FocusCard>
+      <DayFocus doc={doc} patch={patch} tasks={tasks} ops={ops} iso={iso} weekStart={toISO(monday)} dateLabel={format(date, "MMM d")} />
 
       <Columns>
         <Column>
@@ -153,16 +142,23 @@ export default function TodayScreen() {
               <SectionLabel>{show("tasks") ? "Your day" : "Calendar"}</SectionLabel>
               <View style={{ gap: 2 }}>
                 {show("calendar") && calendar.loading ? <EventsLoading /> : null}
-                {dayAgenda(show("calendar") ? dayEvents : [], show("tasks") ? tasks : []).map((it) =>
-                  it.kind === "task" ? (
-                    <TaskItem key={it.task.id} task={it.task} ops={ops} />
-                  ) : (
+                {dayAgenda(show("calendar") ? dayEvents : [], [
+                  ...(show("tasks") ? tasks : []),
+                  ...(show("tasks") && settings.showFood ? (meals.byDay[iso] ?? []).map(asAgendaMeal) : []),
+                ]).map((it) =>
+                  it.kind === "event" ? (
                     <CalendarEventRow key={it.event.key} event={it.event} day={iso} onRemove={calendarOps.hide} />
+                  ) : isAgendaMeal(it.task) ? (
+                    <MealRow
+                      key={it.task.id}
+                      meal={it.task}
+                      onDone={(done) => meals.setDone(it.task.id, done)}
+                      onTime={(t) => meals.setTime(it.task.id, t)}
+                    />
+                  ) : (
+                    <TaskItem key={it.task.id} task={it.task} ops={ops} />
                   ),
                 )}
-                {show("tasks") && settings.showFood
-                  ? (meals.byDay[iso] ?? []).map((m) => <MealRow key={m.id} meal={m} onDone={(done) => meals.setDone(m.id, done)} />)
-                  : null}
               </View>
               {show("tasks") ? (
                 <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, toISO(monday))} style={{ marginTop: 6 }}>
@@ -193,6 +189,7 @@ export default function TodayScreen() {
 }
 
 const s = StyleSheet.create({
+  weekLink: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.gold, paddingVertical: 4 },
   dots: { flexDirection: "row", gap: 6, marginTop: 4 },
   dot: { alignItems: "center", width: 30, gap: 4, paddingVertical: 4 },
   dotCircle: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.rule },

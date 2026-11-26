@@ -86,3 +86,15 @@ describe("evening items", () => {
     expect(out.map((i) => (i.kind === "event" ? i.event.key : i.task.text))).toEqual(["gym", "outreach", "prane", "dinner", "dnevnik"]);
   });
 });
+
+describe("meals in the day's agenda", () => {
+  it("a planned meal with a time sits among timed items; without one, after the tasks", () => {
+    const { asAgendaMeal, isAgendaMeal } = jest.requireActual("./task-time") as typeof import("./task-time");
+    const tasks = [{ text: "Seasons tasks", task_time: "16:00:00" }, { text: "ледена вода", task_time: null }];
+    const meals = [asAgendaMeal({ text: "боб с тиква", cook_time: "13:00:00" }), asAgendaMeal({ text: "чеснова разядка", cook_time: null })];
+    const order = dayAgenda([], [...tasks, ...meals]).map((i) => (i.kind === "task" ? i.task.text : ""));
+    expect(order).toEqual(["боб с тиква", "Seasons tasks", "ледена вода", "чеснова разядка"]);
+    expect(isAgendaMeal(meals[0]!)).toBe(true);
+    expect(isAgendaMeal(tasks[0]!)).toBe(false);
+  });
+});

@@ -29,7 +29,7 @@ const defaultsFor: Record<string, () => Row> = {
   }),
   tasks: () => ({ text: "", done: false, area: null, task_date: null, task_time: null, position: 0 }),
   food_weeks: () => ({ notes: "", schedule: ["", "", "", "", "", "", ""] }),
-  food_items: () => ({ done: false, position: 0, cook_date: null }),
+  food_items: () => ({ done: false, position: 0, cook_date: null, cook_time: null }),
   quarters: () => ({ theme: "", notes: "" }),
   goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false, carry_next: false, carried_from: null, habit_days: null, habit_per_week: null }),
   habit_checks: () => ({}),

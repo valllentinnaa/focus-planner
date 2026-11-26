@@ -34,6 +34,12 @@ describe("pickTasks / blankRowsFor", () => {
     expect(r.shown.map((x) => x.n)).toEqual([1, 2, 3, 4, 5]);
     expect(r).toMatchObject({ hidden: 2, hiddenOpen: 2 });
   });
+  it("always shows a just-added blank task, even on a full day", () => {
+    const items = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ n, done: false, text: `task ${n}` }));
+    const r = pickTasks([...items, { n: 8, done: false, text: "" }], 5);
+    expect(r.shown.map((x) => x.n)).toEqual([1, 2, 3, 4, 5, 8]);
+    expect(r).toMatchObject({ hidden: 2, hiddenOpen: 2 });
+  });
   it("never hides an unfinished task to show a finished one", () => {
     const items = [t(1, true), t(2, true), t(3, true), t(4, true), t(5, true), t(6), t(7)];
     const r = pickTasks(items);

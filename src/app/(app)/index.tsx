@@ -12,7 +12,7 @@ import type { DayEvent } from "@/lib/calendar-events";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { ShoppingLine } from "@/components/shopping-line";
 import { blankRowsFor, foldLabel, pickEvents, pickTasks, taskRoomFor } from "@/lib/day-box";
-import { dayAgenda } from "@/lib/task-time";
+import { asAgendaMeal, dayAgenda, isAgendaMeal } from "@/lib/task-time";
 import type { FoodItemRow, TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
 import { claimLaunchOpening, launchDestination } from "@/lib/planner-opening";
@@ -190,6 +190,7 @@ export default function WeekScreen() {
                   onRemoveEvent={calendarOps.hide}
                   meals={settings.showFood ? (meals.byDay[iso] ?? []) : []}
                   onMealDone={meals.setDone}
+                  onMealTime={meals.setTime}
                   journalReady={dailyWeek.loaded}
                   ops={ops}
                   weekStart={key}
@@ -242,7 +243,7 @@ function RevealOnce({ target, when }: { target: React.RefObject<ComponentRef<typ
   return null;
 }
 
-function DayBox({ label, iso, isToday, markRef, tasks, events, eventsLoading, onRemoveEvent, meals, onMealDone, journalReady, ops, weekStart, wide, onOpen }: {
+function DayBox({ label, iso, isToday, markRef, tasks, events, eventsLoading, onRemoveEvent, meals, onMealDone, onMealTime, journalReady, ops, weekStart, wide, onOpen }: {
   label: string;
   iso: string;
   isToday: boolean;
@@ -255,6 +256,7 @@ function DayBox({ label, iso, isToday, markRef, tasks, events, eventsLoading, on
   /** Cooking-list items planned for this day (Food). */
   meals: FoodItemRow[];
   onMealDone: (id: string, done: boolean) => void;
+  onMealTime: (id: string, time: string | null) => void;
   /** The week's journal entries are in the cache (useDailyWeek). */
   journalReady: boolean;
   ops: TaskOps;
@@ -273,7 +275,7 @@ function DayBox({ label, iso, isToday, markRef, tasks, events, eventsLoading, on
   const hiddenMeals = meals.length - shownMeals.length;
   const hidden = ev.hidden + tk.hidden + hiddenMeals;
   const hiddenOpen = ev.hidden + tk.hiddenOpen + meals.slice(shownMeals.length).filter((m) => !m.done).length;
-  const fit = { shown: [...dayAgenda(ev.shown, tk.shown), ...shownMeals.map((meal) => ({ kind: "meal" as const, meal }))], hidden };
+  const fit = { shown: dayAgenda(ev.shown, [...tk.shown, ...shownMeals.map(asAgendaMeal)]), hidden };
   return (
     <DropZone
       id={`day-${iso}`}
@@ -291,10 +293,16 @@ function DayBox({ label, iso, isToday, markRef, tasks, events, eventsLoading, on
       {eventsLoading ? <EventsLoading /> : null}
       <View style={{ gap: 2 }}>
         {fit.shown.map((item) =>
-          item.kind === "meal" ? (
-            <MealRow key={item.meal.id} meal={item.meal} compact onDone={(done) => onMealDone(item.meal.id, done)} />
-          ) : item.kind === "event" ? (
+          item.kind === "event" ? (
             <CalendarEventRow key={item.event.key} event={item.event} day={iso} onRemove={onRemoveEvent} />
+          ) : isAgendaMeal(item.task) ? (
+            <MealRow
+              key={item.task.id}
+              meal={item.task}
+              compact
+              onDone={(done) => onMealDone(item.task.id, done)}
+              onTime={(t) => onMealTime(item.task.id, t)}
+            />
           ) : (
             <TaskItem key={item.task.id} task={item.task} ops={ops} compact draggable inDay />
           ),

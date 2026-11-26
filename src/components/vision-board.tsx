@@ -7,7 +7,7 @@ import { useVisionBoard, useVisionImageUrls } from "@/data/vision";
 import { canPickFiles, pickImages } from "@/lib/pick-file";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { useIsWide } from "./screen";
-import { GhostButton, RuleInput } from "./ui";
+import { GhostButton, OutlineButton, RuleInput } from "./ui";
 
 export function VisionBoard({ quarterId }: { quarterId: string }) {
   const wide = useIsWide();
@@ -22,9 +22,9 @@ export function VisionBoard({ quarterId }: { quarterId: string }) {
   if (board.loading) return null;
   if (empty && !opened) {
     return (
-      <GhostButton style={s.reveal} onPress={() => setOpened(true)}>
+      <OutlineButton gold style={s.reveal} onPress={() => setOpened(true)}>
         + Vision board
-      </GhostButton>
+      </OutlineButton>
     );
   }
 

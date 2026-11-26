@@ -188,8 +188,8 @@ export function TaskItem({
 
 const QUICK_TIMES = ["08:00", "09:00", "12:00", "14:00", "17:00", "19:00"];
 
-/** Pick a time for a task on a day (or remove it). */
-function TimeSheet({ initial, title, onClose, onSave }: { initial: string; title: string; onClose: () => void; onSave: (t: string | null) => void }) {
+/** Pick a time for a task (or a planned meal) on a day, or remove it. */
+export function TimeSheet({ initial, title, onClose, onSave }: { initial: string; title: string; onClose: () => void; onSave: (t: string | null) => void }) {
   const [text, setText] = useState(initial);
   const parsed = parseHM(text);
   return (

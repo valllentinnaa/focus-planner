@@ -20,12 +20,15 @@ export function pickEvents<E extends Ev>(events: E[], isToday: boolean, now: Dat
 
 /**
  * Tasks shown in a day box. Unfinished ones always come first; finished ones fill what's left and
- * are the first to fold away. Keeps the given order among those shown.
+ * are the first to fold away. Keeps the given order among those shown. A blank (just-added) task
+ * is always shown on top of that — otherwise clicking the empty row on a full day would add a
+ * line you can't see to write in.
  */
-export function pickTasks<T extends { done: boolean }>(items: T[], max = DAY_BOX_MAX_TASKS) {
+export function pickTasks<T extends { done: boolean; text?: string }>(items: T[], max = DAY_BOX_MAX_TASKS) {
   if (items.length <= max) return { shown: items, hidden: 0, hiddenOpen: 0 };
-  const open = items.filter((t) => !t.done);
-  const keep = new Set<T>(open.slice(0, max));
+  const blank = (t: T) => t.text !== undefined && !t.text.trim();
+  const open = items.filter((t) => !t.done && !blank(t));
+  const keep = new Set<T>([...open.slice(0, max), ...items.filter(blank)]);
   for (const t of items) if (keep.size < max && t.done) keep.add(t);
   const shown = items.filter((t) => keep.has(t));
   return { shown, hidden: items.length - shown.length, hiddenOpen: open.length - Math.min(open.length, max) };

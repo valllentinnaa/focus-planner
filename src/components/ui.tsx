@@ -69,6 +69,8 @@ export function RuleInput({
   const measure = () => {
     const el = box.current as unknown as HTMLTextAreaElement | null;
     if (!autoGrow || Platform.OS !== "web" || !el || typeof el.scrollHeight !== "number") return;
+    // Not laid out yet (or hidden): measuring now would wrap every word and stick far too tall.
+    if (el.clientWidth < 8) return;
     const prev = el.style.height;
     el.style.height = "0px";
     const h = el.scrollHeight + (el.offsetHeight - el.clientHeight);
@@ -92,6 +94,21 @@ export function RuleInput({
     const id = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(id);
   });
+  // Re-measure whenever the box's width changes (shown after being hidden, window resized…).
+  useEffect(() => {
+    const el = box.current as unknown as HTMLElement | null;
+    if (!autoGrow || Platform.OS !== "web" || !el || typeof ResizeObserver === "undefined") return;
+    let lastW = -1;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth !== lastW) {
+        lastW = el.clientWidth;
+        measure();
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGrow]);
   useEffect(() => {
     if (!autoGrow || Platform.OS !== "web" || typeof document === "undefined" || !document.fonts) return;
     let live = true;

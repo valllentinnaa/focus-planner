@@ -91,6 +91,8 @@ export type FoodItemRow = {
   position: number;
   /** Cooking list only: the day of the week it's planned for. */
   cook_date?: string | null;
+  /** Cooking list only: the time on that day ("19:00:00"). */
+  cook_time?: string | null;
 } & Timestamps;
 
 export type PersonRow = {

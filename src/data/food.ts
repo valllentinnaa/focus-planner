@@ -34,7 +34,11 @@ export function useMeals(weekStart: string, enabled = true) {
   });
   const byDay: Record<string, FoodItemRow[]> = {};
   for (const it of items) if (it.list === "cooking" && it.cook_date) (byDay[it.cook_date] ??= []).push(it);
-  return { byDay, setDone: (id: string, done: boolean) => update(id, { done }) };
+  return {
+    byDay,
+    setDone: (id: string, done: boolean) => update(id, { done }),
+    setTime: (id: string, time: string | null) => update(id, { cook_time: time }),
+  };
 }
 
 /** The week's shopping list as a single line (Week → Personal life). Shares the Food tab's cache. */
