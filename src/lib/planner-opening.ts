@@ -1,32 +1,8 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { toISO } from "./dates";
-
-export const REVIEWED_DAY_KEY = "fp.weekReviewedDay";
-
 /**
- * First opening each day → Week. Later openings that day, or a day whose journal already has
- * content → Today (only if the Today section is enabled).
+ * Where the app opens: Today when the Today page is enabled, otherwise the Week (scrolled to
+ * today's box — see the Week page).
  */
-export function preferredOpening(
-  day: string,
-  reviewedDay: string | null,
-  journalHasContent: boolean,
-  dailyEnabled: boolean,
-): "week" | "today" {
-  return dailyEnabled && (reviewedDay === day || journalHasContent) ? "today" : "week";
-}
-
-export async function resolveOpening(
-  now: Date,
-  journalHasContent: boolean,
-  dailyEnabled: boolean,
-): Promise<"week" | "today"> {
-  const day = toISO(now);
-  const reviewed = await AsyncStorage.getItem(REVIEWED_DAY_KEY).catch(() => null);
-  const destination = preferredOpening(day, reviewed, journalHasContent, dailyEnabled);
-  await AsyncStorage.setItem(REVIEWED_DAY_KEY, day).catch(() => {});
-  return destination;
-}
+export const launchDestination = (dailyEnabled: boolean): "week" | "today" => (dailyEnabled ? "today" : "week");
 
 // The opening rule applies once per app launch, and only when the app actually opened on Week.
 // Tapping "Week" later is navigation, not an opening, and must never bounce to Today.

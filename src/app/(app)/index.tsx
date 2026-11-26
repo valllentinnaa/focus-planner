@@ -1,11 +1,11 @@
 import { addDays, addWeeks, format } from "date-fns";
 import { Link, useRouter } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentRef, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSettings } from "@/data/profile";
 import { useCurrentQuarter } from "@/data/quarter";
 import { useWeek } from "@/data/week";
-import { useDaily, useDailyWeek, dailyHasContent } from "@/data/daily";
+import { useDaily, useDailyWeek } from "@/data/daily";
 import { useWeekTasks, useTaskOps, type TaskOps } from "@/data/tasks";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import type { DayEvent } from "@/lib/calendar-events";
@@ -15,10 +15,10 @@ import { blankRowsFor, foldLabel, pickEvents, pickTasks } from "@/lib/day-box";
 import { dayAgenda } from "@/lib/task-time";
 import type { FoodItemRow, TaskRow } from "@/lib/database.types";
 import { fromISO, mondayOf, quarterWeekNumber, toISO, weekKey } from "@/lib/dates";
-import { claimLaunchOpening, resolveOpening } from "@/lib/planner-opening";
+import { claimLaunchOpening, launchDestination } from "@/lib/planner-opening";
 import { AREAS, AREA_LABELS } from "@/lib/tasks";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
-import { PageTitle, Screen, SwipePager, useIsWide } from "@/components/screen";
+import { PageTitle, Screen, SwipePager, useIsWide, useScreenScroll } from "@/components/screen";
 import { DateNav } from "@/components/date-nav";
 import { BlankRows, GhostButton, RuleInput, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
@@ -43,22 +43,23 @@ export default function WeekScreen() {
 
   const { doc, patch } = useWeek(key);
   const prev = useWeek(prevKey);
-  const { tasks } = useWeekTasks(key);
+  const { tasks, loading: tasksLoading } = useWeekTasks(key);
   const ops = useTaskOps();
   const { quarter } = useCurrentQuarter();
   const todayISO = toISO(new Date());
-  const today = useDaily(todayISO);
 
-  // Daily opening rule: first open each day → Week, later opens → Today (when enabled).
+  // Opening the app: Today first when it's enabled (only on launch — tapping Week stays here).
   const resolved = useRef(false);
   useEffect(() => {
-    if (resolved.current || settingsLoading || today.loading) return;
+    if (resolved.current || settingsLoading) return;
     resolved.current = true;
-    if (!claimLaunchOpening()) return; // only on app launch, never when you tap Week
-    resolveOpening(new Date(), dailyHasContent(today.doc), settings.showDaily).then((dest) => {
-      if (dest === "today") router.replace("/today");
-    });
-  }, [settingsLoading, today.loading, today.doc, settings.showDaily, router]);
+    if (!claimLaunchOpening()) return;
+    if (launchDestination(settings.showDaily) === "today") router.replace("/today");
+  }, [settingsLoading, settings.showDaily, router]);
+
+  // Otherwise: today's box is in view straight away, without scrolling for it.
+  const todayBox = useRef<ComponentRef<typeof View>>(null);
+  const showToday = !settingsLoading && !tasksLoading && key === weekKey(new Date());
 
   const qWeek = quarter ? quarterWeekNumber(quarter.start_date, weekStart) : null;
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
@@ -121,6 +122,7 @@ export default function WeekScreen() {
         }
       />
 
+      <RevealOnce target={todayBox} when={showToday} />
       <CheckinNudge />
 
       {quarter?.theme?.trim() ? (
@@ -146,7 +148,7 @@ export default function WeekScreen() {
 
       <WeekFocus doc={doc} patch={patch} tasks={tasks} ops={ops} />
 
-      <SwipePager labels={["Life areas", "The week"]}>
+      <SwipePager labels={["Life areas", "The week"]} initialPage={1}>
         <View style={{ gap: space.xl }}>
           {AREAS.map((area) => (
             <DropZone key={area} id={`area-${area}`} onDrop={(t) => ops.move(t, { kind: "area", area })} style={s.zone} highlightStyle={s.zoneActive}>
@@ -181,6 +183,7 @@ export default function WeekScreen() {
                   label={label}
                   iso={iso}
                   isToday={iso === todayISO}
+                  markRef={iso === todayISO ? todayBox : undefined}
                   tasks={byDay[iso] ?? []}
                   events={calendar.byDay[iso] ?? []}
                   eventsLoading={calendar.loading}
@@ -226,10 +229,25 @@ function useMinuteClock(active: boolean) {
 }
 
 /** A day box: its focus line (shared with the Daily journal) and its scheduled tasks. */
-function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEvent, meals, onMealDone, journalReady, ops, weekStart, wide, onOpen }: {
+/** Scrolls the page to `target` once, the first time `when` is true (once per visit). */
+function RevealOnce({ target, when }: { target: React.RefObject<ComponentRef<typeof View> | null>; when: boolean }) {
+  const { reveal } = useScreenScroll();
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current || !when) return;
+    done.current = true;
+    const t = setTimeout(() => reveal(target.current), 120); // let the boxes lay out first
+    return () => clearTimeout(t);
+  }, [when, reveal, target]);
+  return null;
+}
+
+function DayBox({ label, iso, isToday, markRef, tasks, events, eventsLoading, onRemoveEvent, meals, onMealDone, journalReady, ops, weekStart, wide, onOpen }: {
   label: string;
   iso: string;
   isToday: boolean;
+  /** Marks this box so the page can scroll to it (today). */
+  markRef?: React.RefObject<ComponentRef<typeof View> | null>;
   tasks: TaskRow[];
   events: DayEvent[];
   eventsLoading: boolean;
@@ -261,6 +279,7 @@ function DayBox({ label, iso, isToday, tasks, events, eventsLoading, onRemoveEve
       style={[s.dayBox, s.dayBoxCol, !wide && s.dayBoxColNarrow, isToday && s.dayBoxToday]}
       highlightStyle={s.dayBoxDrop}
     >
+      {markRef ? <View ref={markRef} /> : null}
       {/* Only the day's name and date open the day; the rest of the box is for writing. */}
       <Pressable style={s.dayHead} onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Open ${label}`} hitSlop={6}>
         <Text style={s.dayName}>{label}{isToday ? <Text style={{ color: colors.gold }}> ↗</Text> : null}</Text>

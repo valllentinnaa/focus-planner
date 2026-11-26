@@ -1,4 +1,4 @@
-import { type ComponentRef, type ReactNode, useRef, useState } from "react";
+import { type ComponentRef, createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,23 +16,45 @@ if (Platform.OS === "web" && typeof document !== "undefined" && !document.getEle
   document.head.appendChild(style);
 }
 
+type Revealable = ComponentRef<typeof View>;
+/** Lets something on the page bring itself into view (e.g. today's box on the Week page). */
+const ScreenScroll = createContext<{ reveal: (node: Revealable | null) => void }>({ reveal: () => {} });
+export const useScreenScroll = () => useContext(ScreenScroll);
+
 export function Screen({ children }: { children: ReactNode }) {
   const gutter = useGutter();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   noteLaunchPath(pathname); // remembers only the very first screen after launch
   const isPhone = useIsPhone();
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const content = useRef<Revealable>(null);
+  // Scroll the page so `node` sits a little below the top (just under the header).
+  const reveal = useCallback((node: Revealable | null) => {
+    if (!node || !content.current) return;
+    node.measureLayout(
+      content.current,
+      (_x, y) => scroll.current?.scrollTo({ y: Math.max(0, y - space.xl * 2), animated: false }),
+      () => {},
+    );
+  }, []);
+  const ctx = useMemo(() => ({ reveal }), [reveal]);
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScreenScroll.Provider value={ctx}>
       <ScrollView
+        ref={scroll}
         style={s.root}
         contentContainerStyle={[s.content, { paddingBottom: insets.bottom + space.xxl + (isPhone ? BOTTOM_NAV_HEIGHT : 0) }]}
         keyboardShouldPersistTaps="handled"
         contentInsetAdjustmentBehavior="automatic"
       >
-        <AppHeader />
-        <View style={[s.inner, { paddingHorizontal: gutter }]}>{children}</View>
+        <View ref={content}>
+          <AppHeader />
+          <View style={[s.inner, { paddingHorizontal: gutter }]}>{children}</View>
+        </View>
       </ScrollView>
+      </ScreenScroll.Provider>
       <BottomNav />
     </KeyboardAvoidingView>
   );
@@ -86,12 +108,19 @@ export function Hint({ children }: { children: ReactNode }) {
  * Side-by-side columns on wide screens; on phones, each child becomes a full-width
  * page you swipe between, with dot + arrow controls below (mirrors the web prototype).
  */
-export function SwipePager({ labels, children }: { labels: string[]; children: ReactNode[] }) {
+export function SwipePager({ labels, children, initialPage = 0 }: { labels: string[]; children: ReactNode[]; initialPage?: number }) {
   const wide = useIsWide();
   const ref = useRef<ComponentRef<typeof ScrollView>>(null);
   const [w, setW] = useState(0);
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(initialPage);
   const pages = children.filter((c) => c != null);
+  // Open on `initialPage` once the pager knows its width.
+  const placed = useRef(false);
+  useEffect(() => {
+    if (placed.current || wide || w <= 0) return;
+    placed.current = true;
+    if (initialPage > 0) requestAnimationFrame(() => ref.current?.scrollTo({ x: initialPage * w, animated: false }));
+  }, [w, wide, initialPage]);
 
   if (wide) {
     return (
