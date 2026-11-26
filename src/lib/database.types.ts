@@ -183,7 +183,14 @@ export type GoalRow = {
   carry_next?: boolean;
   /** The earlier goal this one was copied from (brought in, or a habit carried forward). */
   carried_from?: string | null;
+  /** Habits: chosen weekdays as a bitmask (Mon = 1 … Sun = 64); null = not "chosen days". */
+  habit_days?: number | null;
+  /** Habits: N times a week, any days. Both null = every day. */
+  habit_per_week?: number | null;
 } & Timestamps;
+
+/** A habit ticked off on a day (one per habit per day). */
+export type HabitCheckRow = { id: string; user_id: string; goal_id: string; day: string; created_at: string; updated_at: string };
 
 export type GoalStepRow = {
   id: string;
@@ -222,6 +229,7 @@ export type Database = {
       quarters: Table<QuarterRow, "start_date">;
       goals: Table<GoalRow, "quarter_id" | "area">;
       goal_steps: Table<GoalStepRow, "goal_id">;
+      habit_checks: Table<HabitCheckRow, "goal_id" | "day">;
       people: Table<PersonRow, "name">;
       gift_ideas: Table<GiftIdeaRow, "person_id" | "text">;
       wishlist_items: Table<WishlistItemRow, "text">;

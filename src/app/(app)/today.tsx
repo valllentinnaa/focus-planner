@@ -17,6 +17,9 @@ import { GhostButton, OutlineButton, RuledArea, SectionLabel } from "@/component
 import { TaskItem } from "@/components/task-item";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
+import { useHabitChecks, useHabits } from "@/data/habits";
+import { dueOn, scheduleKind, weekProgress } from "@/lib/habits";
+import { ChecklistField, type HabitLine } from "@/components/checklist-field";
 
 type TextKey = Exclude<keyof DailyDoc, "custom" | "focusDone">;
 
@@ -37,6 +40,16 @@ export default function TodayScreen() {
   const ops = useTaskOps();
 
   const { settings } = useSettings();
+  // 12W habits due this day, at the top of Practices; ticking one counts toward its progress.
+  const { habits } = useHabits();
+  const habitChecks = useHabitChecks(toISO(monday), toISO(addDays(monday, 6)), habits.length > 0);
+  const habitLines: HabitLine[] = habits.flatMap((h) => {
+    const days = habitChecks.byGoal.get(h.id) ?? new Set<string>();
+    const week = weekProgress(h, days, iso);
+    const done = days.has(iso);
+    if (!dueOn(h, iso, week.done, done)) return [];
+    return [{ id: h.id, text: h.text.trim(), done, meta: scheduleKind(h) === "perWeek" ? `${week.done}/${week.target} this week` : undefined }];
+  });
   const meals = useMeals(toISO(monday), settings.showFood);
   const layout = settings.dailyLayout;
   const show = (key: BuiltinKey) => isShown(layout, key);
@@ -60,7 +73,24 @@ export default function TodayScreen() {
   const sideFields = [
     ...(["start", "sleep", "practices", "vitamins", "screenTime", "steps"] as const)
       .filter(show)
-      .map((k) => ({ key: k, long: false, node: field(k, BUILTIN_FIELDS.find((b) => b.key === k)!.label, k === "practices" || k === "vitamins" ? 6 : 1) })),
+      .map((k) => {
+        const label = BUILTIN_FIELDS.find((b) => b.key === k)!.label;
+        // Practices and Vitamins are tick-off lists; the rest are plain lines.
+        const node =
+          k === "practices" || k === "vitamins" ? (
+            <ChecklistField
+              key={k}
+              label={label}
+              value={doc[k]}
+              onChange={(v) => patch({ [k]: v } as Partial<DailyDoc>)}
+              habits={k === "practices" ? habitLines : undefined}
+              onToggleHabit={(id) => habitChecks.toggle(id, iso)}
+            />
+          ) : (
+            field(k, label)
+          );
+        return { key: k, long: false, node };
+      }),
     ...layout.custom.map((f) => ({ key: f.id, long: f.size === "long", node: customField(f) })),
   ];
 

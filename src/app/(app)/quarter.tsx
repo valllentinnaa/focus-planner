@@ -5,6 +5,9 @@ import { useCurrentQuarter, useGoals, useOpenGoals } from "@/data/quarter";
 import { fromISO, mondayOf, toISO } from "@/lib/dates";
 import { AREAS, AREA_LABELS, type GoalWithSteps } from "@/lib/quarter-goals";
 import { canCompleteCycle, leftoverGoals, openSteps } from "@/lib/quarter-cycle";
+import { cycleProgress, scheduleLabel, weekProgress } from "@/lib/habits";
+import { useHabitChecks } from "@/data/habits";
+import { HabitScheduleSheet } from "@/components/habit-schedule";
 import { ArrowRight, ChevronRight } from "lucide-react-native";
 import { useDisclosure } from "@/components/use-disclosure";
 import { QuarterComplete } from "@/components/quarter-complete";
@@ -24,6 +27,9 @@ export default function QuarterScreen() {
   const [completing, setCompleting] = useState(false);
   const { goals, goalOps, stepOps } = useGoals(quarter?.id ?? null);
   const [focusGoal, setFocusGoal] = useState<string | null>(null);
+  // Habit check-offs from the cycle start to today, for each habit's progress.
+  const todayISO = toISO(new Date());
+  const checks = useHabitChecks(quarter?.start_date ?? todayISO, todayISO, !!quarter);
   const addGoal = (area: (typeof AREAS)[number], position: number) => {
     if (quarter) setFocusGoal(goalOps.add({ quarter_id: quarter.id, area, text: "", position }));
   };
@@ -91,6 +97,11 @@ export default function QuarterScreen() {
                     autoFocus={focusGoal === g.id}
                     goalOps={goalOps}
                     stepOps={stepOps}
+                    habit={
+                      area === "habits" && quarter
+                        ? { checked: checks.byGoal.get(g.id) ?? EMPTY, cycleStart: quarter.start_date, today: todayISO }
+                        : undefined
+                    }
                   />
                 ))}
                 <BlankRows count={Math.max(0, 6 - list.length)} onAdd={() => addGoal(area, list.length)} />
@@ -112,6 +123,9 @@ export default function QuarterScreen() {
   );
 }
 
+const EMPTY: ReadonlySet<string> = new Set();
+type HabitInfo = { checked: ReadonlySet<string>; cycleStart: string; today: string };
+
 type GoalOps = ReturnType<typeof useGoals>["goalOps"];
 type StepOps = ReturnType<typeof useGoals>["stepOps"];
 
@@ -120,8 +134,9 @@ type StepOps = ReturnType<typeof useGoals>["stepOps"];
  * the pointer leaves), the "› 2/4" toggle opens and keeps them open, or closes them.
  * A project with no actions yet stays open so the first one can be added.
  */
-function GoalBlock({ goal: g, autoFocus, goalOps, stepOps }: { goal: GoalWithSteps; autoFocus: boolean; goalOps: GoalOps; stepOps: StepOps }) {
+function GoalBlock({ goal: g, autoFocus, goalOps, stepOps, habit }: { goal: GoalWithSteps; autoFocus: boolean; goalOps: GoalOps; stepOps: StepOps; habit?: HabitInfo }) {
   const { open, pinned, send } = useDisclosure();
+  const [scheduling, setScheduling] = useState(false);
   const written = g.steps.filter((st) => st.text.trim());
   const done = written.filter((st) => st.done).length;
   const showSteps = g.is_project && (open || g.steps.length === 0);
@@ -159,6 +174,11 @@ function GoalBlock({ goal: g, autoFocus, goalOps, stepOps }: { goal: GoalWithSte
           <Text style={[s.icon, g.is_project && { color: colors.gold, opacity: 1 }]}>▣</Text>
         </GhostButton>
         {g.area === "habits" ? (
+          <GhostButton accessibilityLabel={`How often: ${scheduleLabel(g)}. Change`} onPress={() => setScheduling(true)}>
+            <Text style={s.schedule}>{scheduleLabel(g)}</Text>
+          </GhostButton>
+        ) : null}
+        {g.area === "habits" ? (
           <GhostButton
             accessibilityLabel={g.carry_next ? "Don't take into the next 12W" : "Also take into the next 12W"}
             onPress={() => goalOps.update(g.id, { carry_next: !g.carry_next })}
@@ -173,6 +193,15 @@ function GoalBlock({ goal: g, autoFocus, goalOps, stepOps }: { goal: GoalWithSte
         ) : null}
         <RemoveButton accessibilityLabel="Remove" onPress={() => goalOps.remove(g.id)} />
       </View>
+      {habit && g.text.trim() ? <HabitProgress goal={g} habit={habit} /> : null}
+      {scheduling ? (
+        <HabitScheduleSheet
+          name={g.text}
+          value={g}
+          onSave={(next) => goalOps.update(g.id, next)}
+          onClose={() => setScheduling(false)}
+        />
+      ) : null}
       {showSteps ? (
         <View style={s.steps}>
           {g.steps.map((st) => (
@@ -193,6 +222,24 @@ function GoalBlock({ goal: g, autoFocus, goalOps, stepOps }: { goal: GoalWithSte
         </View>
       ) : null}
     </Pressable>
+  );
+}
+
+/** "This week 2/3 · 60% of 12W" under a habit, from its check-offs in Today. */
+function HabitProgress({ goal, habit }: { goal: GoalWithSteps; habit: HabitInfo }) {
+  const week = weekProgress(goal, habit.checked, habit.today);
+  const cycle = cycleProgress(goal, habit.checked, habit.cycleStart, habit.today);
+  const share = week.target ? Math.min(1, week.done / week.target) : 0;
+  return (
+    <View style={s.habitProgress} accessibilityLabel={`This week ${week.done} of ${week.target}. ${cycle.percent}% so far this 12 weeks.`}>
+      <View style={s.habitTrack}>
+        <View style={[s.habitFill, { width: `${Math.round(share * 100)}%` }]} />
+      </View>
+      <Text style={s.habitMeta}>
+        This week {week.done}/{week.target}
+        {cycle.due ? ` · ${cycle.percent}% over 12W` : ""}
+      </Text>
+    </View>
   );
 }
 
@@ -328,6 +375,11 @@ function QuarterNotes({ id }: { id: string }) {
 const s = StyleSheet.create({
   toggle: { flexDirection: "row", alignItems: "center", gap: 2 },
   toggleCount: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground, fontVariant: ["tabular-nums"] },
+  schedule: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 0.6, color: colors.gold },
+  habitProgress: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingLeft: 30, marginTop: -4 },
+  habitTrack: { width: 56, height: 3, borderRadius: 2, backgroundColor: colors.rule, overflow: "hidden" },
+  habitFill: { height: "100%", backgroundColor: colors.gold },
+  habitMeta: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground, fontVariant: ["tabular-nums"] },
   titleRight: { flexDirection: "row", alignItems: "center", gap: space.md, flexWrap: "wrap", justifyContent: "flex-end" },
   leftovers: { borderWidth: 1, borderStyle: "dashed", borderColor: colors.gold, borderRadius: 4, padding: space.lg, marginBottom: space.xl },
   leftRow: { flexDirection: "row", alignItems: "center", gap: space.md, flexWrap: "wrap", paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: colors.rule },
