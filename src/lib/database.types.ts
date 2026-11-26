@@ -22,6 +22,11 @@ export type ProfileRow = {
   onboarded_at: string | null;
   show_clipboard: boolean;
   daily_layout?: unknown;
+  birth_month?: number | null;
+  birth_day?: number | null;
+  birth_year?: number | null;
+  share_birth_year?: boolean;
+  dismissed_prompts?: string[];
 } & Timestamps;
 
 export type WeekRow = {

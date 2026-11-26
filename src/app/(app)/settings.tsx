@@ -14,6 +14,7 @@ import { getThemePref, setThemePref, type ThemePref } from "@/theme/theme";
 import { GENDERS } from "@/lib/onboarding";
 import { Hint, PageTitle, Screen } from "@/components/screen";
 import { ShareProfileSection } from "@/components/share-profile";
+import { MyBirthdaySection } from "@/components/my-birthday";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "@/components/ui";
 import { shareInUrl, shareKeyAvailable, useShareKey } from "@/data/share-key";
 import { SHORTCUT_URL } from "@/lib/share-shortcut";
@@ -50,6 +51,8 @@ export default function SettingsScreen() {
           </View>
           <Hint>Optional. Only you can see it.</Hint>
         </View>
+
+        <MyBirthdaySection />
 
         <ShareProfileSection name={name} />
 

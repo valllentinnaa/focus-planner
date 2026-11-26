@@ -11,6 +11,7 @@ import { env } from "@/lib/env";
 import { CACHE_MAX_AGE } from "@/lib/query-cache";
 import { rawDb, supabase } from "@/lib/supabase";
 import { birthdayEvents } from "@/lib/birthdays";
+import { useMateBirthdays, withFriendBirthday } from "./my-birthday";
 import { useUserId } from "./auth";
 import { useItems } from "./items";
 import { useSettings } from "./profile";
@@ -75,9 +76,11 @@ export function useCalendarEvents(firstISO: string, lastISO: string) {
   // Birthdays from Presents ride along as all-day events (they work without Google, too).
   const { settings } = useSettings();
   const people = useItems({ table: "people", filters: {}, orderBy: ["name"], enabled: settings.showPresents });
+  // Friends linked in People bring their own birthday.
+  const mateBirthdays = useMateBirthdays();
   const birthdays = useMemo(
-    () => (settings.showPresents ? birthdayEvents(people.items, firstISO, lastISO) : []),
-    [settings.showPresents, people.items, firstISO, lastISO],
+    () => (settings.showPresents ? birthdayEvents(people.items.map((p) => withFriendBirthday(p, mateBirthdays)), firstISO, lastISO) : []),
+    [settings.showPresents, people.items, mateBirthdays, firstISO, lastISO],
   );
   const byDay = useMemo(
     () => eventsByDay([...birthdays, ...(q.data?.events ?? [])], new Set(Array.isArray(hidden.data) ? hidden.data : [])),

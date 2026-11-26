@@ -9,6 +9,8 @@ import { useUserId } from "@/data/auth";
 import { circlesAvailable } from "@/data/circles";
 import { CirclesSection, FriendsSection, MateWishlist } from "@/components/circles";
 import { useMates } from "@/data/connections";
+import { useMateBirthdays, withFriendBirthday } from "@/data/my-birthday";
+import { BirthdayPrompt } from "@/components/my-birthday";
 import { useIsPhone } from "@/components/app-header";
 import { canPickFiles, pickFile } from "@/lib/pick-file";
 import {
@@ -52,7 +54,10 @@ export default function PresentsScreen() {
   };
   const today = useMemo(() => new Date(), []);
 
-  const sorted = useMemo(() => byUpcoming(people.items, today), [people.items, today]);
+  // Linked friends bring their own birthday (unless you typed one).
+  const mateBirthdays = useMateBirthdays();
+  const withBirthdays = useMemo(() => people.items.map((p) => withFriendBirthday(p, mateBirthdays)), [people.items, mateBirthdays]);
+  const sorted = useMemo(() => byUpcoming(withBirthdays, today), [withBirthdays, today]);
   const soon = sorted.filter((p) => p.birth_month && p.birth_day && nextBirthday({ month: p.birth_month, day: p.birth_day }, today).daysUntil <= SOON_DAYS);
   const ideasFor = (id: string) => ideas.items.filter((i) => i.person_id === id);
 
@@ -82,6 +87,8 @@ export default function PresentsScreen() {
       ) : (
       <View style={[s.tabBody, { gap: space.xl }]}>
       {importing ? <ImportPanel onClose={() => setImporting(false)} /> : null}
+
+      <BirthdayPrompt context="presents" />
 
       <OnAppSuggestions people={people.items} onAdd={(name, userId) => goToPerson(people.add({ name: name.slice(0, 120), linked_user_id: userId }))} onLink={(personId, userId) => { people.update(personId, { linked_user_id: userId }); goToPerson(personId); }} />
 
@@ -226,6 +233,9 @@ function Tabs({ value, onChange, counts }: { value: Tab; onChange: (t: Tab) => v
   );
 }
 
+/** A People row as shown: maybe with the linked friend's own birthday filled in. */
+type PersonView = PersonRow & { birthdayFromFriend?: boolean };
+
 type PersonInsert = { name: string; birth_month: number | null; birth_day: number | null; birth_year: number | null };
 
 function AddPerson({ onAdd }: { onAdd: (row: PersonInsert) => void }) {
@@ -265,7 +275,7 @@ function PersonRowView({
   onRemove,
   ideaOps,
 }: {
-  person: PersonRow;
+  person: PersonView;
   ideas: GiftIdeaRow[];
   today: Date;
   open: boolean;
@@ -304,14 +314,15 @@ function PersonDetail({
   onRemove,
   ideaOps,
 }: {
-  person: PersonRow;
+  person: PersonView;
   ideas: GiftIdeaRow[];
   onUpdate: (change: Partial<PersonRow>) => void;
   onRemove: () => void;
   ideaOps: ReturnType<typeof useGiftIdeas>;
 }) {
   const [name, setName] = useState(p.name);
-  const [bday, setBday] = useState(formatBirthdayInput(p.birth_month, p.birth_day, p.birth_year));
+  // A birthday that comes from the friend's own profile isn't yours to edit; typing one overrides it.
+  const [bday, setBday] = useState(p.birthdayFromFriend ? "" : formatBirthdayInput(p.birth_month, p.birth_day, p.birth_year));
   const [notes, setNotes] = useState(p.notes);
   const [draft, setDraft] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -370,7 +381,7 @@ function PersonDetail({
           onChangeText={setBday}
           onBlur={saveBday}
           onSubmitEditing={saveBday}
-          placeholder="Birthday dd.mm(.yyyy)"
+          placeholder={p.birthdayFromFriend && p.birth_month && p.birth_day ? `${formatBirthday(p.birth_month, p.birth_day)} · from their profile` : "Birthday dd.mm(.yyyy)"}
           keyboardType="numbers-and-punctuation"
           style={[{ flex: 1, minWidth: 150 }, parsed === "invalid" && { borderBottomColor: colors.destructive }]}
         />
@@ -525,6 +536,11 @@ function MyWishlist() {
       </View>
       {list.items.length === 0 && !list.loading ? (
         <Body muted style={{ fontStyle: "italic", paddingVertical: 4 }}>Add what you’d love to get, then share the list.</Body>
+      ) : null}
+      {list.items.length > 0 ? (
+        <View style={{ marginVertical: space.sm }}>
+          <BirthdayPrompt context="wishlist" />
+        </View>
       ) : null}
       {list.items.map((i) => (
         <View key={i.id} style={s.idea}>
