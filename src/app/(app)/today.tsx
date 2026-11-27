@@ -12,13 +12,14 @@ import { fromISO, isISODate, mondayOf, toISO } from "@/lib/dates";
 import { colors, fonts, space } from "@/theme/tokens";
 import { Columns, Column, PageTitle, Screen, useIsWide } from "@/components/screen";
 import { DayFocus } from "@/components/day-focus";
+import { FromMyWeek } from "@/components/from-my-week";
 import { DateNav } from "@/components/date-nav";
 import { GhostButton, RuledArea, SectionLabel } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import { useHabitChecks, useHabits } from "@/data/habits";
-import { dueOn, scheduleKind, weekProgress } from "@/lib/habits";
+import { dueOn } from "@/lib/habits";
 import { ChecklistField, type HabitLine } from "@/components/checklist-field";
 
 type TextKey = Exclude<keyof DailyDoc, "custom" | "focusDone">;
@@ -45,10 +46,8 @@ export default function TodayScreen() {
   const habitChecks = useHabitChecks(toISO(monday), toISO(addDays(monday, 6)), habits.length > 0);
   const habitLines: HabitLine[] = habits.flatMap((h) => {
     const days = habitChecks.byGoal.get(h.id) ?? new Set<string>();
-    const week = weekProgress(h, days, iso);
-    const done = days.has(iso);
-    if (!dueOn(h, iso, week.done, done)) return [];
-    return [{ id: h.id, text: h.text.trim(), done, meta: scheduleKind(h) === "perWeek" ? `${week.done}/${week.target} this week` : undefined }];
+    if (!dueOn(h, iso)) return [];
+    return [{ id: h.id, text: h.text.trim(), done: days.has(iso) }];
   });
   const meals = useMeals(toISO(monday), settings.showFood);
   const layout = settings.dailyLayout;
@@ -161,9 +160,10 @@ export default function TodayScreen() {
                 )}
               </View>
               {show("tasks") ? (
-                <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, toISO(monday))} style={{ marginTop: 6 }}>
-                  + Add item
-                </GhostButton>
+                <View style={s.addRow}>
+                  <GhostButton onPress={() => ops.add({ kind: "day", date: iso }, toISO(monday))}>+ Add item</GhostButton>
+                  <FromMyWeek iso={iso} weekStart={toISO(monday)} ops={ops} />
+                </View>
               ) : null}
             </View>
             ) : null}
@@ -189,6 +189,7 @@ export default function TodayScreen() {
 }
 
 const s = StyleSheet.create({
+  addRow: { flexDirection: "row", flexWrap: "wrap", gap: space.lg, marginTop: 6 },
   weekLink: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.gold, paddingVertical: 4 },
   dots: { flexDirection: "row", gap: 6, marginTop: 4 },
   dot: { alignItems: "center", width: 30, gap: 4, paddingVertical: 4 },

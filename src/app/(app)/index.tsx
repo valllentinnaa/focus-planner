@@ -27,6 +27,9 @@ import { useMeals } from "@/data/food";
 import { FocusLink, WeekFocus } from "@/components/week-focus";
 import { canChangeFocus, resolveFocus } from "@/lib/week-focus";
 import { DropZone } from "@/components/drag";
+import { HabitPlanRow } from "@/components/habit-plan";
+import { useHabits } from "@/data/habits";
+import { leftToPlace } from "@/lib/habits";
 import { NewWeekDialog } from "@/components/new-week-dialog";
 import { CheckinNudge } from "@/components/checkin/nudge";
 
@@ -44,6 +47,9 @@ export default function WeekScreen() {
   const { doc, patch } = useWeek(key);
   const prev = useWeek(prevKey);
   const { tasks, loading: tasksLoading } = useWeekTasks(key);
+  // "Times a week" habits from the 12W plan, to place on days (Personal Development).
+  const { habits } = useHabits();
+  const perWeekHabits = habits.filter((h) => !!h.habit_per_week);
   const ops = useTaskOps();
   const { quarter } = useCurrentQuarter();
   const todayISO = toISO(new Date());
@@ -155,6 +161,11 @@ export default function WeekScreen() {
               <SectionLabel>{AREA_LABELS[area]}</SectionLabel>
               <View style={{ gap: 4 }}>
                 {area === "personal" && settings.showFood ? <ShoppingLine weekStart={key} /> : null}
+                {area === "development"
+                  ? perWeekHabits.map((h) => (
+                      <HabitPlanRow key={h.id} habit={h} left={leftToPlace(h, tasks)} perWeek={h.habit_per_week!} weekStart={key} ops={ops} />
+                    ))
+                  : null}
                 {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} draggable showDay />)}
                 <BlankRows count={Math.max(0, 5 - byArea[area]!.length)} onAdd={() => ops.add({ kind: "area", area }, key, "", byArea[area]!.length)} />
               </View>

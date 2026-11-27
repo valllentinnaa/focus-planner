@@ -52,15 +52,20 @@ export function scheduleLabel(h: HabitSchedule) {
 }
 
 /**
- * Is it on the list for this day? Chosen-days habits only on their days; every-day habits always;
- * N-times-a-week habits every day until the week's target is met — but a day it's already ticked
- * stays listed (so it can be unticked).
+ * Is it on Today's Practices for this day? Chosen-days habits only on their days; every-day
+ * habits always. "N times a week" habits never: you place those on days from the Week page, and
+ * they show in the day as tasks.
  */
-export function dueOn(h: HabitSchedule, iso: string, doneThisWeek: number, doneThatDay: boolean) {
+export function dueOn(h: HabitSchedule, iso: string) {
   const kind = scheduleKind(h);
   if (kind === "days") return !!(h.habit_days! & bit(weekdayIndex(fromISO(iso))));
-  if (kind === "perWeek") return doneThatDay || doneThisWeek < h.habit_per_week!;
-  return true;
+  return kind === "daily";
+}
+
+/** "N times a week" habit: how many are still to place on days this week. */
+export function leftToPlace(h: HabitSchedule & { id: string }, weekTasks: { habit_id?: string | null }[]) {
+  if (!h.habit_per_week) return 0;
+  return Math.max(0, h.habit_per_week - weekTasks.filter((t) => t.habit_id === h.id).length);
 }
 
 /** Days (ISO) a habit was checked, counted within [from, to]. */

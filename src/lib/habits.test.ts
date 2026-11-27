@@ -1,4 +1,4 @@
-import { cycleProgress, dueOn, scheduleKind, scheduleLabel, toggleDay, weeklyTarget, weekProgress } from "./habits";
+import { cycleProgress, dueOn, leftToPlace, scheduleKind, scheduleLabel, toggleDay, weeklyTarget, weekProgress } from "./habits";
 
 const MWF = 1 | 4 | 16; // Mon, Wed, Fri
 
@@ -28,14 +28,19 @@ describe("schedules", () => {
 describe("dueOn", () => {
   // 2026-11-23 is a Monday.
   it("chosen days: only on those weekdays", () => {
-    expect(dueOn({ habit_days: MWF }, "2026-11-23", 0, false)).toBe(true);
-    expect(dueOn({ habit_days: MWF }, "2026-11-24", 0, false)).toBe(false);
+    expect(dueOn({ habit_days: MWF }, "2026-11-23")).toBe(true);
+    expect(dueOn({ habit_days: MWF }, "2026-11-24")).toBe(false);
   });
-  it("every day: always", () => expect(dueOn({}, "2026-11-24", 5, false)).toBe(true));
-  it("N a week: until the week's target is met, but a ticked day stays", () => {
-    expect(dueOn({ habit_per_week: 3 }, "2026-11-26", 2, false)).toBe(true);
-    expect(dueOn({ habit_per_week: 3 }, "2026-11-26", 3, false)).toBe(false);
-    expect(dueOn({ habit_per_week: 3 }, "2026-11-26", 3, true)).toBe(true);
+  it("every day: always", () => expect(dueOn({}, "2026-11-24")).toBe(true));
+  it("N a week: never in Practices — placed on days from the Week page", () => {
+    expect(dueOn({ habit_per_week: 3 }, "2026-11-26")).toBe(false);
+  });
+  it("counts what's left to place this week", () => {
+    const h = { id: "p", habit_per_week: 3 };
+    expect(leftToPlace(h, [])).toBe(3);
+    expect(leftToPlace(h, [{ habit_id: "p" }, { habit_id: "x" }, { habit_id: null }])).toBe(2);
+    expect(leftToPlace(h, [{ habit_id: "p" }, { habit_id: "p" }, { habit_id: "p" }, { habit_id: "p" }])).toBe(0);
+    expect(leftToPlace({ id: "d" }, [])).toBe(0);
   });
 });
 

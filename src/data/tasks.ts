@@ -121,8 +121,24 @@ export function useTaskOps() {
         eachSlice((rows) => rows.filter((r) => r.id !== id));
         del.mutate(id);
       },
+      /**
+       * Put a "times a week" habit on a day: a task in Personal Development on that day, linked to
+       * the habit (ticking it counts for the habit — see the habit_tasks migration).
+       */
+      planHabit(habit: { id: string; text: string }, date: string) {
+        const id = Crypto.randomUUID();
+        const cols = placementColumns({ kind: "day", date }, date, { area: "development", task_date: null });
+        add.mutate({ id, text: habit.text.trim(), done: false, position: 0, habit_id: habit.id, ...cols });
+        return id;
+      },
       /** Move a task to a new placement (drag, assign-to-day, send-to-area). */
       move(task: TaskRow, placement: Placement) {
+        // A habit row dragged from the Week list is placed on the day it's dropped on.
+        const habitId = plannedHabitId(task);
+        if (habitId) {
+          if (placement.kind === "day") ops.planHabit({ id: habitId, text: task.text }, placement.date);
+          return;
+        }
         const cols = placementColumns(placement, task.week_start, task);
         eachSlice((rows) => rows.map((r) => (r.id === task.id ? { ...r, ...cols } : r)));
         persist.mutate({ id: task.id, ...cols }, { onSettled: invalidate });
@@ -154,3 +170,9 @@ export function useTaskOps() {
 }
 
 export type TaskOps = ReturnType<typeof useTaskOps>;
+
+/** A "times a week" habit, dragged like a task from the Week list (not a real task yet). */
+const PLAN_PREFIX = "plan:";
+export const plannedHabitDrag = (habit: { id: string; text: string }, weekStart: string): TaskRow =>
+  ({ id: PLAN_PREFIX + habit.id, text: habit.text, done: false, week_start: weekStart, area: "development", task_date: null, position: 0, user_id: "", created_at: "", updated_at: "" }) as TaskRow;
+const plannedHabitId = (t: TaskRow) => (t.id.startsWith(PLAN_PREFIX) ? t.id.slice(PLAN_PREFIX.length) : null);

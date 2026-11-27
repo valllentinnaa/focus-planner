@@ -70,6 +70,8 @@ export type TaskRow = {
   task_date: string | null;
   /** "HH:MM[:SS]" — only on a task that's on a day. */
   task_time?: string | null;
+  /** A "times a week" habit placed on this day from the Week page; ticking it counts for the habit. */
+  habit_id?: string | null;
   position: number;
 } & Timestamps;
 
