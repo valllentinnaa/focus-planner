@@ -1,6 +1,7 @@
 // A times-based habit on the Week page (Personal Development), like any week item: "Pilates ×3".
 // Drag it onto a day, or use Move to pick one — it becomes Pilates on that day and the count goes
 // down (×2). Shows every week as a reminder of what's left in its period (week / month / 12 weeks).
+// Ticking it means "did one": it lands ticked on today (or this week's nearest day) and the count drops.
 import { addDays, format } from "date-fns";
 import { X } from "lucide-react-native";
 import { useState } from "react";
@@ -10,7 +11,7 @@ import { PERIOD_LABEL, type HabitPeriod } from "@/lib/habits";
 import { plannedHabitDrag, type TaskOps } from "@/data/tasks";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { DragHandle } from "./drag";
-import { GhostButton } from "./ui";
+import { CheckBox, GhostButton } from "./ui";
 
 export function HabitPlanRow({
   habit,
@@ -31,6 +32,7 @@ export function HabitPlanRow({
   return (
     <View style={s.row}>
       <DragHandle task={plannedHabitDrag(habit, weekStart)} label={habit.text} />
+      <CheckBox size={18} checked={false} onChange={() => ops.planHabit(habit, tickDay(weekStart), true)} />
       <View style={s.main}>
         <Text style={s.text} numberOfLines={1}>
           {habit.text.trim()}
@@ -74,6 +76,12 @@ export function HabitPlanRow({
       </Modal>
     </View>
   );
+}
+
+/** The day a tick lands on: today if it's in this week, else the week's last day (past) or first (ahead). */
+export function tickDay(weekStart: string, today = toISO(new Date())): string {
+  const end = toISO(addDays(fromISO(weekStart), 6));
+  return today < weekStart ? weekStart : today > end ? end : today;
 }
 
 const s = StyleSheet.create({

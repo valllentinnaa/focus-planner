@@ -125,10 +125,11 @@ export function useTaskOps() {
        * Put a "times a week" habit on a day: a task in Personal Development on that day, linked to
        * the habit (ticking it counts for the habit — see the habit_tasks migration).
        */
-      planHabit(habit: { id: string; text: string }, date: string) {
+      /** Put a habit on a day (done = already did it that day). */
+      planHabit(habit: { id: string; text: string }, date: string, done = false) {
         const id = Crypto.randomUUID();
         const cols = placementColumns({ kind: "day", date }, date, { area: "development", task_date: null });
-        add.mutate({ id, text: habit.text.trim(), done: false, position: 0, habit_id: habit.id, ...cols });
+        add.mutate({ id, text: habit.text.trim(), done, position: 0, habit_id: habit.id, ...cols });
         return id;
       },
       /** Move a task to a new placement (drag, assign-to-day, send-to-area). */
