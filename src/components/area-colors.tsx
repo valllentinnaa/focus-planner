@@ -1,4 +1,5 @@
-// Pick a colour per life area (Today). Inline on the Today settings page; as a sheet on Today.
+// Pick a colour per life area: Today's task text takes it. Inline on the Today settings page;
+// as a sheet on Today (tap the palette the first time, or press and hold it to change).
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SUGGESTED, SWATCHES, hasAreaColors, setAreaColor, type AreaColors, type Swatch } from "@/lib/area-colors";
@@ -74,23 +75,6 @@ export function AreaColorsSheet({ value, onSave, onClose }: { value: AreaColors;
   );
 }
 
-/** Tiny key under "Your day": which colour is which. Tap to change. */
-export function AreaColorsKey({ value, onPress }: { value: AreaColors; onPress: () => void }) {
-  const set = AREAS.filter((a) => value[a]);
-  if (!set.length) return null;
-  return (
-    <Pressable onPress={onPress} accessibilityLabel="Change colours" style={({ pressed }) => [s.key, pressed && { opacity: 0.6 }]}>
-      {set.map((a) => (
-        <View key={a} style={s.keyItem}>
-          <View style={[s.keyDot, { backgroundColor: colors[value[a]!] }]} />
-          <Text style={s.keyText}>{SHORT[a]}</Text>
-        </View>
-      ))}
-    </Pressable>
-  );
-}
-const SHORT: Record<TaskArea, string> = { work: "Work", personal: "Personal", development: "Development" };
-
 const s = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: alpha("ink", "55"), alignItems: "center", justifyContent: "center", padding: space.lg },
   sheet: { width: "100%", maxWidth: 420, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.rule, borderRadius: 8, padding: space.xl, gap: space.md },
@@ -102,8 +86,4 @@ const s = StyleSheet.create({
   swatch: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: "transparent" },
   none: { borderColor: colors.rule, borderStyle: "dashed" },
   picked: { borderColor: colors.ink },
-  key: { flexDirection: "row", gap: space.md, marginTop: 4, marginBottom: 4, alignSelf: "flex-start" },
-  keyItem: { flexDirection: "row", alignItems: "center", gap: 5 },
-  keyDot: { width: 7, height: 7, borderRadius: 4 },
-  keyText: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
 });

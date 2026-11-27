@@ -22,7 +22,7 @@ import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import { useHabitChecks, useHabits } from "@/data/habits";
 import { useRoutineChecks, useRoutines } from "@/data/routines";
 import { HabitScheduleSheet } from "@/components/habit-schedule";
-import { AreaColorsKey, AreaColorsSheet, areaTint } from "@/components/area-colors";
+import { AreaColorsSheet, areaTint } from "@/components/area-colors";
 import { hasAreaColors } from "@/lib/area-colors";
 import { Palette, Settings2 } from "lucide-react-native";
 import { dueOn, scheduleLabel } from "@/lib/habits";
@@ -194,7 +194,6 @@ export default function TodayScreen() {
             <View>
               {/* One list for the day: calendar events and tasks together, in time order. */}
               <SectionLabel>{show("tasks") ? "Your day" : "Calendar"}</SectionLabel>
-              {coloursOn && show("tasks") ? <AreaColorsKey value={settings.areaColors} onPress={() => setColoursOpen(true)} /> : null}
               <View style={{ gap: 2 }}>
                 {show("calendar") && calendar.loading ? <EventsLoading /> : null}
                 {dayAgenda(show("calendar") ? dayEvents : [], [
