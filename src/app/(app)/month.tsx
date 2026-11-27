@@ -8,7 +8,7 @@ import { EventsLoading, MonthAgenda } from "@/components/calendar-event";
 import { rangeAgenda } from "@/lib/calendar-events";
 import { fromISO, inWeek, mondayOf, monthWeeks, toISO, type MonthWeek } from "@/lib/dates";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
-import { Column, Columns, PageTitle, Screen, useIsWide } from "@/components/screen";
+import { Column, Columns, PageTitle, Screen, SwipePager, useIsWide } from "@/components/screen";
 import { BlankRows, Display, GhostButton, RuleInput, SectionLabel, SolidButton } from "@/components/ui";
 import { TaskItem } from "@/components/task-item";
 import { CheckinNudge } from "@/components/checkin/nudge";
@@ -60,6 +60,58 @@ export default function MonthScreen() {
     .filter((t) => !t.area)
     .sort((a, b) => (a.task_date ?? "9").localeCompare(b.task_date ?? "9"));
 
+  const todoList = (
+        <View>
+          <SectionLabel>To do</SectionLabel>
+          <View style={{ gap: 4, paddingVertical: space.sm }}>
+            {monthRows.map((t) => (
+              <View key={t.id}>
+                {t.task_date ? <Text style={s.taskDate}>{format(fromISO(t.task_date), "EEE, MMM d").toUpperCase()}</Text> : null}
+                <TaskItem task={t} ops={ops} compact />
+              </View>
+            ))}
+            <BlankRows
+              count={Math.max(0, 6 - monthRows.length)}
+              size={16}
+              onAdd={() => ops.add({ kind: "loose" }, toISO(mondayOf(weeks[currentWeekIndex]!.start)))}
+            />
+          </View>
+          <GhostButton onPress={() => setAdding({ weekIndex: currentWeekIndex })} style={{ marginTop: 4 }}>+ Add</GhostButton>
+        </View>
+  );
+  const weekBoxes = (
+          <View style={[s.weeksGrid, !wide && { flexDirection: "column", flexWrap: "nowrap" }]}>
+            {weeks.map((week, index) => {
+              const current = inWeek(todayISO, week);
+              const rows = tasksForWeek(week);
+              const events = eventsForWeek(week);
+              return (
+                <View key={toISO(week.start)} style={[s.weekBox, wide && s.weekBoxWide, current && s.weekBoxCurrent]}>
+                  <View style={s.weekHead}>
+                    <Text style={s.weekTitle}>Week {index + 1}</Text>
+                    <Text style={s.weekDate}>{format(week.start, "MMM d").toUpperCase()} – {format(week.end, "d")}</Text>
+                  </View>
+                  <View style={{ gap: 2, flex: 1 }}>
+                    {calendar.loading ? <EventsLoading rows={3} /> : <MonthAgenda agenda={events} onRemove={calendarOps.hide} />}
+                    {rows.map((t) => (
+                      <View key={t.id}>
+                        {t.task_date ? <Text style={s.taskDate}>{format(fromISO(t.task_date), "EEE, MMM d").toUpperCase()}</Text> : null}
+                        <TaskItem task={t} ops={ops} compact />
+                      </View>
+                    ))}
+                    <BlankRows
+                      count={Math.max(0, 4 - rows.length)}
+                      size={16}
+                      onAdd={() => ops.add({ kind: "loose" }, toISO(mondayOf(week.start)))}
+                    />
+                  </View>
+                  <GhostButton onPress={() => setAdding({ weekIndex: index })} style={{ marginTop: 8 }}>+ Add</GhostButton>
+                </View>
+              );
+            })}
+          </View>
+  );
+
   return (
     <Screen>
       <PageTitle
@@ -94,58 +146,18 @@ export default function MonthScreen() {
         </View>
       </View>
 
-      <Columns>
-        <Column flex={1}>
-          <SectionLabel>To do</SectionLabel>
-          <View style={{ gap: 4, paddingVertical: space.sm }}>
-            {monthRows.map((t) => (
-              <View key={t.id}>
-                {t.task_date ? <Text style={s.taskDate}>{format(fromISO(t.task_date), "EEE, MMM d").toUpperCase()}</Text> : null}
-                <TaskItem task={t} ops={ops} compact />
-              </View>
-            ))}
-            <BlankRows
-              count={Math.max(0, 6 - monthRows.length)}
-              size={16}
-              onAdd={() => ops.add({ kind: "loose" }, toISO(mondayOf(weeks[currentWeekIndex]!.start)))}
-            />
-          </View>
-          <GhostButton onPress={() => setAdding({ weekIndex: currentWeekIndex })} style={{ marginTop: 4 }}>+ Add</GhostButton>
-        </Column>
-
-        <Column flex={2}>
-          <View style={[s.weeksGrid, !wide && { flexDirection: "column", flexWrap: "nowrap" }]}>
-            {weeks.map((week, index) => {
-              const current = inWeek(todayISO, week);
-              const rows = tasksForWeek(week);
-              const events = eventsForWeek(week);
-              return (
-                <View key={toISO(week.start)} style={[s.weekBox, wide && s.weekBoxWide, current && s.weekBoxCurrent]}>
-                  <View style={s.weekHead}>
-                    <Text style={s.weekTitle}>Week {index + 1}</Text>
-                    <Text style={s.weekDate}>{format(week.start, "MMM d").toUpperCase()} – {format(week.end, "d")}</Text>
-                  </View>
-                  <View style={{ gap: 2, flex: 1 }}>
-                    {calendar.loading ? <EventsLoading rows={3} /> : <MonthAgenda agenda={events} onRemove={calendarOps.hide} />}
-                    {rows.map((t) => (
-                      <View key={t.id}>
-                        {t.task_date ? <Text style={s.taskDate}>{format(fromISO(t.task_date), "EEE, MMM d").toUpperCase()}</Text> : null}
-                        <TaskItem task={t} ops={ops} compact />
-                      </View>
-                    ))}
-                    <BlankRows
-                      count={Math.max(0, 4 - rows.length)}
-                      size={16}
-                      onAdd={() => ops.add({ kind: "loose" }, toISO(mondayOf(week.start)))}
-                    />
-                  </View>
-                  <GhostButton onPress={() => setAdding({ weekIndex: index })} style={{ marginTop: 8 }}>+ Add</GhostButton>
-                </View>
-              );
-            })}
-          </View>
-        </Column>
-      </Columns>
+      {/* Wide: To do beside the weeks. Phone: swipe between them, like the Week (opens on the weeks). */}
+      {wide ? (
+        <Columns>
+          <Column flex={1}>{todoList}</Column>
+          <Column flex={2}>{weekBoxes}</Column>
+        </Columns>
+      ) : (
+        <SwipePager labels={["To do", "The weeks"]} initialPage={1}>
+          {todoList}
+          {weekBoxes}
+        </SwipePager>
+      )}
 
       {adding ? (
         <AddDialog
