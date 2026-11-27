@@ -33,6 +33,8 @@ const defaultsFor: Record<string, () => Row> = {
   quarters: () => ({ theme: "", notes: "" }),
   goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false, carry_next: false, carried_from: null, habit_days: null, habit_per_week: null, habit_period: null }),
   habit_checks: () => ({}),
+  routines: () => ({ habit_days: null, position: 0, archived_at: null }),
+  routine_checks: () => ({}),
   goal_steps: () => ({ text: "", done: false, position: 0 }),
   vision_items: () => ({ file_path: null, text: "", position: 0 }),
   clipboard_items: () => ({ text: "", attention: false, position: 0, audio_path: null, audio_seconds: null, image_path: null }),

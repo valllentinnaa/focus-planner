@@ -2,12 +2,13 @@
 // box to tick. Stored as plain text (see lib/checklist-text). Practices also lists the 12W habits
 // due that day at the top — ticking one records it for the habit's progress.
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Repeat } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { parseChecklist, serializeChecklist, type CheckLine } from "@/lib/checklist-text";
 import { colors, fonts } from "@/theme/tokens";
 import { CheckBox, RuleInput, SectionLabel } from "./ui";
 
-export type HabitLine = { id: string; text: string; done: boolean; meta?: string };
+export type HabitLine = { id: string; text: string; done: boolean; meta?: string; schedule?: string; onConfigure?: () => void };
 
 export function ChecklistField({
   label,
@@ -16,6 +17,8 @@ export function ChecklistField({
   rows = 6,
   habits = [],
   onToggleHabit,
+  onRepeat,
+  repeatLabel = "Repeat this",
 }: {
   label: string;
   value: string;
@@ -24,6 +27,9 @@ export function ChecklistField({
   rows?: number;
   habits?: HabitLine[];
   onToggleHabit?: (id: string) => void;
+  /** ↻ on a written line: make it repeating (it leaves today's list and comes back on its days). */
+  onRepeat?: (text: string) => void;
+  repeatLabel?: string;
 }) {
   // Local lines keep empty ones while you type (so focus doesn't jump); saved without them.
   const [lines, setLines] = useState<CheckLine[]>(() => parseChecklist(value));
@@ -60,6 +66,11 @@ export function ChecklistField({
               {h.text}
             </Text>
             {h.meta ? <Text style={s.meta}>{h.meta}</Text> : null}
+            {h.onConfigure ? (
+              <Pressable onPress={h.onConfigure} hitSlop={6} accessibilityLabel={`How often: ${h.schedule ?? ""}. Change`} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+                <Text style={s.schedule}>{h.schedule}</Text>
+              </Pressable>
+            ) : null}
           </View>
         ))}
         {Array.from({ length: count }, (_, i) => {
@@ -75,6 +86,19 @@ export function ChecklistField({
                 onChangeText={(text) => setAt(i, { text })}
                 style={[s.input, line?.done && s.done]}
               />
+              {onRepeat && filled ? (
+                <Pressable
+                  hitSlop={6}
+                  accessibilityLabel={`${repeatLabel}: ${line!.text.trim()}`}
+                  style={({ pressed }) => [s.repeat, pressed && { opacity: 0.5 }]}
+                  onPress={() => {
+                    onRepeat(line!.text.trim());
+                    commit(lines.filter((_, j) => j !== i));
+                  }}
+                >
+                  <Repeat size={13} color={colors.gold} strokeWidth={1.75} />
+                </Pressable>
+              ) : null}
             </View>
           );
         })}
@@ -92,5 +116,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.rule, borderStyle: "dashed",
   },
   done: { color: colors.mutedForeground, textDecorationLine: "line-through" },
+  schedule: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 0.5, color: colors.gold },
+  repeat: { paddingHorizontal: 4, opacity: 0.75 },
   meta: { fontFamily: fonts.sans, fontSize: 11, color: colors.gold, fontVariant: ["tabular-nums"] },
 });

@@ -1,5 +1,6 @@
 import { addDays, format } from "date-fns";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useDaily, type DailyDoc } from "@/data/daily";
 import { useSettings } from "@/data/profile";
@@ -19,7 +20,9 @@ import { TaskItem } from "@/components/task-item";
 import { CalendarEventRow, EventsLoading } from "@/components/calendar-event";
 import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import { useHabitChecks, useHabits } from "@/data/habits";
-import { dueOn } from "@/lib/habits";
+import { useRoutineChecks, useRoutines } from "@/data/routines";
+import { HabitScheduleSheet } from "@/components/habit-schedule";
+import { dueOn, scheduleLabel } from "@/lib/habits";
 import { ChecklistField, type HabitLine } from "@/components/checklist-field";
 
 type TextKey = Exclude<keyof DailyDoc, "custom" | "focusDone">;
@@ -42,13 +45,29 @@ export default function TodayScreen() {
 
   const { settings } = useSettings();
   // 12W habits due this day, at the top of Practices; ticking one counts toward its progress.
-  const { habits } = useHabits();
+  // Tap a habit's schedule to change how often (it updates on 12W too); ↻ on a line makes it a habit.
+  const { quarter, habits, goalOps } = useHabits();
   const habitChecks = useHabitChecks(toISO(monday), toISO(addDays(monday, 6)), habits.length > 0);
+  const [configuring, setConfiguring] = useState<{ kind: "habit"; id: string } | { kind: "vitamin"; id: string } | null>(null);
   const habitLines: HabitLine[] = habits.flatMap((h) => {
     const days = habitChecks.byGoal.get(h.id) ?? new Set<string>();
     if (!dueOn(h, iso)) return [];
-    return [{ id: h.id, text: h.text.trim(), done: days.has(iso) }];
+    return [{ id: h.id, text: h.text.trim(), done: days.has(iso), schedule: scheduleLabel(h), onConfigure: () => setConfiguring({ kind: "habit", id: h.id }) }];
   });
+  // Vitamins: repeating ones due today (set up and changed right here), then today's own lines.
+  const vitamins = useRoutines("vitamin");
+  const vitaminChecks = useRoutineChecks(iso, iso, vitamins.routines.length > 0);
+  const vitaminLines: HabitLine[] = vitamins.routines
+    .filter((r) => dueOn(r, iso))
+    .map((r) => ({
+      id: r.id,
+      text: r.text.trim(),
+      done: vitaminChecks.isDone(r.id, iso),
+      schedule: scheduleLabel(r),
+      onConfigure: () => setConfiguring({ kind: "vitamin", id: r.id }),
+    }));
+  const configHabit = configuring?.kind === "habit" ? habits.find((h) => h.id === configuring.id) : undefined;
+  const configVitamin = configuring?.kind === "vitamin" ? vitamins.routines.find((r) => r.id === configuring.id) : undefined;
   const meals = useMeals(toISO(monday), settings.showFood);
   const layout = settings.dailyLayout;
   const show = (key: BuiltinKey) => isShown(layout, key);
@@ -82,8 +101,16 @@ export default function TodayScreen() {
               label={label}
               value={doc[k]}
               onChange={(v) => patch({ [k]: v } as Partial<DailyDoc>)}
-              habits={k === "practices" ? habitLines : undefined}
-              onToggleHabit={(id) => habitChecks.toggle(id, iso)}
+              habits={k === "practices" ? habitLines : vitaminLines}
+              onToggleHabit={(id) => (k === "practices" ? habitChecks.toggle(id, iso) : vitaminChecks.toggle(id, iso))}
+              repeatLabel={k === "practices" ? "Make it a 12W habit" : "Repeat this vitamin"}
+              onRepeat={
+                k === "vitamins"
+                  ? (text) => vitamins.add(text)
+                  : quarter
+                    ? (text) => goalOps.add({ quarter_id: quarter.id, area: "habits", text, position: habits.length })
+                    : undefined
+              }
             />
           ) : (
             field(k, label)
@@ -184,6 +211,24 @@ export default function TodayScreen() {
       </Columns>
 
       {show("notes") ? field("notes", "Diary", 6) : null}
+      {configHabit ? (
+        <HabitScheduleSheet
+          name={configHabit.text}
+          value={configHabit}
+          onSave={(next) => goalOps.update(configHabit.id, next)}
+          onClose={() => setConfiguring(null)}
+        />
+      ) : null}
+      {configVitamin ? (
+        <HabitScheduleSheet
+          name={configVitamin.text}
+          value={configVitamin}
+          allowTimes={false}
+          onSave={(next) => vitamins.setDays(configVitamin.id, next.habit_days)}
+          onStop={() => vitamins.stop(configVitamin.id)}
+          onClose={() => setConfiguring(null)}
+        />
+      ) : null}
     </Screen>
   );
 }

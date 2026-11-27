@@ -17,7 +17,13 @@ export function HabitScheduleSheet({
   value,
   onSave,
   onClose,
+  allowTimes = true,
+  onStop,
 }: {
+  /** Offer "A number of times" (12W habits). Vitamins: every day or certain days only. */
+  allowTimes?: boolean;
+  /** Shows "Stop repeating". */
+  onStop?: () => void;
   name: string;
   value: HabitSchedule;
   onSave: (next: { habit_days: number | null; habit_per_week: number | null; habit_period: HabitPeriod | null }) => void;
@@ -50,7 +56,7 @@ export function HabitScheduleSheet({
           </Text>
 
           <View style={s.kinds}>
-            {KINDS.map((k) => (
+            {KINDS.filter((k) => allowTimes || k.kind !== "perWeek").map((k) => (
               <Pressable
                 key={k.kind}
                 onPress={() => setKind(k.kind)}
@@ -115,6 +121,17 @@ export function HabitScheduleSheet({
           ) : null}
 
           <View style={s.actions}>
+            {onStop ? (
+              <GhostButton
+                style={{ marginRight: "auto" }}
+                onPress={() => {
+                  onStop();
+                  onClose();
+                }}
+              >
+                Stop repeating
+              </GhostButton>
+            ) : null}
             <GhostButton onPress={onClose}>Cancel</GhostButton>
             <GhostButton onPress={save}>Save</GhostButton>
           </View>

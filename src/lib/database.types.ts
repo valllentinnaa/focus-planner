@@ -195,6 +195,18 @@ export type GoalRow = {
   habit_period?: "week" | "month" | "cycle" | null;
 } & Timestamps;
 
+/** A repeating daily item that isn't a 12W goal (Vitamins). habit_days null = every day. */
+export type RoutineRow = {
+  id: string;
+  user_id: string;
+  kind: "vitamin";
+  text: string;
+  habit_days?: number | null;
+  position: number;
+  archived_at?: string | null;
+} & Timestamps;
+export type RoutineCheckRow = { id: string; user_id: string; routine_id: string; day: string; created_at: string; updated_at: string };
+
 /** A habit ticked off on a day (one per habit per day). */
 export type HabitCheckRow = { id: string; user_id: string; goal_id: string; day: string; created_at: string; updated_at: string };
 
@@ -236,6 +248,8 @@ export type Database = {
       goals: Table<GoalRow, "quarter_id" | "area">;
       goal_steps: Table<GoalStepRow, "goal_id">;
       habit_checks: Table<HabitCheckRow, "goal_id" | "day">;
+      routines: Table<RoutineRow, "kind" | "text">;
+      routine_checks: Table<RoutineCheckRow, "routine_id" | "day">;
       people: Table<PersonRow, "name">;
       gift_ideas: Table<GiftIdeaRow, "person_id" | "text">;
       wishlist_items: Table<WishlistItemRow, "text">;
