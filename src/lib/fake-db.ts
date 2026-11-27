@@ -31,7 +31,7 @@ const defaultsFor: Record<string, () => Row> = {
   food_weeks: () => ({ notes: "", schedule: ["", "", "", "", "", "", ""] }),
   food_items: () => ({ done: false, position: 0, cook_date: null, cook_time: null }),
   quarters: () => ({ theme: "", notes: "" }),
-  goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false, carry_next: false, carried_from: null, habit_days: null, habit_per_week: null }),
+  goals: () => ({ text: "", done: false, is_project: false, position: 0, archived: false, carry_next: false, carried_from: null, habit_days: null, habit_per_week: null, habit_period: null }),
   habit_checks: () => ({}),
   goal_steps: () => ({ text: "", done: false, position: 0 }),
   vision_items: () => ({ file_path: null, text: "", position: 0 }),

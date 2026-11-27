@@ -1,82 +1,97 @@
-// "Times a week" habits on the Week page (Personal Development): "Pilates · 3 left this week".
-// Drag it onto a day — or tap it and pick a day — and it becomes Pilates on that day; the count
-// goes down. Ticking it on the day counts for the habit.
+// A times-based habit on the Week page (Personal Development), like any week item: "Pilates ×3".
+// Drag it onto a day, or use Move to pick one — it becomes Pilates on that day and the count goes
+// down (×2). Shows every week as a reminder of what's left in its period (week / month / 12 weeks).
 import { addDays, format } from "date-fns";
+import { X } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { fromISO, toISO } from "@/lib/dates";
+import { PERIOD_LABEL, type HabitPeriod } from "@/lib/habits";
 import { plannedHabitDrag, type TaskOps } from "@/data/tasks";
-import { colors, fonts, space } from "@/theme/tokens";
+import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { DragHandle } from "./drag";
+import { GhostButton } from "./ui";
 
 export function HabitPlanRow({
   habit,
   left,
-  perWeek,
+  period,
   weekStart,
   ops,
 }: {
   habit: { id: string; text: string };
   left: number;
-  perWeek: number;
+  period: HabitPeriod;
   weekStart: string;
   ops: TaskOps;
 }) {
-  const [choosing, setChoosing] = useState(false);
-  const done = left === 0;
+  const [moving, setMoving] = useState(false);
+  if (left <= 0) return null; // all placed for this period — nothing to remind
+  const when = period === "week" ? null : `this ${period === "month" ? "month" : PERIOD_LABEL.cycle}`;
   return (
-    <View style={s.wrap}>
-      <View style={s.row}>
-        {done ? <View style={s.gripSpace} /> : <DragHandle task={plannedHabitDrag(habit, weekStart)} label={habit.text} />}
-        <Pressable
-          style={({ pressed }) => [s.main, pressed && !done && { opacity: 0.6 }]}
-          disabled={done}
-          onPress={() => setChoosing((v) => !v)}
-          accessibilityRole="button"
-          accessibilityLabel={done ? `${habit.text}: all ${perWeek} placed this week` : `${habit.text}: ${left} left to place this week. Pick a day`}
-        >
-          <Text style={[s.text, done && s.muted]} numberOfLines={1}>
-            {habit.text.trim()}
-          </Text>
-          <Text style={[s.count, done && s.muted]}>{done ? `all ${perWeek} placed ✓` : `${left} left this week`}</Text>
-        </Pressable>
+    <View style={s.row}>
+      <DragHandle task={plannedHabitDrag(habit, weekStart)} label={habit.text} />
+      <View style={s.main}>
+        <Text style={s.text} numberOfLines={1}>
+          {habit.text.trim()}
+        </Text>
+        <Text style={s.count}>×{left}</Text>
+        {when ? <Text style={s.when}>{when}</Text> : null}
       </View>
-      {choosing && !done ? (
-        <View style={s.days}>
-          {Array.from({ length: 7 }, (_, i) => {
-            const iso = toISO(addDays(fromISO(weekStart), i));
-            return (
-              <Pressable
-                key={iso}
-                style={({ pressed }) => [s.day, pressed && { opacity: 0.6 }]}
-                onPress={() => {
-                  ops.planHabit(habit, iso);
-                  if (left <= 1) setChoosing(false);
-                }}
-                accessibilityLabel={`Put ${habit.text} on ${format(fromISO(iso), "EEEE")}`}
-              >
-                <Text style={s.dayText}>{format(fromISO(iso), "EEE")}</Text>
+      <GhostButton accessibilityLabel={`Move ${habit.text} to a day`} onPress={() => setMoving(true)}>
+        <Text style={s.act}>⋯</Text>
+      </GhostButton>
+
+      <Modal visible={moving} transparent animationType="fade" onRequestClose={() => setMoving(false)}>
+        <Pressable style={s.backdrop} onPress={() => setMoving(false)}>
+          <Pressable style={s.sheet}>
+            <View style={s.sheetHead}>
+              <Text style={s.sheetTitle}>Move {habit.text.trim()}</Text>
+              <Pressable accessibilityLabel="Close" hitSlop={10} onPress={() => setMoving(false)}>
+                <X size={18} color={colors.mutedForeground} strokeWidth={1.75} />
               </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
+            </View>
+            <Text style={s.group}>Schedule to a day</Text>
+            <View style={s.dayGrid}>
+              {Array.from({ length: 7 }, (_, i) => {
+                const iso = toISO(addDays(fromISO(weekStart), i));
+                return (
+                  <Pressable
+                    key={iso}
+                    style={({ pressed }) => [s.chip, pressed && { opacity: 0.6 }]}
+                    onPress={() => {
+                      ops.planHabit(habit, iso);
+                      setMoving(false);
+                    }}
+                  >
+                    <Text style={s.chipText}>{format(fromISO(iso), "EEE d")}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  wrap: { gap: 6 },
   row: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 34 },
-  gripSpace: { width: 14 },
   main: {
     flex: 1, flexDirection: "row", alignItems: "baseline", gap: space.sm, paddingVertical: 6,
     borderBottomWidth: 1, borderBottomColor: colors.rule, borderStyle: "dashed",
   },
   text: { flexShrink: 1, fontFamily: fonts.sans, fontSize: 15, color: colors.ink },
-  count: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 0.5, color: colors.gold },
-  muted: { color: colors.mutedForeground },
-  days: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingLeft: 20 },
-  day: { borderWidth: 1, borderColor: colors.gold, borderRadius: 6, paddingVertical: 5, paddingHorizontal: 10 },
-  dayText: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.ink },
+  count: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.gold, fontVariant: ["tabular-nums"] },
+  when: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
+  act: { fontFamily: fonts.sans, fontSize: 16, color: colors.mutedForeground },
+  backdrop: { flex: 1, backgroundColor: alpha("ink", "55"), alignItems: "center", justifyContent: "center", padding: space.lg },
+  sheet: { width: "100%", maxWidth: 420, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.rule, borderRadius: 6, padding: space.lg, gap: space.sm },
+  sheetHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  sheetTitle: { fontFamily: fonts.displayItalic, fontSize: 24, color: colors.gold },
+  group: { fontFamily: fonts.sansSemiBold, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: colors.mutedForeground, marginTop: space.sm },
+  dayGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  chip: { borderWidth: 1, borderColor: colors.rule, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 12 },
+  chipText: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.ink },
 });

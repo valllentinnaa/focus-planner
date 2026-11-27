@@ -2,9 +2,8 @@
 // "times a week" habits still to place. Tap one and it's on this day.
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useHabits } from "@/data/habits";
+import { useHabitsToPlace } from "@/data/habits";
 import { useWeekTasks, type TaskOps } from "@/data/tasks";
-import { leftToPlace } from "@/lib/habits";
 import { AREA_LABELS, AREAS } from "@/lib/tasks";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Display, GhostButton } from "./ui";
@@ -21,16 +20,15 @@ export function FromMyWeek({ iso, weekStart, ops }: { iso: string; weekStart: st
 
 function Picker({ iso, weekStart, ops, onClose }: { iso: string; weekStart: string; ops: TaskOps; onClose: () => void }) {
   const { tasks } = useWeekTasks(weekStart);
-  const { habits } = useHabits();
+  const habitsToPlace = useHabitsToPlace(weekStart);
   const [added, setAdded] = useState<string[]>([]);
   const open = tasks.filter((t) => !t.done && !t.task_date && t.text.trim() && !added.includes(t.id));
   const groups = [
     ...AREAS.map((a) => ({ key: a, label: AREA_LABELS[a], items: open.filter((t) => t.area === a) })),
     { key: "loose", label: "This week", items: open.filter((t) => !t.area) },
   ].filter((g) => g.items.length);
-  const toPlace = habits
-    .filter((h) => h.habit_per_week)
-    .map((h) => ({ h, left: leftToPlace(h, tasks) - added.filter((a) => a === `habit:${h.id}`).length }))
+  const toPlace = habitsToPlace
+    .map(({ habit: h, left }) => ({ h, left: left - added.filter((a) => a === `habit:${h.id}`).length }))
     .filter((x) => x.left > 0);
 
   return (

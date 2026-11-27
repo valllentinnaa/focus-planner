@@ -28,8 +28,7 @@ import { FocusLink, WeekFocus } from "@/components/week-focus";
 import { canChangeFocus, resolveFocus } from "@/lib/week-focus";
 import { DropZone } from "@/components/drag";
 import { HabitPlanRow } from "@/components/habit-plan";
-import { useHabits } from "@/data/habits";
-import { leftToPlace } from "@/lib/habits";
+import { useHabitsToPlace } from "@/data/habits";
 import { NewWeekDialog } from "@/components/new-week-dialog";
 import { CheckinNudge } from "@/components/checkin/nudge";
 
@@ -47,9 +46,8 @@ export default function WeekScreen() {
   const { doc, patch } = useWeek(key);
   const prev = useWeek(prevKey);
   const { tasks, loading: tasksLoading } = useWeekTasks(key);
-  // "Times a week" habits from the 12W plan, to place on days (Personal Development).
-  const { habits } = useHabits();
-  const perWeekHabits = habits.filter((h) => !!h.habit_per_week);
+  // Times-based habits from the 12W plan, to place on days (Personal Development).
+  const habitsToPlace = useHabitsToPlace(key);
   const ops = useTaskOps();
   const { quarter } = useCurrentQuarter();
   const todayISO = toISO(new Date());
@@ -162,8 +160,8 @@ export default function WeekScreen() {
               <View style={{ gap: 4 }}>
                 {area === "personal" && settings.showFood ? <ShoppingLine weekStart={key} /> : null}
                 {area === "development"
-                  ? perWeekHabits.map((h) => (
-                      <HabitPlanRow key={h.id} habit={h} left={leftToPlace(h, tasks)} perWeek={h.habit_per_week!} weekStart={key} ops={ops} />
+                  ? habitsToPlace.map(({ habit, left, period }) => (
+                      <HabitPlanRow key={habit.id} habit={habit} left={left} period={period} weekStart={key} ops={ops} />
                     ))
                   : null}
                 {byArea[area]!.map((t) => <TaskItem key={t.id} task={t} ops={ops} draggable showDay />)}

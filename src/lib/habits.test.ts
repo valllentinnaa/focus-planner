@@ -1,4 +1,4 @@
-import { cycleProgress, dueOn, leftToPlace, scheduleKind, scheduleLabel, toggleDay, weeklyTarget, weekProgress } from "./habits";
+import { cycleProgress, dueOn, leftToPlace, periodRange, scheduleKind, scheduleLabel, toggleDay, weeklyTarget, weekProgress } from "./habits";
 
 const MWF = 1 | 4 | 16; // Mon, Wed, Fri
 
@@ -34,6 +34,21 @@ describe("dueOn", () => {
   it("every day: always", () => expect(dueOn({}, "2026-11-24")).toBe(true));
   it("N a week: never in Practices — placed on days from the Week page", () => {
     expect(dueOn({ habit_per_week: 3 }, "2026-11-26")).toBe(false);
+  });
+  it("counts what's left in the habit's period", () => {
+    const h = { id: "p", habit_per_week: 2, habit_period: "month" as const };
+    const placed = [
+      { habit_id: "p", task_date: "2026-11-03" },
+      { habit_id: "p", task_date: "2026-12-01" },
+    ];
+    expect(leftToPlace(h, placed, periodRange("month", "2026-11-23", "2026-11-02"))).toBe(1);
+    expect(periodRange("month", "2026-11-30", "2026-11-02")).toEqual({ from: "2026-12-01", to: "2026-12-31" }); // Thu 3 Dec
+    expect(periodRange("cycle", "2026-11-23", "2026-11-02")).toEqual({ from: "2026-11-02", to: "2027-01-24" });
+    expect(periodRange("week", "2026-11-23", "2026-11-02")).toEqual({ from: "2026-11-23", to: "2026-11-29" });
+  });
+  it("labels the period", () => {
+    expect(scheduleLabel({ habit_per_week: 2, habit_period: "month" })).toBe("2× a month");
+    expect(scheduleLabel({ habit_per_week: 5, habit_period: "cycle" })).toBe("5× in 12 weeks");
   });
   it("counts what's left to place this week", () => {
     const h = { id: "p", habit_per_week: 3 };

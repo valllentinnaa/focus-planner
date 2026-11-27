@@ -189,8 +189,10 @@ export type GoalRow = {
   carried_from?: string | null;
   /** Habits: chosen weekdays as a bitmask (Mon = 1 … Sun = 64); null = not "chosen days". */
   habit_days?: number | null;
-  /** Habits: N times a week, any days. Both null = every day. */
+  /** Habits: N times (1–7) per habit_period, any days. Both null = every day. */
   habit_per_week?: number | null;
+  /** Habits: what N counts over — "week" (default), "month" or "cycle" (the 12 weeks). */
+  habit_period?: "week" | "month" | "cycle" | null;
 } & Timestamps;
 
 /** A habit ticked off on a day (one per habit per day). */
