@@ -154,6 +154,8 @@ export type ClipboardItemRow = {
   audio_seconds?: number | null;
   /** Image in the private clipboard-images bucket: "<user id>/<uuid>.<ext>". */
   image_path?: string | null;
+  /** Ticked off (null = still open). */
+  done_at?: string | null;
 } & Timestamps;
 
 export type VisionItemRow = {

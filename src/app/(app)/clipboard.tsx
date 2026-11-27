@@ -12,7 +12,7 @@ import { dateChoices } from "@/lib/clipboard";
 import { fromISO, maskDMY, parseDMY } from "@/lib/dates";
 import { alpha, colors, fonts, space } from "@/theme/tokens";
 import { Hint, PageTitle, Screen } from "@/components/screen";
-import { Display, GhostButton, RemoveButton, RuleInput } from "@/components/ui";
+import { CheckBox, Display, GhostButton, RemoveButton, RuleInput } from "@/components/ui";
 
 export default function ClipboardScreen() {
   const { items, add, update, removeItem, moveToDay, addVoice, addShared, savingVoice } = useClipboard();
@@ -101,9 +101,15 @@ export default function ClipboardScreen() {
 
         <View style={s.list}>
           {items.length === 0 ? <Text style={s.empty}>Nothing here — lovely and clear.</Text> : null}
-          {items.map((it) => (
+          {/* Open lines first; ticked ones sink below, crossed out. */}
+          {[...items.filter((i) => !i.done_at), ...items.filter((i) => i.done_at)].map((it) => (
             <View key={it.id}>
               <View style={s.row}>
+                <CheckBox
+                  size={18}
+                  checked={!!it.done_at}
+                  onChange={(done) => update(it.id, { done_at: done ? new Date().toISOString() : null })}
+                />
                 {it.image_path ? (
                   <Pressable
                     onPress={() => imageUrls[it.image_path!] && setViewing(imageUrls[it.image_path!]!)}
@@ -120,15 +126,17 @@ export default function ClipboardScreen() {
                   onChangeText={(text) => update(it.id, { text })}
                   placeholder={it.audio_path ? "Voice note" : it.image_path ? "Image" : undefined}
                   placeholderTextColor={it.attention ? colors.burgundy : colors.ink}
-                  style={[s.text, it.attention && s.attention]}
+                  style={[s.text, it.attention && s.attention, !!it.done_at && s.done]}
                 />
                 {it.audio_path && it.audio_seconds != null ? <Text style={s.secs}>{formatSeconds(it.audio_seconds)}</Text> : null}
+                {it.done_at ? null : <>
                 <GhostButton accessibilityLabel={it.attention ? "Remove flag" : "Flag as needing attention"} onPress={() => update(it.id, { attention: !it.attention })}>
                   <Flag size={15} color={it.attention ? colors.burgundy : colors.mutedForeground} fill={it.attention ? colors.burgundy : "none"} strokeWidth={1.7} />
                 </GhostButton>
                 <GhostButton accessibilityLabel="Give it a date" onPress={() => setDating(it)}>
                   <CalendarPlus size={15} color={colors.gold} strokeWidth={1.7} />
                 </GhostButton>
+                </>}
                 <RemoveButton
                   accessibilityLabel="Delete"
                   onPress={() => {
@@ -211,7 +219,7 @@ function DatePicker({ onPick, onClose }: { onPick: (iso: string) => void; onClos
 
 const s = StyleSheet.create({
   list: { marginTop: space.lg, gap: 2 },
-  row: { flexDirection: "row", alignItems: "center", gap: 4 },
+  row: { flexDirection: "row", alignItems: "center", gap: 6 },
   thumb: { width: 26, height: 26, borderRadius: 4, backgroundColor: colors.muted, marginRight: 2 },
   big: { width: "100%", height: "85%", maxWidth: 900 },
   secs: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground, fontVariant: ["tabular-nums"], marginRight: 4 },
@@ -221,6 +229,7 @@ const s = StyleSheet.create({
   saving: { fontFamily: fonts.sans, fontSize: 12, color: colors.mutedForeground, marginTop: space.sm },
   text: { flex: 1, fontSize: 15 },
   attention: { color: colors.burgundy, fontFamily: fonts.sansMedium },
+  done: { textDecorationLine: "line-through", color: colors.mutedForeground, fontFamily: fonts.sans },
   x: { fontFamily: fonts.sans, fontSize: 11, color: colors.mutedForeground },
   empty: { fontFamily: fonts.displayItalic, fontSize: 17, color: colors.mutedForeground, marginTop: space.md },
   notice: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.gold, marginTop: space.sm },
