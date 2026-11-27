@@ -198,7 +198,7 @@ export default function TodayScreen() {
               <View style={{ gap: 2 }}>
                 {show("calendar") && calendar.loading ? <EventsLoading /> : null}
                 {dayAgenda(show("calendar") ? dayEvents : [], [
-                  ...(show("tasks") ? tasks : []),
+                  ...(show("tasks") ? tasks.filter((t) => !t.was_focus) : []), // earlier focuses sit in the focus box
                   ...(show("tasks") && settings.showFood ? (meals.byDay[iso] ?? []).map(asAgendaMeal) : []),
                 ]).map((it) =>
                   it.kind === "event" ? (

@@ -85,10 +85,10 @@ export function useTaskOps() {
   const ops = useMemo(
     () => ({
       /** Create a task at a placement (area column, a day, or loose within a week). */
-      add(placement: Placement, weekStart: string, text = "", position = 0, opts: { done?: boolean } = {}) {
+      add(placement: Placement, weekStart: string, text = "", position = 0, opts: { done?: boolean; wasFocus?: boolean } = {}) {
         const id = Crypto.randomUUID();
         const cols = placementColumns(placement, weekStart);
-        add.mutate({ id, text, done: !!opts.done, position, ...cols });
+        add.mutate({ id, text, done: !!opts.done, position, ...(opts.wasFocus ? { was_focus: true } : {}), ...cols });
         if (!opts.done) setFocusId(id); // a new empty line gets the cursor; a filed done one doesn't
         return id;
       },

@@ -75,6 +75,8 @@ export type TaskRow = {
   task_time?: string | null;
   /** A "times a week" habit placed on this day from the Week page; ticking it counts for the habit. */
   habit_id?: string | null;
+  /** Was the day's focus, finished; shown crossed out in the focus box. */
+  was_focus?: boolean;
   position: number;
 } & Timestamps;
 

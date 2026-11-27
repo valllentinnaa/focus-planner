@@ -1,6 +1,6 @@
 // "Focus of the day". Tick it and it asks what else is a must today: pick one of today's open
 // tasks (it becomes the focus), write a new one, or stop there. The finished focus is kept on
-// the day as a done task, so nothing you did disappears.
+// the day as a done task, so nothing you did disappears — shown crossed out above the new focus.
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { TaskRow } from "@/lib/database.types";
@@ -8,7 +8,7 @@ import type { DailyDoc } from "@/data/daily";
 import type { TaskOps } from "@/data/tasks";
 import { colors, fonts, space } from "@/theme/tokens";
 import { FocusCard, FocusInput } from "./focus-card";
-import { GhostButton } from "./ui";
+import { CheckBox, GhostButton } from "./ui";
 
 export function DayFocus({
   doc,
@@ -36,10 +36,11 @@ export function DayFocus({
     setAsking(doc.focusDone && !!doc.focus.trim());
   }
 
-  const candidates = tasks.filter((t) => !t.done && t.text.trim()).slice(0, 6);
+  const candidates = tasks.filter((t) => !t.done && !t.was_focus && t.text.trim()).slice(0, 6);
+  const earlier = tasks.filter((t) => t.was_focus);
   /** Keep the finished focus on the day as a done task. */
   const fileDone = () => {
-    if (doc.focus.trim()) ops.add({ kind: "day", date: iso }, weekStart, doc.focus.trim(), tasks.length, { done: true });
+    if (doc.focus.trim()) ops.add({ kind: "day", date: iso }, weekStart, doc.focus.trim(), tasks.length, { done: true, wasFocus: true });
   };
   const pick = (t: TaskRow) => {
     fileDone();
@@ -56,6 +57,14 @@ export function DayFocus({
 
   return (
     <FocusCard label="Focus of the day" right={dateLabel}>
+      {earlier.map((t) => (
+        <View key={t.id} style={s.earlier}>
+          <CheckBox size={16} checked={t.done} onChange={(done) => ops.setDone(t.id, done)} />
+          <Text style={[s.earlierText, t.done && s.struck]} numberOfLines={2}>
+            {t.text.trim()}
+          </Text>
+        </View>
+      ))}
       <FocusInput
         value={doc.focus}
         done={doc.focusDone}
@@ -93,6 +102,9 @@ export function DayFocus({
 }
 
 const s = StyleSheet.create({
+  earlier: { flexDirection: "row", alignItems: "center", gap: space.md, paddingLeft: 2 },
+  earlierText: { flexShrink: 1, fontFamily: fonts.displayItalic, fontSize: 18, lineHeight: 24, color: colors.ink },
+  struck: { textDecorationLine: "line-through", color: colors.mutedForeground },
   ask: { marginTop: space.md, gap: space.sm, borderTopWidth: 1, borderTopColor: colors.rule, paddingTop: space.md },
   askTitle: { fontFamily: fonts.displayItalic, fontSize: 19, color: colors.gold },
   askActions: { flexDirection: "row", flexWrap: "wrap", gap: space.md, alignItems: "center" },

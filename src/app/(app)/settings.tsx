@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { colors, fonts, space } from "@/theme/tokens";
 import { getThemePref, setThemePref, type ThemePref } from "@/theme/theme";
 import { GENDERS } from "@/lib/onboarding";
-import { Hint, PageTitle, Screen } from "@/components/screen";
+import { Column, Columns, Hint, PageTitle, Screen } from "@/components/screen";
 import { ShareProfileSection } from "@/components/share-profile";
 import { MyBirthdaySection } from "@/components/my-birthday";
 import { Body, GhostButton, OutlineButton, RuleInput, SectionLabel } from "@/components/ui";
@@ -27,10 +27,13 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <PageTitle eyebrow="Your planner" title="Settings" />
-      <View style={{ maxWidth: 480, gap: space.xl }}>
-        {saveError ? (
-          <Text style={s.error}>{`Couldn't save your settings: ${(saveError as { message?: string }).message ?? "unknown error"}`}</Text>
-        ) : null}
+      {saveError ? (
+        <Text style={[s.error, { marginBottom: space.lg }]}>{`Couldn't save your settings: ${(saveError as { message?: string }).message ?? "unknown error"}`}</Text>
+      ) : null}
+      {/* Two columns on a wide screen (you · the app); one on phones. */}
+      <Columns gap={space.xxl}>
+      <Column>
+      <View style={s.col}>
         <View>
           <SectionLabel>Your name</SectionLabel>
           <RuleInput value={settings.ownerName} onChangeText={(ownerName) => update({ ownerName })} placeholder="e.g. Val" />
@@ -56,6 +59,25 @@ export default function SettingsScreen() {
 
         <ShareProfileSection name={name} />
 
+        <View>
+          <SectionLabel>Account</SectionLabel>
+          <Body muted>{env.demo ? "Demo mode — data stays in this browser" : session?.user.email}</Body>
+          {env.demo ? (
+            <GhostButton onPress={() => clearDemoData().then(() => window.location.reload())} style={{ marginTop: space.sm }}>
+              Reset demo data
+            </GhostButton>
+          ) : (
+            <GhostButton onPress={() => supabase.auth.signOut()} style={{ marginTop: space.sm }}>
+              Sign out
+            </GhostButton>
+          )}
+        </View>
+
+        <RunSetupAgain />
+      </View>
+      </Column>
+      <Column>
+      <View style={s.col}>
         <AppearanceSection />
 
         <PagesSection />
@@ -73,26 +95,12 @@ export default function SettingsScreen() {
 
         <ShareToClipboardSection />
 
-        <View>
-          <SectionLabel>Account</SectionLabel>
-          <Body muted>{env.demo ? "Demo mode — data stays in this browser" : session?.user.email}</Body>
-          {env.demo ? (
-            <GhostButton onPress={() => clearDemoData().then(() => window.location.reload())} style={{ marginTop: space.sm }}>
-              Reset demo data
-            </GhostButton>
-          ) : (
-            <GhostButton onPress={() => supabase.auth.signOut()} style={{ marginTop: space.sm }}>
-              Sign out
-            </GhostButton>
-          )}
-        </View>
-
-        <RunSetupAgain />
-
         <Hint>
           Focus Planner {Constants.expoConfig?.version} · internal build
         </Hint>
       </View>
+      </Column>
+      </Columns>
     </Screen>
   );
 }
@@ -370,6 +378,7 @@ function Toggle({ label, value, onChange, color }: { label: string; value: boole
 }
 
 const s = StyleSheet.create({
+  col: { gap: space.xl, maxWidth: 560 },
   navRow: { flexDirection: "row", alignItems: "center", gap: space.md },
   shareHead: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.ink },
   key: { fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "ui-monospace, Menlo, monospace" }), fontSize: 12, color: colors.ink, backgroundColor: colors.muted, padding: space.sm, borderRadius: 4 },
