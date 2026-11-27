@@ -12,6 +12,14 @@ export const palettes = {
     destructive: "#c45c5c",
     burgundy: "#7d2a3a",
     white: "#ffffff",
+    // Life-area swatches (Today colours) — soft, ink-friendly.
+    sage: "#7f9a7a",
+    sky: "#6f8fae",
+    rose: "#b97a83",
+    amber: "#c29a4e",
+    lavender: "#8e80ad",
+    terracotta: "#b5704f",
+    slate: "#6f7a82",
   },
   dark: {
     paper: "#0f0d0b",
@@ -24,6 +32,13 @@ export const palettes = {
     destructive: "#de7b7b",
     burgundy: "#d98a98",
     white: "#ffffff",
+    sage: "#9db896",
+    sky: "#93b0cc",
+    rose: "#d49aa2",
+    amber: "#d9b56c",
+    lavender: "#ad9fcb",
+    terracotta: "#d08e6e",
+    slate: "#9aa5ad",
   },
 } as const;
 

@@ -1,10 +1,12 @@
 // Settings → Daily journal: choose which sections the journal shows and add your own fields.
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { X } from "lucide-react-native";
 import { newId } from "@/data/items";
 import { useSettings } from "@/data/profile";
+import { AreaColorsPicker } from "@/components/area-colors";
+import { hasAreaColors } from "@/lib/area-colors";
 import {
   addField,
   BUILTIN_FIELDS,
@@ -23,6 +25,7 @@ import { GhostButton, OutlineButton, RuleInput, SectionLabel } from "@/component
 
 export default function DailySettingsScreen() {
   const { settings, update, saveError } = useSettings();
+  const fromToday = useLocalSearchParams<{ from?: string }>().from === "today";
   const layout = settings.dailyLayout;
   const save = (next: DailyLayout) => update({ dailyLayout: next });
   const [label, setLabel] = useState("");
@@ -37,8 +40,8 @@ export default function DailySettingsScreen() {
 
   return (
     <Screen>
-      <Link href="/settings" asChild>
-        <GhostButton style={{ alignSelf: "flex-start" }}>‹ Settings</GhostButton>
+      <Link href={fromToday ? "/today" : "/settings"} asChild>
+        <GhostButton style={{ alignSelf: "flex-start" }}>{fromToday ? "‹ Today" : "‹ Settings"}</GhostButton>
       </Link>
       <PageTitle eyebrow="Settings" title="Daily journal" />
       <View style={{ maxWidth: 480, gap: space.xl }}>
@@ -60,6 +63,27 @@ export default function DailySettingsScreen() {
                 />
               </Pressable>
             ))}
+          </View>
+        </View>
+
+        <View>
+          <SectionLabel>Colours</SectionLabel>
+          <Text style={s.hint}>Colour the tasks in your day by life area. The palette button on Today turns them on and off.</Text>
+          <Pressable style={[s.row, { marginTop: space.sm }]} onPress={() => update({ showAreaColors: !settings.showAreaColors })}>
+            <Text style={s.rowLabel}>Show colours on Today</Text>
+            <Switch
+              value={settings.showAreaColors}
+              onValueChange={(on) => update({ showAreaColors: on })}
+              trackColor={{ true: colors.gold, false: colors.rule }}
+              thumbColor={colors.paper}
+              {...({ activeThumbColor: colors.paper } as object)}
+            />
+          </Pressable>
+          <View style={{ marginTop: space.md }}>
+            <AreaColorsPicker
+              value={settings.areaColors}
+              onChange={(areaColors) => update({ areaColors, ...(hasAreaColors(areaColors) ? {} : { showAreaColors: false }) })}
+            />
           </View>
         </View>
 

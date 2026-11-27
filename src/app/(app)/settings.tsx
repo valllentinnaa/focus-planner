@@ -63,7 +63,7 @@ export default function SettingsScreen() {
           <Pressable style={s.navRow} accessibilityRole="link">
             <View style={{ flex: 1 }}>
               <SectionLabel>Daily journal</SectionLabel>
-              <Text style={s.navHint}>Choose the sections and add your own fields</Text>
+              <Text style={s.navHint}>Choose the sections, colours and your own fields</Text>
             </View>
             <Text style={s.navArrow}>›</Text>
           </Pressable>

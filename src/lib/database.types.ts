@@ -27,6 +27,9 @@ export type ProfileRow = {
   birth_year?: number | null;
   share_birth_year?: boolean;
   dismissed_prompts?: string[];
+  /** { work: "sky", … } — swatch names; see lib/area-colors. */
+  area_colors?: unknown;
+  show_area_colors?: boolean;
 } & Timestamps;
 
 export type WeekRow = {

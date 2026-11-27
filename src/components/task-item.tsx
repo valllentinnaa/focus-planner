@@ -24,7 +24,10 @@ export function TaskItem({
   draggable,
   inDay,
   showDay,
+  tint,
 }: {
+  /** Life-area colour (Today, when colours are on). null = on but no colour for this task. */
+  tint?: string | null;
   task: TaskRow;
   ops: TaskOps;
   compact?: boolean;
@@ -56,6 +59,7 @@ export function TaskItem({
 
   return (
     <View style={s.row}>
+      {tint !== undefined ? <View style={[s.tint, { backgroundColor: tint ?? "transparent" }]} /> : null}
       {draggable ? <DragHandle task={task} label={task.text} /> : null}
       <CheckBox size={compact ? 16 : 18} checked={task.done} onChange={(done) => ops.setDone(task.id, done)} />
       {isFocus ? <Text style={s.star} accessibilityLabel="Week's focus">★</Text> : null}
@@ -231,6 +235,7 @@ export function TimeSheet({ initial, title, onClose, onSave }: { initial: string
 }
 
 const s = StyleSheet.create({
+  tint: { width: 3, height: 18, borderRadius: 2, marginRight: -2 },
   time: { fontFamily: fonts.sansMedium, fontSize: 12, letterSpacing: 0.5, color: colors.gold, fontVariant: ["tabular-nums"] },
   timeFor: { fontFamily: fonts.sans, fontSize: 13, color: colors.mutedForeground },
   timeInput: { fontSize: 22, fontVariant: ["tabular-nums"], marginTop: space.sm },

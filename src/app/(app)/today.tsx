@@ -22,6 +22,9 @@ import { useCalendarEvents, useCalendarOps } from "@/data/calendar";
 import { useHabitChecks, useHabits } from "@/data/habits";
 import { useRoutineChecks, useRoutines } from "@/data/routines";
 import { HabitScheduleSheet } from "@/components/habit-schedule";
+import { AreaColorsKey, AreaColorsSheet, areaTint } from "@/components/area-colors";
+import { hasAreaColors } from "@/lib/area-colors";
+import { Palette, Settings2 } from "lucide-react-native";
 import { dueOn, scheduleLabel } from "@/lib/habits";
 import { ChecklistField, type HabitLine } from "@/components/checklist-field";
 
@@ -43,7 +46,14 @@ export default function TodayScreen() {
   const dayEvents = calendar.byDay[iso] ?? [];
   const ops = useTaskOps();
 
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
+  // Colours by life area: one tap on/off; the first time (none picked yet) it asks for colours.
+  const [coloursOpen, setColoursOpen] = useState(false);
+  const coloursOn = settings.showAreaColors && hasAreaColors(settings.areaColors);
+  const toggleColours = () => {
+    if (!hasAreaColors(settings.areaColors)) setColoursOpen(true);
+    else update({ showAreaColors: !settings.showAreaColors });
+  };
   // 12W habits due this day, at the top of Practices; ticking one counts toward its progress.
   // Tap a habit's schedule to change how often (it updates on 12W too); ↻ on a line makes it a habit.
   const { quarter, habits, goalOps } = useHabits();
@@ -127,11 +137,29 @@ export default function TodayScreen() {
         title="Daily Journal"
         right={
           <View style={{ gap: space.sm, alignItems: wide ? "flex-end" : "flex-start" }}>
-            <Link href="/" asChild>
-              <Pressable accessibilityRole="link" style={({ pressed }) => [wide && { alignSelf: "flex-end" }, pressed && { opacity: 0.6 }]}>
-                <Text style={s.weekLink}>My week ↗</Text>
+            <View style={[s.tools, wide && { alignSelf: "flex-end" }]}>
+              <Pressable
+                onPress={toggleColours}
+                onLongPress={() => setColoursOpen(true)}
+                accessibilityRole="switch"
+                accessibilityLabel="Colours by life area"
+                accessibilityState={{ checked: coloursOn }}
+                hitSlop={8}
+                style={({ pressed }) => [s.tool, coloursOn && s.toolOn, pressed && { opacity: 0.6 }]}
+              >
+                <Palette size={15} color={coloursOn ? colors.ink : colors.mutedForeground} strokeWidth={1.75} />
               </Pressable>
-            </Link>
+              <Link href="/daily-settings?from=today" asChild>
+                <Pressable accessibilityRole="link" accessibilityLabel="Today settings" hitSlop={8} style={({ pressed }) => [s.tool, pressed && { opacity: 0.6 }]}>
+                  <Settings2 size={15} color={colors.mutedForeground} strokeWidth={1.75} />
+                </Pressable>
+              </Link>
+              <Link href="/" asChild>
+                <Pressable accessibilityRole="link" style={({ pressed }) => pressed && { opacity: 0.6 }}>
+                  <Text style={s.weekLink}>My week ↗</Text>
+                </Pressable>
+              </Link>
+            </View>
             <DateNav
               printable
               label={format(date, "MMM d, yyyy")}
@@ -166,6 +194,7 @@ export default function TodayScreen() {
             <View>
               {/* One list for the day: calendar events and tasks together, in time order. */}
               <SectionLabel>{show("tasks") ? "Your day" : "Calendar"}</SectionLabel>
+              {coloursOn && show("tasks") ? <AreaColorsKey value={settings.areaColors} onPress={() => setColoursOpen(true)} /> : null}
               <View style={{ gap: 2 }}>
                 {show("calendar") && calendar.loading ? <EventsLoading /> : null}
                 {dayAgenda(show("calendar") ? dayEvents : [], [
@@ -182,7 +211,7 @@ export default function TodayScreen() {
                       onTime={(t) => meals.setTime(it.task.id, t)}
                     />
                   ) : (
-                    <TaskItem key={it.task.id} task={it.task} ops={ops} />
+                    <TaskItem key={it.task.id} task={it.task} ops={ops} tint={coloursOn ? areaTint(settings.areaColors, it.task.area) : undefined} />
                   ),
                 )}
               </View>
@@ -211,6 +240,13 @@ export default function TodayScreen() {
       </Columns>
 
       {show("notes") ? field("notes", "Diary", 6) : null}
+      {coloursOpen ? (
+        <AreaColorsSheet
+          value={settings.areaColors}
+          onSave={(areaColors) => update({ areaColors, showAreaColors: true })}
+          onClose={() => setColoursOpen(false)}
+        />
+      ) : null}
       {configHabit ? (
         <HabitScheduleSheet
           name={configHabit.text}
@@ -235,6 +271,9 @@ export default function TodayScreen() {
 
 const s = StyleSheet.create({
   addRow: { flexDirection: "row", flexWrap: "wrap", gap: space.lg, marginTop: 6 },
+  tools: { flexDirection: "row", alignItems: "center", gap: space.md },
+  tool: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  toolOn: { backgroundColor: colors.muted },
   weekLink: { fontFamily: fonts.sansMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: colors.gold, paddingVertical: 4 },
   dots: { flexDirection: "row", gap: 6, marginTop: 4 },
   dot: { alignItems: "center", width: 30, gap: 4, paddingVertical: 4 },
